@@ -1,0 +1,29 @@
+# ========================================
+# Substrate Cognitive Architecture
+# Requirements for Stage 2 (Two-Step)
+# ========================================
+
+# ===== Core (обязательно) =====
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+
+# ===== Visualization =====
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# ===== Statistical Analysis (для Sanity Check) =====
+statsmodels>=0.14.0
+
+# ===== Utilities =====
+pathlib2>=2.3.0    # Для совместимости Path
+tqdm>=4.65.0       # Progress bars для экспериментов
+
+# ===== Optional (для будущих расширений) =====
+# torch>=2.0.0     # Если понадобится нейросеть
+# jax>=0.4.0       # Альтернатива torch
+# pytest>=7.0.0    # Для автоматических тестов
+
+# ===== Development =====
+# black>=23.0.0    # Форматирование кода
+# flake8>=6.0.0    # Linting

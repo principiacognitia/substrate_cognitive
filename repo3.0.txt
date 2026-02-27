@@ -1,0 +1,60 @@
+substrate_cognitive/
+├── mvp/                              # ЗАМОРОЖЕННЫЙ артефакт (v5.0)
+│   ├── config.py
+│   ├── belief.py
+│   ├── gate.py                       # Не импортирует из stage2/
+│   ├── agent.py
+│   ├── environment.py
+│   ├── metrics.py
+│   ├── run_experiment.py
+│   ├── visualize.py
+│   └── README.md                     # Документация MVP-результатов
+│
+├── stage2/                           # Активная разработка
+│   ├── __init__.py                   # Делает stage2 пакетом
+│   │
+│   ├── core/                         # Общие модули (реальный пакет)
+│   │   ├── __init__.py
+│   │   ├── gate.py                   # Обновлённая версия
+│   │   ├── rheology.py               # Выделено из gate.py
+│   │   ├── baselines.py              # НОВОЕ: MF-only, MB-only, Hybrid, No-VG
+│   │   └── logger.py                 # НОВОЕ: единый формат логов
+│   │
+│   ├── twostep/
+│   │   ├── config_twostep.py
+│   │   ├── env_twostep.py
+│   │   ├── agent_twostep.py
+│   │   ├── belief_twostep.py
+│   │   └── debug_*.py                # Скрипты отладки (Levels 0-4)
+│   │
+│   ├── reversal/
+│   │   ├── config_reversal.py
+│   │   ├── env_reversal.py
+│   │   └── debug_*.py
+│   │
+│   ├── analysis/                     # НОВОЕ: выделенный анализ
+│   │   ├── analysis_twostep.py       # CLI-скрипт, читает логи
+│   │   ├── analysis_reversal.py
+│   │   └── figures.py                # Генерация фигур для статьи
+│   │
+│   └── README.md                     # Документация этапа 2
+│
+├── docs/
+│   ├── architecture_spec.md          # Document 1 (обновлённый)
+│   ├── mapping.md                    # ← Отсюда ссылка в stage2/core/
+│   ├── mvp_results.md                # Результаты T-maze MVP
+│   └── stage2_plan.md                # План этапа 2
+│
+├── logs/                             # НОВОЕ: единое место для логов
+│   ├── twostep/
+│   ├── reversal/
+│   └── .gitignore                    # *.csv, *.npz игнорируются
+│
+├── tests/                            # НОВОЕ: автоматические тесты
+│   ├── test_interface.py
+│   ├── test_environment.py
+│   └── test_baselines.py
+│
+├── requirements.txt
+├── setup.py                          # Для установки как пакета
+└── README.md                         # Общая информация проекта
