@@ -17,6 +17,7 @@ import statsmodels.api as sm
 from stage2.twostep.env_twostep import TwoStepEnv
 from stage2.core.baselines import MFAgent, MBAgent
 from stage2.twostep.config_twostep import N_TRIALS, DEBUG_SANITY_SEED
+#N_TRIALS_TEST = 1000  # Увеличено для стабильности статистики
 
 def run_agent(env: TwoStepEnv, agent, n_trials: int = N_TRIALS) -> pd.DataFrame:
     """
@@ -34,7 +35,7 @@ def run_agent(env: TwoStepEnv, agent, n_trials: int = N_TRIALS) -> pd.DataFrame:
         s2, trans_type = env.step_stage1(a1)
         a2 = agent.select_action_stage2(s2)
         reward, done, info = env.step_stage2(a2)
-        agent.update(a1, a2, reward, s2, trans_type)
+        agent.update(a1, a2, reward, s2, trans_type, s1)
         
         # Stay: повторил ли агент то же действие на этапе 1
         stay = 1 if (prev_a1 is not None and a1 == prev_a1) else 0
@@ -55,7 +56,7 @@ def run_agent(env: TwoStepEnv, agent, n_trials: int = N_TRIALS) -> pd.DataFrame:
     df['reward:transition'] = df['reward'] * df['transition']
     return df
 
-def logistic_regression(df: pd.DataFrame) -> sm.LogitResults:
+def logistic_regression(df: pd.DataFrame) -> object:
     """
     Logistic regression: Stay ~ Reward × Transition + Reward + Transition
     
@@ -106,7 +107,7 @@ def main():
     # ===== MB-only агент =====
     print("\nЗапуск MB-only агента...")
     env = TwoStepEnv(seed=DEBUG_SANITY_SEED)  # Reset env
-    mb_agent = MBAgent(beta=5.0, seed=DEBUG_SANITY_SEED)
+    mb_agent = MBAgent(beta=2.0, seed=DEBUG_SANITY_SEED)
     mb_data = run_agent(env, mb_agent)
     mb_result = logistic_regression(mb_data)
     
