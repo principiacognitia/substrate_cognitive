@@ -17,7 +17,11 @@ N_TRIALS_TEST = 2000
 
 def run_agent(env: TwoStepEnv, agent, n_trials: int = N_TRIALS_TEST) -> pd.DataFrame:
     data = []
+
+    # Переменные для хранения событий ПРЕДЫДУЩЕГО триала (t-1) via Gemini 3.1 AI Studio
     prev_a1 = None
+    prev_reward = None
+    prev_trans_factor = None
     
     for trial in range(n_trials):
         s1 = env.reset()
@@ -27,18 +31,23 @@ def run_agent(env: TwoStepEnv, agent, n_trials: int = N_TRIALS_TEST) -> pd.DataF
         reward, done, info = env.step_stage2(a2)
         agent.update(a1, a2, reward, s2, trans_type, s1)
         
-        stay = 1 if (prev_a1 is not None and a1 == prev_a1) else 0
-        # ИСПРАВЛЕНИЕ: 1 = common, -1 = rare (не 1/0!)
         trans_factor = 1 if trans_type == 'common' else -1
+
+        # Мы можем записать данные только начиная со второго триала. В первом триале нет данных о предыдущем выборе, награде и переходе.
+        if prev_a1 is not None:
+            stay = 1 if (a1 == prev_a1) else 0
+        # ИСПРАВЛЕНИЕ: 1 = common, -1 = rare (не 1/0!)
+            data.append({
+                'trial': trial,
+                'reward': prev_reward,              # Награда из t-1 via Gemini 3.1 AI Studio
+                'trans_factor': prev_trans_factor,  # Переход из t-1 via Gemini 3.1 AI Studio
+                'stay': stay                        # Выбор в t совпал с выбором в t-1 
+            })
         
-        data.append({
-            'trial': trial,
-            'reward': reward,
-            'trans_factor': trans_factor,
-            'stay': stay
-        })
-        
+        # Сохраняем текущие события для следующего триала via Gemini 3.1 AI Studio
         prev_a1 = a1
+        prev_reward = reward
+        prev_trans_factor = trans_factor
     
     df = pd.DataFrame(data)
     df['interaction'] = df['reward'] * df['trans_factor']
