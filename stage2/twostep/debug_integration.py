@@ -1,70 +1,72 @@
 """
-Level 3: Integration Test — RheologicalAgent в Two-Step среде.
-Полное CSV-логгирование всех латентов.
+Level 3: Integration Test — V_G Hysteresis and Mode Switching.
+Демонстрация плавления мета-ригидности.
 """
 
+import sys
+sys.path.insert(0, 'E:/CRS-1/substrate_cognitive')
+
 import numpy as np
-import csv
-import matplotlib.pyplot as plt
-from env_twostep import TwoStepEnv
-from agent_twostep import RheologicalAgent
+import pandas as pd
+from stage2.twostep.env_twostep import TwoStepEnv
+from stage2.twostep.agent_twostep import RheologicalAgent
+from stage2.twostep.config_twostep import DEBUG_INTEGRATION_SEED
 
 def main():
-    env = TwoStepEnv(seed=42, n_trials=300)
-    agent = RheologicalAgent()
+    print("=" * 70)
+    print("Level 3: Integration Test — Rheological Agent")
+    print("=" * 70)
     
-    V_G_history = []
-    mode_history = []
+    n_trials = 2000
+    changepoint = 1000
     
-    # CSV logger (Grok пункт 3)
-    with open('debug_integration_log.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['trial', 'a1', 'a2', 's2', 'reward', 'u_delta', 'u_s', 'u_v', 'V_G', 'mode', 'belief_entropy'])
+    env = TwoStepEnv(n_trials=n_trials, seed=DEBUG_INTEGRATION_SEED, 
+                     with_changepoint=True, changepoint_trial=changepoint)
+    
+    agent = RheologicalAgent(seed=DEBUG_INTEGRATION_SEED)
+    
+    data = []
+    u_t_prev = np.array([0.0, 0.0, 0.0, 0.0])
+    
+    for trial in range(1, n_trials + 1):
+        s1 = env.reset()
+        a1 = agent.select_action_stage1(s1, u_t_prev)
+        s2, trans_type = env.step_stage1(a1)
+        a2 = agent.select_action_stage2(s2)
+        reward, done, info = env.step_stage2(a2)
         
-        for trial in range(300):
-            s1 = env.reset()
-            a1 = agent.select_action_stage1(s1)
-            s2, trans_type = env.step_stage1(a1)
-            a2 = agent.select_action_stage2(s2)
-            reward, done, _ = env.step_stage2(a2)
-            agent.update(a1, a2, reward, s2, trans_type)
-            
-            # Логгирование всех латентов
-            u_t = agent.get_u_t()
-            writer.writerow([
-                trial, a1, a2, s2, reward,
-                u_t[0], u_t[1], u_t[2],  # u_delta, u_s, u_v
-                agent.V_G, agent.get_mode(), agent.get_belief_entropy()
-            ])
-            
-            V_G_history.append(agent.V_G)
-            mode_history.append(1 if agent.get_mode() == 'EXPLORE' else 0)
+        mode = agent.get_mode()
+        V_G = agent.V_G
+        
+        u_t_prev = agent.update(a1, a2, reward, s2, trans_type, s1)
+        
+        data.append({
+            'trial': trial,
+            'V_G': V_G,
+            'u_delta': u_t_prev[0],
+            'mode': 1 if mode == 'EXPLORE' else 0
+        })
+        
+        # Логируем ключевые точки: до, во время и после смены правил
+        if trial in[950, 990, 1000, 1005, 1010, 1020, 1050, 1100]:
+            print(f"Trial {trial:4d} | Mode: {mode:7s} | V_G: {V_G:.3f} | u_delta: {u_t_prev[0]:.3f}")
+
+    df = pd.DataFrame(data)
     
-    # Визуализация
-    fig, axes = plt.subplots(3, 1, figsize=(12, 8))
-    axes[0].plot(V_G_history, 'g-', linewidth=2, label='V_G')
-    axes[0].set_title('Gate Rheology')
-    axes[0].legend()
-    axes[0].grid(True, alpha=0.3)
+    # Анализ гистерезиса
+    explore_before = df[(df['trial'] >= 900) & (df['trial'] < 1000)]['mode'].mean()
+    explore_after = df[(df['trial'] >= 1000) & (df['trial'] < 1100)]['mode'].mean()
     
-    axes[1].plot(mode_history, 'orange', drawstyle='steps', label='Mode (1=EXPLORE)')
-    axes[1].set_title('Gate Mode')
-    axes[1].legend()
-    axes[1].grid(True, alpha=0.3)
+    print("\n" + "=" * 70)
+    print("Анализ динамики Гейта")
+    print("=" * 70)
+    print(f"Доля EXPLORE до смены правил (900-1000): {explore_before:.1%}")
+    print(f"Доля EXPLORE после смены (1000-1100):   {explore_after:.1%}")
     
-    axes[2].set_title('CSV Log: debug_integration_log.csv')
-    axes[2].axis('off')
-    
-    plt.tight_layout()
-    plt.savefig('debug_integration.png', dpi=150)
-    
-    # Валидация
-    assert np.std(V_G_history) > 0.05, f"V_G должна меняться! std = {np.std(V_G_history):.4f}"
-    assert np.sum(mode_history) > 10, f"Должны быть EXPLORE триалы! count = {np.sum(mode_history)}"
-    
-    print("✓ Level 3: Integration Test PASSED")
-    print(f"  V_G std: {np.std(V_G_history):.4f}")
-    print(f"  EXPLORE trials: {np.sum(mode_history)}")
+    if explore_after > explore_before:
+        print("\n✓ УСПЕХ: Агент реагирует на смену среды (V_G плавится, EXPLORE растет).")
+    else:
+        print("\n✗ ПРОВАЛ: Агент не переключился в EXPLORE.")
 
 if __name__ == "__main__":
     main()
