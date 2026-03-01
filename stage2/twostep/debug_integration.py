@@ -8,6 +8,7 @@ sys.path.insert(0, 'E:/CRS-1/substrate_cognitive')
 
 import numpy as np
 import pandas as pd
+from stage2.core.gate import THETA_MB
 from stage2.twostep.env_twostep import TwoStepEnv
 from stage2.twostep.agent_twostep import RheologicalAgent
 from stage2.twostep.config_twostep import DEBUG_INTEGRATION_SEED
@@ -53,20 +54,35 @@ def main():
 
     df = pd.DataFrame(data)
     
-    # Анализ гистерезиса
-    explore_before = df[(df['trial'] >= 900) & (df['trial'] < 1000)]['mode'].mean()
-    explore_after = df[(df['trial'] >= 1000) & (df['trial'] < 1100)]['mode'].mean()
+    # 1. Фаза поздней стабильности (до смены правил)
+    explore_before = df[(df['trial'] >= 900) & (df['trial'] <= 1000)]['mode'].mean()
+    
+    # 2. Фаза шока и адаптации (сразу после смены правил)
+    explore_shock = df[(df['trial'] > 1000) & (df['trial'] <= 1030)]['mode'].mean()
+    
+    # 3. Фаза выздоровления (агент выучил новые правила)
+    explore_recovery = df[(df['trial'] >= 1070) & (df['trial'] <= 1100)]['mode'].mean()
+    
+    # Вычисление латентности (гистерезиса)
+    post_change = df[df['trial'] > 1000]
+    explore_trials = post_change[post_change['mode'] == 1]['trial'].values
+    latency = explore_trials[0] - 1000 if len(explore_trials) > 0 else None
     
     print("\n" + "=" * 70)
-    print("Анализ динамики Гейта")
+    print(f"Анализ динамики Гейта с theta_mb = {THETA_MB:.2f}")
     print("=" * 70)
-    print(f"Доля EXPLORE до смены правил (900-1000): {explore_before:.1%}")
-    print(f"Доля EXPLORE после смены (1000-1100):   {explore_after:.1%}")
+    print(f"EXPLORE до смены правил (900-1000):   {explore_before:.1%} (Ожидается < 20%)")
+    print(f"EXPLORE в фазе шока (1001-1030):      {explore_shock:.1%} (Ожидается резкий рост)")
+    print(f"EXPLORE после адаптации (1070-1100):  {explore_recovery:.1%} (Ожидается спад)")
     
-    if explore_after > explore_before:
-        print("\n✓ УСПЕХ: Агент реагирует на смену среды (V_G плавится, EXPLORE растет).")
+    if latency is not None:
+        print(f"\nЗАДЕРЖКА ПЕРЕКЛЮЧЕНИЯ (Hysteresis): {latency} триалов")
+        if latency > 1:
+            print("✓ УСПЕХ: Мета-ригидность подтверждена! Агент сопротивлялся переключению.")
+        else:
+            print("✗ ПРОВАЛ: Агент переключился мгновенно, инерция V_G не сработала.")
     else:
-        print("\n✗ ПРОВАЛ: Агент не переключился в EXPLORE.")
+        print("\n✗ ПРОВАЛ: Агент вообще не включил EXPLORE.")
 
 if __name__ == "__main__":
     main()

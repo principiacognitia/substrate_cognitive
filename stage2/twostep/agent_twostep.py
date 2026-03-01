@@ -61,8 +61,8 @@ class RheologicalAgent:
         probs = exp_q / exp_q.sum()
         u_s = -np.sum(probs * np.log(probs + 1e-10))
         
-        # Ставки (Cost/Stakes) - пока константа для toy-модели
-        u_c = 1.0 
+        # Ставки (Cost/Stakes) - пока обнуляем, чтобы не создавать постоянное гипер-давление на гейт
+        u_c = 0.0  
         
         return np.array([u_delta, u_s, u_v, u_c])
 
@@ -109,12 +109,13 @@ class RheologicalAgent:
         # 1. Вычисляем диагностику ДО обновления весов
         u_t = self._get_u_t(reward, s2, a2)
         
-        # Успешность для реологии (субъективная)
-        last_action_was_correct = (reward > 0.5)
-        
+        # ИСПРАВЛЕНИЕ: Отделяем стохастический шум от волатильности!
+        # Нормальная ошибка среды ~ 0.375. При смене правил она скачет до ~ 0.625.
+        is_environment_stable = (self.delta_ema < 0.5)
+
         # 2. Обновляем реологию (V_G и V_p)
         self.eta_G, self.V_G, self.eta_p, self.V_p = update_rheology(
-            self.eta_G, self.eta_p, last_action_was_correct
+            self.eta_G, self.eta_p, last_action_was_correct=is_environment_stable
         )
         
         # 3. Обновляем MF
