@@ -1,6 +1,6 @@
 """
 Baseline агенты для валидации two-step сигнатур.
-ИСПРАВЛЕННАЯ ВЕРСИЯ: правильная MB логика для positive interaction.
+ИСПРАВЛЕННАЯ ВЕРСИЯ: per-action rewards, max over a2 в MB.
 """
 
 import numpy as np
@@ -11,24 +11,22 @@ class MFAgent:
     Model-Free Only — табличный Q-learning.
     """
     
-    def __init__(self, alpha: float = 0.35, beta: float = 3.0, seed: int = 42):
+    def __init__(self, alpha: float = 0.35, beta: float = 4.0, seed: int = 42):
         self.alpha = alpha
         self.beta = beta
         self.rng = np.random.default_rng(seed)
         
-        # Q-значения для 4 финальных состояний × 2 действия
-        self.Q = np.ones((4, 2), dtype=np.float64) * 0.5  # Оптимистичная инициализация
+        # Q-значения: stage1 (2 действия), stage2 (2 состояния × 2 действия)
+        self.Q_stage1 = np.ones(2, dtype=np.float64) * 0.5
+        self.Q_stage2 = np.ones((2, 2), dtype=np.float64) * 0.5
         
-        # История
         self.prev_a1 = None
         self.prev_s1 = None
     
     def select_action_stage1(self, s1: int) -> int:
-        """Выбор действия на этапе 1."""
-        # Агрегируем Q по всем состояниям (MF не учитывает переходы)
-        q_values = np.mean(self.Q, axis=0)
+        q_values = self.Q_stage1
         
-        if self.rng.random() < 0.10:  # 10% exploration
+        if self.rng.random() < 0.10:
             return int(self.rng.integers(0, 2))
         
         exp_q = np.exp(self.beta * q_values)
@@ -36,8 +34,7 @@ class MFAgent:
         return int(self.rng.choice([0, 1], p=probs))
     
     def select_action_stage2(self, s2: int) -> int:
-        """Выбор действия на этапе 2."""
-        q_values = self.Q[s2]
+        q_values = self.Q_stage2[s2]
         
         if self.rng.random() < 0.10:
             return int(self.rng.integers(0, 2))
@@ -47,74 +44,70 @@ class MFAgent:
         return int(self.rng.choice([0, 1], p=probs))
     
     def update(self, a1: int, a2: int, reward: float, s2: int, trans_type: str, s1: int = 0) -> None:
-        """Q-learning update."""
-        self.Q[s2, a2] += self.alpha * (reward - self.Q[s2, a2])
+        # Stage 2 update
+        self.Q_stage2[s2, a2] += self.alpha * (reward - self.Q_stage2[s2, a2])
+        
+        # Stage 1 update (TD с наградой)
+        self.Q_stage1[a1] += self.alpha * (reward - self.Q_stage1[a1])
+        
         self.prev_a1 = a1
         self.prev_s1 = s1
 
 
 class MBAgent:
     """
-    Model-Based Only — one-step lookahead.
+    Model-Based Only — one-step lookahead с max over a2.
     
-    КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: MB агент должен показывать positive interaction,
-    потому что после reward×common он ожидает тот же s2, а после reward×rare — другой.
+    КЛЮЧЕВОЕ: V(s1, a1) = Σ P(s2|s1,a1) × max_a2 R(s2, a2)
     """
     
-    def __init__(self, beta: float = 3.0, seed: int = 42):
+    def __init__(self, beta: float = 4.0, seed: int = 42):
         self.beta = beta
         self.rng = np.random.default_rng(seed)
         
-        # Матрица переходов: P(s2 | s1, a1)
-        self.T = np.ones((2, 2, 4)) * 0.25
+        # Матрица переходов: P(s2 | s1, a1) — размер (1, 2, 2)
+        self.T = np.ones((1, 2, 2), dtype=np.float64) * 0.5
         
-        # Оценки наград: R(s2, a2)
-        self.R = np.ones((4, 2), dtype=np.float64) * 0.5
+        # Награды: R(s2, a2) — размер (2, 2)
+        self.R = np.ones((2, 2), dtype=np.float64) * 0.5
         
         # Счётчики
-        self.T_counts = np.ones((2, 2, 4)) * 0.1
-        self.R_counts = np.ones((4, 2), dtype=np.float64) * 0.1
-        self.R_sums = np.ones((4, 2), dtype=np.float64) * 0.5
+        self.T_counts = np.ones((1, 2, 2), dtype=np.float64) * 0.1
+        self.R_counts = np.ones((2, 2), dtype=np.float64) * 0.1
+        self.R_sums = np.ones((2, 2), dtype=np.float64) * 0.5
         
-        # История для вычисления stay/switch
         self.prev_a1 = None
         self.prev_s1 = None
     
     def _update_transition_model(self, s1: int, a1: int, s2: int, trans_type: str) -> None:
-        """Обновляет матрицу переходов."""
         self.T_counts[s1, a1, s2] += 1
         self.T[s1, a1] = self.T_counts[s1, a1] / self.T_counts[s1, a1].sum()
     
     def _update_reward_model(self, s2: int, a2: int, reward: float) -> None:
-        """Обновляет модель наград."""
         self.R_counts[s2, a2] += 1
         self.R_sums[s2, a2] += reward
         self.R[s2, a2] = self.R_sums[s2, a2] / self.R_counts[s2, a2]
     
     def _compute_mb_values(self, s1: int) -> np.ndarray:
         """
-        Вычисляет MB-значения для действий на этапе 1.
+        MB lookahead: V(s1, a1) = Σ P(s2|s1,a1) × max_a2 R(s2, a2)
         
-        КЛЮЧЕВОЕ: для каждого действия a1, вычисляем ожидаемую награду
-        через вероятности переходов T[s1, a1, s2] и лучшие награды R[s2].
+        КЛЮЧЕВОЕ: max over a2 создаёт нелинейность, отличающую MB от MF.
         """
         values = np.zeros(2)
         
         for a1 in [0, 1]:
             expected_value = 0.0
-            
-            # Суммируем по всем возможным s2
-            for s2 in range(4):
+            for s2 in range(2):
                 p_s2 = self.T[s1, a1, s2]
+                # MAX OVER A2 — это ключевое отличие!
                 best_a2_value = np.max(self.R[s2])
                 expected_value += p_s2 * best_a2_value
-            
             values[a1] = expected_value
         
         return values
     
     def select_action_stage1(self, s1: int) -> int:
-        """Выбор действия на этапе 1 на основе MB lookahead."""
         mb_values = self._compute_mb_values(s1)
         
         if self.rng.random() < 0.10:
@@ -125,7 +118,6 @@ class MBAgent:
         return int(self.rng.choice([0, 1], p=probs))
     
     def select_action_stage2(self, s2: int) -> int:
-        """Выбор действия на этапе 2 на основе модели наград."""
         r_values = self.R[s2]
         
         if self.rng.random() < 0.10:
@@ -136,7 +128,6 @@ class MBAgent:
         return int(self.rng.choice([0, 1], p=probs))
     
     def update(self, a1: int, a2: int, reward: float, s2: int, trans_type: str, s1: int = 0) -> None:
-        """Обновляет модели переходов и наград."""
         self._update_transition_model(s1, a1, s2, trans_type)
         self._update_reward_model(s2, a2, reward)
         
@@ -147,14 +138,14 @@ class MBAgent:
 class HybridAgent:
     """Hybrid — взвешенная комбинация MF/MB."""
     
-    def __init__(self, w: float = 0.5, alpha: float = 0.35, beta: float = 3.0, seed: int = 42):
+    def __init__(self, w: float = 0.5, alpha: float = 0.35, beta: float = 4.0, seed: int = 42):
         self.w = w
         self.mf = MFAgent(alpha=alpha, beta=beta, seed=seed)
         self.mb = MBAgent(beta=beta, seed=seed)
         self.rng = np.random.default_rng(seed)
     
     def select_action_stage1(self, s1: int) -> int:
-        mf_q = np.mean(self.mf.Q, axis=0)
+        mf_q = self.mf.Q_stage1.copy()
         mb_v = self.mb._compute_mb_values(s1)
         combined = (1 - self.w) * mf_q + self.w * mb_v
         
@@ -176,7 +167,7 @@ class HybridAgent:
 class NoVGAgent:
     """Абляция: без V_G инерции."""
     
-    def __init__(self, theta_mb: float = 0.5, alpha: float = 0.35, beta: float = 3.0, seed: int = 42):
+    def __init__(self, theta_mb: float = 0.5, alpha: float = 0.35, beta: float = 4.0, seed: int = 42):
         self.theta_mb = theta_mb
         self.mf = MFAgent(alpha=alpha, beta=beta, seed=seed)
         self.mb = MBAgent(beta=beta, seed=seed)

@@ -1,54 +1,52 @@
 """
 Конфигурация Two-Step Task (Daw et al., 2011).
-Все гиперпараметры вынесены сюда для удобной настройки.
+ИСПРАВЛЕННАЯ ВЕРСИЯ: per-action rewards на этапе 2 (2-armed bandit).
 """
 
 from typing import Dict, List
 
 # ========== Параметры среды ==========
-N_TRIALS: int = 1000           # Всего триалов в сессии
-SEED_ENV: int = 42            # Seed для среды
-SEED_AGENT: int = 42          # Seed для агента
+N_TRIALS: int = 2000          # Увеличено для стабильности статистики
+SEED_ENV: int = 42
+SEED_AGENT: int = 42
 
 # ========== Структура задачи ==========
-N_STAGE1_STATES: int = 2      # Состояния первого выбора (A, B)
-N_STAGE2_STATES: int = 4      # Состояния второго выбора (1, 2, 3, 4)
-N_ACTIONS: int = 2            # Действия на каждом этапе (Left, Right)
+N_STAGE1_STATES: int = 1      # Одно начальное состояние (канонично)
+N_STAGE2_STATES: int = 2      # Два состояния этапа 2
+N_STAGE2_ACTIONS: int = 2     # Два действия на этапе 2 (2-armed bandit!)
+N_ACTIONS: int = 2            # Действия на этапе 1 (Left / Right)
 
 # ========== Переходы ==========
-COMMON_TRANS_PROB: float = 0.70  # Вероятность common перехода
-RARE_TRANS_PROB: float = 0.30    # Вероятность rare перехода
+COMMON_TRANS_PROB: float = 0.70
+RARE_TRANS_PROB: float = 0.30
 
-# Маппинг переходов: action → (common_state, rare_state)
-# ИСПРАВЛЕННАЯ структура переходов (асимметричная!)
-# State 0 (A): action 0 → state 0 (common), state 2 (rare)
-#              action 1 → state 1 (common), state 3 (rare)
-# State 1 (B): action 0 → state 1 (common), state 3 (rare)
-#              action 1 → state 0 (common), state 2 (rare)
-#
-# Это создаёт настоящую two-step структуру где MB может использовать знание о переходах
+# КАНОНИЧЕСКАЯ СТРУКТУРА (Daw et al., 2011)
+# Action 0: State 0 (70% common), State 1 (30% rare)
+# Action 1: State 1 (70% common), State 0 (30% rare)
 STAGE1_TRANSITIONS: Dict[int, Dict[int, tuple]] = {
-    0: {0: (0, 2), 1: (1, 3)},  # State A: Left→0/2, Right→1/3
-    1: {0: (1, 3), 1: (0, 2)}   # State B: Left→1/3, Right→0/2 (асимметрия!)
+    0: {0: (0, 1), 1: (1, 0)}
 }
 
 # ========== Награды ==========
 REWARD_MIN: float = 0.0
 REWARD_MAX: float = 1.0
-REWARD_DRIFT_RATE: float = 0.025  # Скорость дрейфа вероятностей наград
-REWARD_DRIFT_SD: float = 0.01     # Стандартное отклонение дрейфа
+REWARD_DRIFT_RATE: float = 0.025
+REWARD_DRIFT_SD: float = 0.01
 
-# Начальные вероятности наград для 4 финальных состояний
-INITIAL_REWARD_PROBS: List[float] = [0.75, 0.25, 0.25, 0.75]
+# НАГРАДЫ ДЛЯ 2-ARMED BANDIT: [s2=0: [a2=0, a2=1], s2=1: [a2=0, a2=1]]
+INITIAL_REWARD_PROBS: List[List[float]] = [
+    [0.75, 0.25],  # s2=0: left lever 75%, right lever 25%
+    [0.25, 0.75]   # s2=1: left lever 25%, right lever 75%
+]
 
 # ========== Параметры для отладки ==========
-WITH_CHANGEPOINT: bool = False   # Добавить явный changepoint (для абляций)
-CHANGEPOINT_TRIAL: int = 150     # Триал явной смены правил
-LAPSE_RATE: float = 0.05         # Вероятность моторной/перцептивной ошибки
+WITH_CHANGEPOINT: bool = True
+CHANGEPOINT_TRIAL: int = 1000
+LAPSE_RATE: float = 0.05
 
 # ========== Логирование ==========
 LOG_DIR: str = 'logs/twostep/'
-LOG_LEVEL: str = 'trial'  # 'trial' или 'step'
+LOG_LEVEL: str = 'trial'
 
 # ========== Debug-скрипты ==========
 DEBUG_INTERFACE_SEED: int = 42
