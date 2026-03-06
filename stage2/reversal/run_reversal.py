@@ -1,21 +1,18 @@
 """
-Тестирование агентов в задаче Reversal Learning.
-Доказывает наличие фазы "Mixture of Strategies" (Персеверация -> Исследование -> Новая привычка).
+Stage 2B: Reversal Learning Task.
+Демонстрирует Двойную Диссоциацию (V_G vs V_p) на метриках персеверации и латентности.
+Запуск: python -m stage2.reversal.run_reversal
 """
-
-import sys
-sys.path.insert(0, 'E:/CRS-1/substrate_cognitive')
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 from stage2.reversal.env_reversal import ReversalEnv
 from stage2.core.baselines import RheologicalAgent, RheologicalAgent_NoVG, RheologicalAgent_NoVp
-from stage2.core.args import print_always
+from stage2.core.args import parse_args, print_always
 
-def run_reversal_single(agent_class, seed=42):
-    env = ReversalEnv(seed=seed)
-    
-    # Используем ТЕ ЖЕ параметры, что и в Two-Step! Это критично.
+def run_reversal_single(agent_class, n_trials=2000, reversal_trial=1000, seed=42):
+    env = ReversalEnv(n_trials=n_trials, reversal_trial=reversal_trial, seed=seed)
     agent = agent_class(theta_mb=0.30, theta_u=1.5, alpha=0.35, beta=4.0, seed=seed)
     
     u_t_prev = np.zeros(4)
@@ -24,19 +21,18 @@ def run_reversal_single(agent_class, seed=42):
     for trial in range(1, env.n_trials + 1):
         s1 = env.reset()
         
-        # Симуляция выбора для NoVG и NoVp (по аналогии с debug_ablation)
+        # Получение режима (адаптивно для разных версий классов)
         if hasattr(agent, 'get_mode'):
             a1 = agent.select_action_stage1(s1, u_t_prev)
             mode = agent.get_mode()
         else:
-            # Для NoVG/NoVp мы используем monkey-patching только внутри runner'a или
-            # предполагаем, что вы обновили их классы, чтобы они возвращали mode.
-            # Так как мы переписали их как чистых наследников, get_mode() у них работает!
             a1 = agent.select_action_stage1(s1, u_t_prev)
-            mode = agent.get_mode()
+            mode = getattr(agent, "last_mode", "EXPLOIT")
             
         s2, trans_type = env.step_stage1(a1)
-        a2 = agent.select_action_stage2(s2)
+        
+        # МЕТОДОЛОГИЧЕСКОЕ ИСПРАВЛЕНИЕ: Фиксируем a2=0, чтобы исключить шум 2-го этапа
+        a2 = 0 
         reward, done, info = env.step_stage2(a2)
         
         u_t_prev = agent.update(a1, a2, reward, s2, trans_type, s1)
@@ -51,28 +47,36 @@ def run_reversal_single(agent_class, seed=42):
         
     return pd.DataFrame(data)
 
-def analyze_reversal(df, reversal_trial=150):
-    post_rev = df[df['trial'] >= reversal_trial].copy()
-    post_rev = post_rev.reset_index(drop=True)
-    
-    # 1. Perseverative Errors: сколько раз агент нажал старый рычаг ДО первого переключения
-    old_correct_action = 0 # Левый рычаг был правильным до реверса
-    first_switch_idx = post_rev[post_rev['a1'] != old_correct_action].index.min()
-    
-    if pd.isna(first_switch_idx):
-        perseverative_errors = len(post_rev) # Не переключился вообще
-    else:
-        perseverative_errors = first_switch_idx
+def infer_old_action(df, reversal_trial, window=100):
+    """Вычисляет реальное правило, которое выучил агент до реверсала."""
+    pre = df[(df["trial"] >= reversal_trial - window) & (df["trial"] < reversal_trial)]
+    if len(pre) == 0:
+        return int(df[df["trial"] < reversal_trial]["a1"].mode().iloc[0])
+    return int(pre["a1"].mode().iloc[0])
 
-    # 2. Latency to Explore: сколько триалов потребовалось до расплавления V_G
-    explore_idx = post_rev[post_rev['mode'] == 'EXPLORE'].index.min()
-    latency_to_explore = explore_idx if not pd.isna(explore_idx) else 999
+def analyze_reversal(df, reversal_trial=1000, window=100):
+    old_action = infer_old_action(df, reversal_trial, window=window)
+    post = df[df["trial"] >= reversal_trial].reset_index(drop=True)
     
-    return perseverative_errors, latency_to_explore
+    # 1. Perseverative Errors (Влияние V_p)
+    first_switch = post[post["a1"] != old_action].index.min()
+    perseverative_errors = int(first_switch) if not pd.isna(first_switch) else int(len(post))
+    
+    # 2. Stickiness (Вероятность a1_t == a1_{t-1})
+    post_prev = post["a1"].shift(1)
+    stickiness = float((post["a1"] == post_prev).mean())
+    
+    # 3. Latency to Explore (Влияние V_G)
+    explore_idx = post[post["mode"] == "EXPLORE"].index.min()
+    latency_to_explore = int(explore_idx) if not pd.isna(explore_idx) else 999
+    
+    return perseverative_errors, latency_to_explore, stickiness
 
 def main():
+    args = parse_args(description="Stage 2B: Reversal Learning Task")
+    
     print_always("=" * 70)
-    print_always("Stage 2B: Reversal Task (30 seeds)")
+    print_always("Stage 2B: Reversal Task — Double Dissociation (30 seeds)")
     print_always("=" * 70)
     
     agents =[
@@ -81,24 +85,60 @@ def main():
         ('NoVp', RheologicalAgent_NoVp)
     ]
     
+    results = {name: {'pe': [], 'lat': [], 'stick':[]} for name, _ in agents}
+    n_seeds = 30
+    
     for agent_name, agent_class in agents:
-        pers_errors = []
-        latencies =[]
-        
-        for seed in range(42, 72):
-            df = run_reversal_single(agent_class, seed=seed)
-            pe, lat = analyze_reversal(df, reversal_trial=150)
-            pers_errors.append(pe)
-            latencies.append(lat)
+        print_always(f"Запуск {agent_name} агента...")
+        for i in range(n_seeds):
+            seed = 42 + i
+            df = run_reversal_single(agent_class, n_trials=args.n_trials, reversal_trial=args.changepoint, seed=seed)
+            pe, lat, stick = analyze_reversal(df, reversal_trial=args.changepoint)
             
-        print_always(f"\n{agent_name} Agent:")
-        print_always(f"  Персеверативные ошибки: {np.mean(pers_errors):.1f} ± {np.std(pers_errors):.1f}")
+            results[agent_name]['pe'].append(pe)
+            results[agent_name]['lat'].append(lat)
+            results[agent_name]['stick'].append(stick)
+            
+    # ВЫВОД РЕЗУЛЬТАТОВ
+    print_always("\n" + "=" * 70)
+    print_always("РЕЗУЛЬТАТЫ (Медианы и Средние)")
+    print_always("=" * 70)
+    
+    for agent_name in results.keys():
+        pe = results[agent_name]['pe']
+        lat = [l for l in results[agent_name]['lat'] if l != 999]
+        stick = results[agent_name]['stick']
         
-        valid_lat =[l for l in latencies if l != 999]
-        if len(valid_lat) > 0:
-            print_always(f"  Латентность до EXPLORE: {np.mean(valid_lat):.1f} ± {np.std(valid_lat):.1f}")
+        print_always(f"\n{agent_name} Agent:")
+        print_always(f"  Perseverative Errors: {np.mean(pe):.1f} ± {np.std(pe):.1f} (Median: {np.median(pe):.1f})")
+        if len(lat) > 0:
+            print_always(f"  Latency to Explore:   {np.mean(lat):.1f} ± {np.std(lat):.1f} (Median: {np.median(lat):.1f})")
         else:
-            print_always(f"  Латентность до EXPLORE: НИКОГДА (999)")
+            print_always(f"  Latency to Explore:   НИКОГДА (999)")
+        print_always(f"  Post-reversal Stickiness: {np.mean(stick):.1%}")
+
+    # СТАТИСТИКА ДВОЙНОЙ ДИССОЦИАЦИИ
+    print_always("\n" + "=" * 70)
+    print_always("ДОКАЗАТЕЛЬСТВО ДВОЙНОЙ ДИССОЦИАЦИИ (Mann-Whitney U)")
+    print_always("=" * 70)
+    
+    # 1. Влияние V_G на Латентность (Full vs NoVG)
+    lat_full = [l for l in results['Full']['lat'] if l != 999]
+    lat_novg = [l for l in results['NoVG']['lat'] if l != 999]
+    u_lat, p_lat = stats.mannwhitneyu(lat_full, lat_novg, alternative='greater')
+    print_always(f"Ось 1 (Инерция контроля V_G): Full vs NoVG Latency -> p = {p_lat:.2e}")
+    
+    # 2. Влияние V_p на Персеверацию (Full vs NoVp)
+    pe_full = results['Full']['pe']
+    pe_novp = results['NoVp']['pe']
+    u_pe, p_pe = stats.mannwhitneyu(pe_full, pe_novp, alternative='greater')
+    print_always(f"Ось 2 (Инерция действия V_p): Full vs NoVp Perseveration -> p = {p_pe:.2e}")
+    
+    if p_lat < 0.05 and p_pe < 0.05:
+        print_always("\n✓ УСПЕХ: Двойная диссоциация доказана.")
+        print_always("V_G и V_p ортогонально управляют контролем и поведением.")
+    else:
+        print_always("\n✗ ПРОВАЛ: Диссоциация статистически не подтверждена.")
 
 if __name__ == "__main__":
     main()

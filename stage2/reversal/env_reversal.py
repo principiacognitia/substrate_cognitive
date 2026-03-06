@@ -1,9 +1,10 @@
 """
 Reversal Task Environment.
-Интерфейс полностью совместим с TwoStepEnv для использования тех же агентов.
+Частный случай Two-Step Task с детерминированными переходами и инверсией наград.
 """
 
 import numpy as np
+from typing import Tuple, Dict, Optional
 from stage2.reversal.config_reversal import (
     N_TRIALS_REV, REVERSAL_TRIAL, PROB_HIGH, PROB_LOW, 
     TRANSITIONS_REV, INITIAL_REWARDS_REV
@@ -24,24 +25,26 @@ class ReversalEnv:
         self.current_trial += 1
         self.stage1_state = 0
         
-        # Скрытый реверсал правил
+        # Скрытый реверсал правил на заданном триале
         if self.current_trial == self.reversal_trial:
-            # Меняем местами High и Low
-            self.reward_probs = np.array([[PROB_LOW, PROB_LOW],
-                [PROB_HIGH, PROB_HIGH]
+            self.reward_probs = np.array([
+                [PROB_LOW, PROB_LOW],[PROB_HIGH, PROB_HIGH]
             ], dtype=np.float64)
             
         return self.stage1_state
         
-    def step_stage1(self, action: int) -> tuple:
+    def step_stage1(self, action: int) -> Tuple[int, str]:
         # Детерминированный переход
         self.stage2_state = TRANSITIONS_REV[self.stage1_state][action][0]
         return self.stage2_state, 'common'
         
-    def step_stage2(self, action: int) -> tuple:
+    def step_stage2(self, action: int) -> Tuple[float, bool, Dict]:
         # Награда зависит только от достигнутого s2 (выбора a1)
         prob = self.reward_probs[self.stage2_state, action]
         reward = float(self.rng.random() < prob)
         
-        info = {'trial': self.current_trial, 'is_reversal': self.current_trial >= self.reversal_trial}
+        info = {
+            'trial': self.current_trial, 
+            'is_reversal': self.current_trial >= self.reversal_trial
+        }
         return reward, True, info
