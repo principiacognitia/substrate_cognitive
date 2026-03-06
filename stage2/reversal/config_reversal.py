@@ -17,5 +17,7 @@ TRANSITIONS_REV = {
 }
 
 # Начальные вероятности (a2 игнорируется, но структура сохранена для совместимости)
-INITIAL_REWARDS_REV = [[PROB_HIGH, PROB_HIGH],  # s2=0 (High reward zone)[PROB_LOW, PROB_LOW]     # s2=1 (Low reward zone)
+INITIAL_REWARDS_REV = [
+    [PROB_HIGH, PROB_HIGH],  # s2=0 (High reward zone)
+    [PROB_LOW, PROB_LOW]     # s2=1 (Low reward zone)
 ]

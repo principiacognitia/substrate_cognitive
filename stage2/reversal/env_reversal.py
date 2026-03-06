@@ -28,7 +28,8 @@ class ReversalEnv:
         # Скрытый реверсал правил на заданном триале
         if self.current_trial == self.reversal_trial:
             self.reward_probs = np.array([
-                [PROB_LOW, PROB_LOW],[PROB_HIGH, PROB_HIGH]
+                [PROB_LOW, PROB_LOW],
+                [PROB_HIGH, PROB_HIGH]
             ], dtype=np.float64)
             
         return self.stage1_state
