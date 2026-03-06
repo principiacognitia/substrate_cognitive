@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from stage2.twostep.env_twostep import TwoStepEnv
-from stage2.twostep.debug_sanity_check import run_agent
 from stage2.reversal.env_reversal import ReversalEnv
 from stage2.reversal.run_reversal import run_reversal_single
 from stage2.core.baselines import RheologicalAgent, MFAgent, MBAgent
@@ -32,10 +31,53 @@ plt.rcParams.update({
     'figure.titlesize': 18
 })
 
+def run_agent_for_figures(env, agent, n_trials=2000):
+    """Универсальный раннер, поддерживающий как простых, так и реологических агентов."""
+    data =[]
+    prev_a1 = None
+    prev_reward = None
+    prev_trans_factor = None
+    u_t_prev = np.zeros(4)
+    
+    for trial in range(n_trials):
+        s1 = env.reset()
+        
+        # Адаптивный вызов в зависимости от типа агента
+        if hasattr(agent, 'get_mode'):
+            a1 = agent.select_action_stage1(s1, u_t_prev)
+        else:
+            a1 = agent.select_action_stage1(s1)
+            
+        s2, trans_type = env.step_stage1(a1)
+        a2 = agent.select_action_stage2(s2)
+        reward, done, info = env.step_stage2(a2)
+        
+        # Адаптивное обновление
+        if hasattr(agent, 'get_mode'):
+            u_t_prev = agent.update(a1, a2, reward, s2, trans_type, s1)
+        else:
+            agent.update(a1, a2, reward, s2, trans_type, s1)
+            
+        trans_factor = 1 if trans_type == 'common' else -1
+        
+        if prev_a1 is not None:
+            stay = 1 if (a1 == prev_a1) else 0
+            data.append({
+                'trial': trial,
+                'reward': prev_reward,
+                'trans_factor': prev_trans_factor,
+                'stay': stay
+            })
+            
+        prev_a1 = a1
+        prev_reward = reward
+        prev_trans_factor = trans_factor
+        
+    df = pd.DataFrame(data)
+    return df
+
 def plot_stay_probabilities(ax, data, title):
     """Отрисовка классического графика Stay Probability (Daw 2011)."""
-    # Вычисляем вероятности Stay для 4 условий
-    # Условия: Reward/Unreward, Common/Rare
     conditions = []
     for reward in[1.0, 0.0]:
         for trans in [1, -1]:
@@ -47,7 +89,6 @@ def plot_stay_probabilities(ax, data, title):
                 prob, err = 0, 0
             conditions.append((reward, trans, prob, err))
     
-    # Подготовка данных для бара
     labels = ['Common', 'Rare']
     rewarded_means = [conditions[0][2], conditions[1][2]]
     rewarded_errs = [conditions[0][3], conditions[1][3]]
@@ -72,11 +113,11 @@ def generate_figure_2_signatures():
     print("Генерация Figure 2: Two-Step Signatures...")
     env = TwoStepEnv(seed=42, n_trials=5000, with_changepoint=False)
     
-    mf_data = run_agent(env, MFAgent(beta=4.0, seed=42), n_trials=5000)
+    mf_data = run_agent_for_figures(env, MFAgent(beta=4.0, seed=42), n_trials=5000)
     env.reset()
-    mb_data = run_agent(env, MBAgent(beta=4.0, seed=42), n_trials=5000)
+    mb_data = run_agent_for_figures(env, MBAgent(beta=4.0, seed=42), n_trials=5000)
     env.reset()
-    rheo_data = run_agent(env, RheologicalAgent(beta=4.0, theta_mb=0.30, seed=42), n_trials=5000)
+    rheo_data = run_agent_for_figures(env, RheologicalAgent(beta=4.0, theta_mb=0.30, seed=42), n_trials=5000)
     
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     plot_stay_probabilities(axes[0], mf_data, 'MF Agent (Simulated)')
@@ -147,13 +188,13 @@ def generate_figure_4_reversal():
     for seed in range(n_seeds):
         # Full Agent
         df_full = run_reversal_single(RheologicalAgent, n_trials=n_trials, reversal_trial=rev_trial, seed=seed)
-        correct_action_full = df_full.apply(lambda row: 1 if (row['a1'] == 0 and row['trial'] < rev_trial) or (row['a1'] == 1 and row['trial'] >= rev_trial) else 0, axis=1)
+        correct_action_full = df_full.apply(lambda row: 1 if (row['a1'] == 0 and row['trial'] <= rev_trial) or (row['a1'] == 1 and row['trial'] > rev_trial) else 0, axis=1)
         accuracy_full += correct_action_full.values
         
         # NoVG Agent
         from stage2.core.baselines import RheologicalAgent_NoVG
         df_novg = run_reversal_single(RheologicalAgent_NoVG, n_trials=n_trials, reversal_trial=rev_trial, seed=seed)
-        correct_action_novg = df_novg.apply(lambda row: 1 if (row['a1'] == 0 and row['trial'] < rev_trial) or (row['a1'] == 1 and row['trial'] >= rev_trial) else 0, axis=1)
+        correct_action_novg = df_novg.apply(lambda row: 1 if (row['a1'] == 0 and row['trial'] <= rev_trial) or (row['a1'] == 1 and row['trial'] > rev_trial) else 0, axis=1)
         accuracy_novg += correct_action_novg.values
 
     accuracy_full /= n_seeds
@@ -188,4 +229,4 @@ if __name__ == "__main__":
     generate_figure_2_signatures()
     generate_figure_3_vg_dynamics()
     generate_figure_4_reversal()
-    print("Всё готово. Проверьте графики в папке logs/twostep/!")
+    print("\nВсё готово. Проверьте графики в папке logs/twostep/!")
