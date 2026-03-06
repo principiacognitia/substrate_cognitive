@@ -2,36 +2,46 @@
 Stage 2 Core Module — общие компоненты для всех задач.
 """
 
-# Импорты будут работать только после создания соответствующих файлов
-try:
-    from .gate import gate_select, compute_diagnostic_vector
-except ImportError:
-    pass
-
-try:
-    from .rheology import update_rheology, eta_to_V
-except ImportError:
-    pass
-
-try:
-    from .baselines import MFAgent, MBAgent, HybridAgent, NoVGAgent
-except ImportError:
-    pass
-
-try:
-    from .logger import TrialLogger, ExperimentLogger
-except ImportError:
-    pass
+from .gate import gate_select, sigmoid
+from .rheology import update_rheology, eta_to_V, ETA_0
+from .baselines import (
+    MFAgent,
+    MBAgent,
+    HybridAgent,
+    RheologicalAgent,
+    RheologicalAgent_NoVG,
+    RheologicalAgent_NoVp,
+    RheologicalAgent_NoReology
+)
+from .logger import TrialLogger, ExperimentLogger
+from .args import parse_args, print_debug, print_always, get_default_parser
 
 __all__ = [
+    # Gate
     'gate_select',
-    'compute_diagnostic_vector',
+    'sigmoid',
+    
+    # Rheology
     'update_rheology',
     'eta_to_V',
+    'ETA_0',
+    
+    # Agents
     'MFAgent',
     'MBAgent',
     'HybridAgent',
-    'NoVGAgent',
+    'RheologicalAgent',
+    'RheologicalAgent_NoVG',
+    'RheologicalAgent_NoVp',
+    'RheologicalAgent_NoReology',
+    
+    # Logger
     'TrialLogger',
-    'ExperimentLogger'
+    'ExperimentLogger',
+    
+    # Args
+    'parse_args',
+    'print_debug',
+    'print_always',
+    'get_default_parser'
 ]
