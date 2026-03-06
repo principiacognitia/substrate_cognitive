@@ -5,7 +5,7 @@ Two-Step Task Environment (Daw et al., 2011).
 
 import numpy as np
 from typing import Tuple, Dict, Optional
-from config_twostep import (
+from stage2.twostep.config_twostep import (
     N_TRIALS, N_STAGE1_STATES, N_STAGE2_STATES, N_STAGE2_ACTIONS, N_ACTIONS,
     COMMON_TRANS_PROB, RARE_TRANS_PROB, STAGE1_TRANSITIONS,
     REWARD_MIN, REWARD_MAX, REWARD_DRIFT_RATE, REWARD_DRIFT_SD,
