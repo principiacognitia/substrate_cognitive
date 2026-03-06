@@ -128,10 +128,14 @@ def run_single_experiment(
     post_change = [t for t in explore_trials if t > changepoint]
     latency = post_change[0] - changepoint if len(post_change) > 0 else None
     
-    # Доля EXPLORE в разных фазах
+    # Вычисляем доли EXPLORE в непересекающихся окнах
+    # Pre: 100 триалов ДО смены (Доказываем стационарную привычку)
     explore_pre = len([t for t in explore_trials if changepoint-100 <= t < changepoint]) / 100
-    explore_shock = len([t for t in explore_trials if changepoint < t <= changepoint+30]) / 30
-    explore_post = len([t for t in explore_trials if changepoint+70 <= t <= changepoint+100]) / 30
+    # Shock: 30 триалов СРАЗУ ПОСЛЕ смены (Ловим транзиентный пик поиска)
+    explore_shock = len([t for t in explore_trials if changepoint <= t < changepoint+30]) / 30
+    # Post: 100 триалов ПОСЛЕ адаптации (с 100-го по 200-й после смены)
+    # Доказываем, что агент сформировал НОВУЮ стационарную привычку
+    explore_post = len([t for t in explore_trials if changepoint+100 <= t < changepoint+200]) / 100
     
     return {
         'agent_class': agent_class.__name__,
@@ -179,7 +183,9 @@ def run_ablation_study(
     print_always("=" * 70)
     print_always(f"Seeds: {n_seeds}, Trials: {n_trials}, Changepoint: {changepoint}")
     print_always(f"Theta_MB: {theta_mb}, Theta_U: {theta_u}")
-    print_always()
+    print_always(f"Alpha: {alpha}, Beta: {beta}, Volatility Threshold: {volatility_threshold}")
+    print_always(f"Log Trials: {log_trials}, Output Dir: {output_dir}")
+    print_always("--" * 35)
     
     for agent_name, agent_class in agents:
         print_always(f"Запуск {agent_name} агента...")
@@ -187,7 +193,9 @@ def run_ablation_study(
         for i in range(n_seeds):
             seed = 42 + i
             
-            print_debug(f"  Seed {seed}...", {'nodebug': nodebug, 'verbose': verbose}, verbose=True)
+            # ИСПРАВЛЕНИЕ: прямая проверка вместо print_debug
+            if verbose and not nodebug:
+                print(f"  Seed {seed}...")
             
             result = run_single_experiment(
                 agent_class=agent_class,
@@ -211,8 +219,8 @@ def run_ablation_study(
             if (i + 1) % 10 == 0 and not nodebug:
                 print_always(f"  Прогресс {agent_name}: {i + 1}/{n_seeds}")
         
-        print_always()
-    
+        print_always("")
+            
     return pd.DataFrame(all_results)
 
 
@@ -224,15 +232,29 @@ def analyze_results(df: pd.DataFrame, nodebug: bool = False) -> None:
     print_always("РЕЗУЛЬТАТЫ")
     print_always("=" * 70)
     
+    # ИСПРАВЛЕНИЕ: проверяем какие имена классов реально есть в DataFrame
+    print_always(f"\nДоступные классы агентов: {df['agent_class'].unique()}")
+    print_always("--" * 35)
+
     # Группировка по агентам
-    for agent_name in ['Full', 'NoVG', 'NoVp']:
-        agent_data = df[df['agent_class'].str.contains(agent_name)]
+    for agent_name, agent_class in [
+        ('Full', 'RheologicalAgent'),
+        ('NoVG', 'RheologicalAgent_NoVG'),
+        ('NoVp', 'RheologicalAgent_NoVp')
+    ]:
+        agent_data = df[df['agent_class'] == agent_class]
         
         if len(agent_data) == 0:
+            print_always(f"\n⚠️ {agent_name} Agent: НЕТ ДАННЫХ!")
             continue
         
         latencies = agent_data['latency'].values
         latencies_valid = [l for l in latencies if l != 999]
+
+        if len(latencies_valid) == 0:
+            print_always(f"\n{agent_name} Agent ({len(agent_data)} seeds):")
+            print_always(f"  ⚠️ Все латентности = 999 (агент не переключился)")
+            continue        
         
         print_always(f"\n{agent_name} Agent ({len(agent_data)} seeds):")
         print_always(f"  Mean Latency:    {np.mean(latencies_valid):.1f} ± {np.std(latencies_valid):.1f} триалов")
@@ -250,18 +272,31 @@ def analyze_results(df: pd.DataFrame, nodebug: bool = False) -> None:
     full_latencies = df[df['agent_class'] == 'RheologicalAgent']['latency'].values
     novg_latencies = df[df['agent_class'] == 'RheologicalAgent_NoVG']['latency'].values
     novp_latencies = df[df['agent_class'] == 'RheologicalAgent_NoVp']['latency'].values
+
+    # Проверка что данные есть
+    if len(full_latencies) == 0:
+        print_always("\n✗ ОШИБКА: Нет данных для Full агента!")
+        return
     
-    # Full vs NoVG
+    if len(novg_latencies) == 0:
+        print_always("\n✗ ОШИБКА: Нет данных для NoVG агента!")
+        return
+
+    if len(novp_latencies) == 0:
+        print_always("\n✗ ОШИБКА: Нет данных для NoVp агента!")
+        return    
+    
+    # Full vs NoVG (Ожидаем, что у Full задержка больше)
     u_stat, p_value = stats.mannwhitneyu(full_latencies, novg_latencies, alternative='greater')
     print_always(f"\nFull vs NoVG: U = {u_stat:.1f}, p = {p_value:.2e}")
     
-    # Full vs NoVp
-    u_stat, p_value = stats.mannwhitneyu(full_latencies, novp_latencies, alternative='greater')
+    # Full vs NoVp (Ожидаем, что они ПРИМЕРНО РАВНЫ)
+    u_stat, p_value = stats.mannwhitneyu(full_latencies, novp_latencies, alternative='two-sided')
     print_always(f"Full vs NoVp: U = {u_stat:.1f}, p = {p_value:.2e}")
     
-    # NoVG vs NoVp
-    u_stat, p_value = stats.mannwhitneyu(novg_latencies, novp_latencies, alternative='greater')
-    print_always(f"NoVG vs NoVp: U = {u_stat:.1f}, p = {p_value:.2e}")
+    # NoVp vs NoVG (Ожидаем, что у NoVp задержка больше, так как у него есть V_G!)
+    u_stat, p_value = stats.mannwhitneyu(novp_latencies, novg_latencies, alternative='greater')
+    print_always(f"NoVp vs NoVG: U = {u_stat:.1f}, p = {p_value:.2e}")
     
     # Финальный вердикт
     print_always("\n" + "=" * 70)
@@ -269,12 +304,15 @@ def analyze_results(df: pd.DataFrame, nodebug: bool = False) -> None:
     full_median = np.median([l for l in full_latencies if l != 999])
     novg_median = np.median([l for l in novg_latencies if l != 999])
     
-    if full_median > novg_median + 5 and p_value < 0.001:
-        print_always("✓ УСПЕХ (DOUBLE DISSOCIATION):")
-        print_always("  V_G достоверно увеличивает латентность переключения режимов.")
-        print_always("  V_p влияет на персеверацию внутри режима (см. explore_pre).")
+    if len(full_latencies) > 0 and len(novg_latencies) > 0:
+        if full_median > novg_median + 5 and p_value < 0.001:
+            print_always("✓ УСПЕХ (DOUBLE DISSOCIATION):")
+            print_always("  V_G достоверно увеличивает латентность переключения режимов.")
+            print_always("  V_p влияет на персеверацию внутри режима (см. explore_pre).")
+        else:
+            print_always("✗ ПРОВАЛ: Разница статистически незначима.")
     else:
-        print_always("✗ ПРОВАЛ: Разница статистически незначима.")
+        print_always("✗ ПРОВАЛ: Недостаточно данных для сравнения.")
     
     print_always("=" * 70)
 

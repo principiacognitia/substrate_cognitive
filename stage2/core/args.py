@@ -5,7 +5,7 @@
 
 import argparse
 import sys
-from typing import Optional, Namespace
+from typing import Optional, Dict, Any, List
 
 
 def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.ArgumentParser:
@@ -123,7 +123,7 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
     return parser
 
 
-def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experiment") -> Namespace:
+def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experiment") -> argparse.Namespace:
     """
     Парсит аргументы командной строки.
     
@@ -138,7 +138,7 @@ def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experime
     return parser.parse_args(args)
 
 
-def print_debug(msg: str, args: Namespace, verbose: bool = False) -> None:
+def print_debug(msg: str, args: argparse.Namespace, verbose: bool = False) -> None:
     """
     Выводит отладочное сообщение, если не установлен флаг --nodebug.
     
