@@ -142,7 +142,7 @@ def main():
     print_always(f"Seeds: {n_seeds}, Trials: {args.n_trials}, Reversal: {args.changepoint}")
     print_always(f"Theta_MB: {args.theta_mb}, Theta_U: {args.theta_u}")
     print_always(f"Alpha: {args.alpha}, Beta: {args.beta}")
-    print_always()
+    print_always("--" * 35)
     
     agents = [
         ('Full', RheologicalAgent),
@@ -183,8 +183,6 @@ def main():
             if (i + 1) % 10 == 0 and not args.nodebug:
                 print_always(f"  Прогресс {agent_name}: {i + 1}/{n_seeds}")
         
-        print_always()
-    
     # ВЫВОД РЕЗУЛЬТАТОВ
     print_always("=" * 70)
     print_always("РЕЗУЛЬТАТЫ (Медианы и Средние)")
@@ -228,14 +226,12 @@ def main():
     print_always(f"Ось 2 (Инерция действия V_p): Full vs NoVp Perseveration -> p = {p_pe:.2e}")
     
     # Финальный вердикт
-    print_always()
+    print_always("\n" + "=" * 70)
     if p_lat < 0.05 and p_pe < 0.05:
-        print_always("=" * 70)
         print_always("✓ УСПЕХ: Двойная диссоциация доказана.")
         print_always("V_G и V_p ортогонально управляют контролем и поведением.")
         print_always("=" * 70)
     else:
-        print_always("=" * 70)
         print_always("✗ ПРОВАЛ: Диссоциация статистически не подтверждена.")
         print_always("=" * 70)
 
