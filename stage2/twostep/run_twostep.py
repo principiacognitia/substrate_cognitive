@@ -346,7 +346,7 @@ def main():
     args = parse_args(description="Stage 2A: Two-Step Task — Ablation Study")
     
     # Дополнительные аргументы специфичные для абляции
-    n_seeds = 30  # Хардкод для стандартизации
+    n_seeds = args.n_seeds
     
     results_df, exp_logger = run_ablation_study(
         n_seeds=n_seeds,
@@ -368,7 +368,7 @@ def main():
     
     # Сохраняем статистику в JSON
     if not args.no_log:
-        stats_path = os.path.join(args.output_dir, f'{exp_logger.experiment_id}_stats.json')
+        stats_path = os.path.join(args.output_dir, f'{exp_logger.experiment_name}_stats.json')
         with open(stats_path, 'w', encoding='utf-8') as f:
             json.dump(analysis_results, f, indent=2, ensure_ascii=False)
         print_always(f"\nСтатистика сохранена в {stats_path}")
