@@ -4,27 +4,20 @@
 """
 
 import argparse
-import sys
 from typing import Optional, Dict, Any, List
 
 
 def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.ArgumentParser:
     """
     Создает базовый парсер с общими аргументами для всех скриптов.
-    
-    Args:
-        description: Описание скрипта для help
-        
-    Returns:
-        Настроенный ArgumentParser
     """
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Примеры использования:
-  python -m stage2.twostep.debug_ablation --seed 42 --n-trials 2000
-  python -m stage2.twostep.debug_ablation --nodebug --theta-mb 0.30
+  python -m stage2.twostep.run_twostep --seed 42 --n-trials 2000
+  python -m stage2.twostep.run_twostep --no-log --nodebug
         """
     )
     
@@ -36,6 +29,13 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
         help='Random seed для воспроизводимости (default: 42)'
     )
     
+    parser.add_argument(
+        '--n-seeds',
+        type=int,
+        default=30,
+        help='Количество seeds в эксперименте (default: 30)'
+    )
+
     parser.add_argument(
         '--n-trials',
         type=int,
@@ -76,7 +76,7 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
         '--beta',
         type=float,
         default=4.0,
-        help='Температура softmax выбора (default: 4.0)'
+        help='Inverse temperature softmax выбора (default: 4.0)'
     )
     
     parser.add_argument(
@@ -99,13 +99,13 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
         help='Включить расширенный вывод (триал за триалом)'
     )
     
+    # ===== Логирование =====
     parser.add_argument(
-        '--log-trials',
+        '--no-log',
         action='store_true',
-        help='Сохранять логи всех триалов в CSV'
+        help='Отключить логирование триалов в CSV (default: logging enabled)'
     )
     
-    # ===== Вывод =====
     parser.add_argument(
         '--output-dir',
         type=str,
@@ -126,13 +126,6 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
 def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experiment") -> argparse.Namespace:
     """
     Парсит аргументы командной строки.
-    
-    Args:
-        args: Список аргументов (по умолчанию sys.argv[1:])
-        description: Описание для парсера
-        
-    Returns:
-        Namespace с распарсенными аргументами
     """
     parser = get_default_parser(description)
     return parser.parse_args(args)
@@ -141,11 +134,6 @@ def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experime
 def print_debug(msg: str, args: argparse.Namespace, verbose: bool = False) -> None:
     """
     Выводит отладочное сообщение, если не установлен флаг --nodebug.
-    
-    Args:
-        msg: Сообщение для вывода
-        args: Распарсенные аргументы
-        verbose: Если True, выводит только в режиме --verbose
     """
     if not args.nodebug:
         if verbose and not args.verbose:
@@ -153,7 +141,7 @@ def print_debug(msg: str, args: argparse.Namespace, verbose: bool = False) -> No
         print(msg)
 
 
-def print_always(msg: str) -> None:
+def print_always(msg: str = "") -> None:
     """
     Выводит сообщение всегда (независимо от флагов).
     """
