@@ -35,7 +35,7 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
         default=30,
         help='Количество seeds в эксперименте (default: 30)'
     )
-
+    
     parser.add_argument(
         '--n-trials',
         type=int,
@@ -46,8 +46,8 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
     parser.add_argument(
         '--changepoint',
         type=int,
-        default=1000,
-        help='Триал смены правил (default: 1000)'
+        default=None,  # ← Изменено: будет вычисляться как n_trials/2
+        help='Триал смены правил (default: n_trials/2)'
     )
     
     # ===== Параметры агента =====
@@ -128,7 +128,26 @@ def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experime
     Парсит аргументы командной строки.
     """
     parser = get_default_parser(description)
-    return parser.parse_args(args)
+    parsed = parser.parse_args(args)
+    
+    # ===== Валидация и вычисление defaults =====
+    
+    # Если changepoint не задан, вычисляем как n_trials/2
+    if parsed.changepoint is None:
+        parsed.changepoint = parsed.n_trials // 2
+    
+    # Проверка что changepoint <= n_trials
+    if parsed.changepoint >= parsed.n_trials:
+        raise ValueError(
+            f"changepoint ({parsed.changepoint}) должен быть меньше n_trials ({parsed.n_trials})"
+        )
+    
+    if parsed.changepoint < 1:
+        raise ValueError(
+            f"changepoint ({parsed.changepoint}) должен быть >= 1"
+        )
+    
+    return parsed
 
 
 def print_debug(msg: str, args: argparse.Namespace, verbose: bool = False) -> None:
