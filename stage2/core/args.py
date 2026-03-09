@@ -7,9 +7,14 @@ import argparse
 from typing import Optional, Dict, Any, List
 
 
-def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.ArgumentParser:
+def get_default_parser(description: str = "Stage 2 Experiment", 
+                       default_output_dir: str = 'logs/') -> argparse.ArgumentParser:
     """
     Создает базовый парсер с общими аргументами для всех скриптов.
+    
+    Args:
+        description: Описание скрипта для help
+        default_output_dir: Директория по умолчанию для логов
     """
     parser = argparse.ArgumentParser(
         description=description,
@@ -109,8 +114,8 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
     parser.add_argument(
         '--output-dir',
         type=str,
-        default='logs/twostep/',
-        help='Директория для сохранения логов (default: logs/twostep/)'
+        default=default_output_dir,  # ← Теперь задаётся при вызове
+        help='Директория для сохранения логов'
     )
     
     parser.add_argument(
@@ -123,11 +128,12 @@ def get_default_parser(description: str = "Stage 2 Experiment") -> argparse.Argu
     return parser
 
 
-def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experiment") -> argparse.Namespace:
+def parse_args(args: Optional[list] = None, description: str = "Stage 2 Experiment",
+               default_output_dir: str = 'logs/') -> argparse.Namespace:
     """
     Парсит аргументы командной строки.
     """
-    parser = get_default_parser(description)
+    parser = get_default_parser(description, default_output_dir)
     parsed = parser.parse_args(args)
     
     # ===== Валидация и вычисление defaults =====
