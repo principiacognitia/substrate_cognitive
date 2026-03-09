@@ -86,7 +86,7 @@ def run_agent(env: TwoStepEnv, agent, n_trials: int = 2000,
     return df
 
 
-def logistic_regression(df: pd.DataFrame) -> Optional[sm.LogitResults]:
+def logistic_regression(df: pd.DataFrame):
     """
     Stay ~ reward + trans_factor + interaction
     """
