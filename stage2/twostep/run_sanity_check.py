@@ -292,8 +292,24 @@ def main():
     # Сохраняем статистику в JSON
     if not args.no_log:
         stats_path = os.path.join(args.output_dir, f'{exp_logger.experiment_name}_sanity_stats.json')
+
+        # ИСПРАВЛЕНИЕ: Конвертируем numpy типы в Python native types
+        def convert_numpy_types(obj):
+            if isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(i) for i in obj]
+            elif isinstance(obj, (np.bool_, np.integer)):
+                return int(obj)
+            elif isinstance(obj, (np.floating, np.float64)):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                return obj
+
         with open(stats_path, 'w', encoding='utf-8') as f:
-            json.dump(analysis_results, f, indent=2, ensure_ascii=False)
+            json.dump(convert_numpy_types(analysis_results), f, indent=2, ensure_ascii=False)
         print_always(f"\nСтатистика сохранена в {stats_path}")
     
     return analysis_results['success']
