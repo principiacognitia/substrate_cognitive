@@ -1,32 +1,34 @@
 """
 Генерация публикационных графиков (Publication-ready Figures) для статьи.
 
-Отрисовывает:
-1. MB/MF Signatures (Stay Probabilities) — а-ля Daw et al. 2011
-2. V_G Dynamics (Расплавление) — концепт Gate-Rheology
-3. Reversal Learning Curves — а-ля Le et al. 2023
+Читает готовые CSV логи из экспериментов (не запускает агентов!).
+Агрегирует данные по всем seeds внутри эксперимента.
+
+Режимы работы:
+    --latest              (по умолчанию) Ищет последний эксперимент каждого типа
+    --experiment-id ID    Обрабатывает конкретный эксперимент
+    --input-dir PATH      Прямая директория с логами
 
 Запуск:
-    python -m stage2.analysis.figures --output-dir logs/figures/ --n-seeds 30
-    python -m stage2.analysis.figures --nodebug --dpi 300
+    python -m stage2.analysis.figures --latest
+    python -m stage2.analysis.figures --experiment-id twostep_ablation_20260308_201037
+    python -m stage2.analysis.figures --input-dir logs/twostep/twostep_ablation_20260308_201037/
+    python -m stage2.analysis.figures --latest --output-dir logs/figures/ --dpi 600
 """
 
 import os
+import glob
+import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from datetime import datetime
+from typing import Dict, List, Tuple, Optional
+from pathlib import Path
 
-from stage2.twostep.env_twostep import TwoStepEnv
-from stage2.reversal.env_reversal import ReversalEnv
-from stage2.reversal.run_reversal import run_reversal_single
-from stage2.core.baselines import (
-    RheologicalAgent, 
-    RheologicalAgent_NoVG,
-    MFAgent, 
-    MBAgent
-)
 from stage2.core.args import parse_args, print_always, print_debug
+
 
 # ============================================================================
 # СТИЛЬ ДЛЯ ПУБЛИКАЦИЙ
@@ -48,214 +50,266 @@ def setup_publication_style():
         'savefig.bbox': 'tight'
     })
 
+
 # ============================================================================
-# УНИВЕРСАЛЬНЫЙ РАННЕР
+# УТИЛИТЫ ДЛЯ ПОИСКА ЭКСПЕРИМЕНТОВ
 # ============================================================================
 
-def run_agent_for_figures(env, agent, n_trials=2000, verbose=False, nodebug=True):
+def find_latest_experiment(task: str, base_dir: str = 'logs/') -> Optional[str]:
     """
-    Универсальный раннер, поддерживающий как простых, так и реологических агентов.
+    Ищет последний эксперимент указанного типа по timestamp.
     
     Args:
-        env: Среда (TwoStepEnv или ReversalEnv)
-        agent: Агент
-        n_trials: Количество триалов
-        verbose: Выводить ли отладочную информацию
-        nodebug: Отключить ли вывод
+        task: 'twostep' или 'reversal'
+        base_dir: Базовая директория логов
         
     Returns:
-        DataFrame с данными триалов
+        Путь к директории последнего эксперимента или None
     """
-    data = []
-    prev_a1 = None
-    prev_reward = None
-    prev_trans_factor = None
-    u_t_prev = np.zeros(4)
+    search_dir = Path(base_dir) / task
     
-    for trial in range(n_trials):
-        s1 = env.reset()
+    if not search_dir.exists():
+        return None
+    
+    # Ищем все папки с экспериментами
+    exp_dirs = [d for d in search_dir.iterdir() 
+                if d.is_dir() and d.name.startswith(f'{task}_')]
+    
+    if not exp_dirs:
+        return None
+    
+    # Сортируем по имени (timestamp в имени)
+    exp_dirs.sort(key=lambda x: x.name, reverse=True)
+    
+    return str(exp_dirs[0])
+
+
+def find_experiment_by_id(experiment_id: str, base_dir: str = 'logs/') -> Optional[str]:
+    """
+    Ищет эксперимент по точному ID.
+    
+    Args:
+        experiment_id: ID эксперимента (например, 'twostep_ablation_20260308_201037')
+        base_dir: Базовая директория логов
         
-        # Адаптивный вызов в зависимости от типа агента
-        if hasattr(agent, 'get_mode'):
-            a1 = agent.select_action_stage1(s1, u_t_prev)
-        else:
-            a1 = agent.select_action_stage1(s1)
-            
-        s2, trans_type = env.step_stage1(a1)
-        a2 = agent.select_action_stage2(s2)
-        reward, done, info = env.step_stage2(a2)
+    Returns:
+        Путь к директории эксперимента или None
+    """
+    # Пробуем в twostep
+    path = Path(base_dir) / 'twostep' / experiment_id
+    if path.exists():
+        return str(path)
+    
+    # Пробуем в reversal
+    path = Path(base_dir) / 'reversal' / experiment_id
+    if path.exists():
+        return str(path)
+    
+    return None
+
+
+def load_experiment_data(exp_dir: str) -> Dict[str, pd.DataFrame]:
+    """
+    Загружает все CSV логи из директории эксперимента.
+    
+    Args:
+        exp_dir: Путь к директории эксперимента
         
-        # Адаптивное обновление
-        if hasattr(agent, 'get_mode'):
-            u_t_prev = agent.update(a1, a2, reward, s2, trans_type, s1)
-        else:
-            agent.update(a1, a2, reward, s2, trans_type, s1)
-            
-        trans_factor = 1 if trans_type == 'common' else -1
+    Returns:
+        Dict {agent_name: DataFrame с агрегированными данными}
+    """
+    exp_path = Path(exp_dir)
+    
+    if not exp_path.exists():
+        raise FileNotFoundError(f"Эксперимент не найден: {exp_dir}")
+    
+    # Ищем все CSV файлы с триалами
+    csv_files = list(exp_path.glob('*_trials.csv'))
+    
+    if not csv_files:
+        raise FileNotFoundError(f"CSV файлы не найдены в {exp_dir}")
+    
+    # Группируем по агентам (Full, NoVG, NoVp)
+    agent_data = {}
+    
+    for csv_file in csv_files:
+        # Извлекаем имя агента из имени файла
+        # Формат: {exp_id}_{agent}_seed{N}_trials.csv
+        parts = csv_file.stem.split('_')
         
-        if prev_a1 is not None:
-            stay = 1 if (a1 == prev_a1) else 0
-            data.append({
-                'trial': trial,
-                'reward': prev_reward,
-                'trans_factor': prev_trans_factor,
-                'stay': stay
-            })
-            
-        prev_a1 = a1
-        prev_reward = reward
-        prev_trans_factor = trans_factor
+        # Ищем часть с именем агента
+        agent_name = None
+        for i, part in enumerate(parts):
+            if part in ['Full', 'NoVG', 'NoVp']:
+                agent_name = part
+                break
         
-        # Отладочный вывод
-        if verbose and not nodebug:
-            if trial % 500 == 0:
-                print(f"  Trial {trial}...")
+        if agent_name is None:
+            print_always(f"⚠️ Не удалось определить агента для {csv_file.name}")
+            continue
         
-    return pd.DataFrame(data)
+        # Загружаем CSV
+        df = pd.read_csv(csv_file)
+        
+        if agent_name not in agent_data:
+            agent_data[agent_name] = []
+        agent_data[agent_name].append(df)
+    
+    # Агрегируем по seeds
+    aggregated = {}
+    for agent_name, dfs in agent_data.items():
+        aggregated[agent_name] = pd.concat(dfs, ignore_index=True)
+        print_always(f"  {agent_name}: {len(dfs)} seeds, {len(aggregated[agent_name])} триалов")
+    
+    return aggregated
+
+
+def load_meta_data(exp_dir: str) -> Optional[Dict]:
+    """
+    Загружает метаданные эксперимента из JSON.
+    """
+    meta_path = Path(exp_dir) / 'experiment_meta.json'
+    
+    if meta_path.exists():
+        with open(meta_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    
+    return None
+
 
 # ============================================================================
 # FIGURE 2: MB/MF SIGNATURES (Daw et al. 2011 style)
 # ============================================================================
 
-def plot_stay_probabilities(ax, data, title):
+def generate_figure_2_signatures(data: Dict[str, pd.DataFrame], 
+                                  output_dir: str = 'logs/figures/',
+                                  dpi: int = 300) -> str:
     """
-    Отрисовка классического графика Stay Probability.
+    Отрисовка Figure 2: MB/MF Signatures.
     
     Args:
-        ax: Matplotlib axis
-        data: DataFrame с колонками reward, trans_factor, stay
-        title: Заголовок графика
+        data: Dict {agent_name: DataFrame}
+        output_dir: Директория для сохранения
+        dpi: Разрешение
+        
+    Returns:
+        Путь к сохранённому файлу
     """
+    print_always("Генерация Figure 2: MB/MF Signatures...")
+    
+    if 'Full' not in data:
+        raise ValueError("Нет данных для агента 'Full'")
+    
+    df = data['Full']
+    
+    # Вычисляем stay probabilities по 4 условиям
     conditions = []
     for reward in [1.0, 0.0]:
         for trans in [1, -1]:
-            subset = data[(data['reward'] == reward) & (data['trans_factor'] == trans)]
+            subset = df[(df['reward'] == reward) & (df['trans_factor'] == trans)]
             if len(subset) > 0:
                 prob = subset['stay'].mean()
-                err = subset['stay'].sem()
+                sem = subset['stay'].sem()  # Standard Error of Mean
+                n = len(subset)
             else:
-                prob, err = 0, 0
-            conditions.append((reward, trans, prob, err))
+                prob, sem, n = 0, 0, 0
+            conditions.append({
+                'reward': reward,
+                'trans': trans,
+                'prob': prob,
+                'sem': sem,
+                'n': n
+            })
     
+    # Строим график
     labels = ['Common', 'Rare']
-    rewarded_means = [conditions[0][2], conditions[1][2]]
-    rewarded_errs = [conditions[0][3], conditions[1][3]]
-    unrewarded_means = [conditions[2][2], conditions[3][2]]
-    unrewarded_errs = [conditions[2][3], conditions[3][3]]
-    
     x = np.arange(len(labels))
     width = 0.35
     
-    ax.bar(x - width/2, rewarded_means, width, yerr=rewarded_errs, 
-           label='Rewarded', color='#2ca02c', capsize=5, alpha=0.8)
-    ax.bar(x + width/2, unrewarded_means, width, yerr=unrewarded_errs, 
-           label='Unrewarded', color='#d62728', capsize=5, alpha=0.8)
+    rewarded_means = [conditions[0]['prob'], conditions[1]['prob']]
+    rewarded_sems = [conditions[0]['sem'], conditions[1]['sem']]
+    unrewarded_means = [conditions[2]['prob'], conditions[3]['prob']]
+    unrewarded_sems = [conditions[2]['sem'], conditions[3]['sem']]
     
-    ax.set_ylabel('Stay Probability')
-    ax.set_title(title, fontweight='bold')
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ax.bar(x - width/2, rewarded_means, width, yerr=rewarded_sems,
+           label='Rewarded', color='#2ca02c', capsize=5, alpha=0.8, error_kw={'elinewidth': 2})
+    ax.bar(x + width/2, unrewarded_means, width, yerr=unrewarded_sems,
+           label='Unrewarded', color='#d62728', capsize=5, alpha=0.8, error_kw={'elinewidth': 2})
+    
+    ax.set_ylabel('Stay Probability', fontsize=14)
+    ax.set_xlabel('Transition Type', fontsize=14)
+    ax.set_title('Figure 2: MB/MF Signatures (Rheological Agent)', fontsize=16, fontweight='bold')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.set_ylim(0, 1.0)
-    ax.legend(loc='lower left')
+    ax.legend(loc='lower left', fontsize=12)
     ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.3)
-
-
-def generate_figure_2_signatures(output_dir='logs/figures/', n_trials=5000, 
-                                  seed=42, dpi=300, verbose=False, nodebug=True):
-    """
-    Сбор данных и отрисовка Figure 2: MB/MF Signatures.
+    ax.grid(True, alpha=0.3)
     
-    Args:
-        output_dir: Директория для сохранения
-        n_trials: Количество триалов на агента
-        seed: Random seed
-        dpi: Разрешение сохранения
-        verbose: Выводить ли прогресс
-        nodebug: Отключить ли вывод
-    """
-    print_always("Генерация Figure 2: Two-Step Signatures...")
-    
-    env = TwoStepEnv(seed=seed, n_trials=n_trials, with_changepoint=False)
-    
-    mf_data = run_agent_for_figures(env, MFAgent(beta=4.0, seed=seed), 
-                                     n_trials=n_trials, verbose=verbose, nodebug=nodebug)
-    env.reset()
-    mb_data = run_agent_for_figures(env, MBAgent(beta=4.0, seed=seed), 
-                                     n_trials=n_trials, verbose=verbose, nodebug=nodebug)
-    env.reset()
-    rheo_data = run_agent_for_figures(env, RheologicalAgent(beta=4.0, theta_mb=0.30, seed=seed), 
-                                       n_trials=n_trials, verbose=verbose, nodebug=nodebug)
-    
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    plot_stay_probabilities(axes[0], mf_data, 'MF Agent (Model-Free)')
-    plot_stay_probabilities(axes[1], mb_data, 'MB Agent (Model-Based)')
-    plot_stay_probabilities(axes[2], rheo_data, 'Rheological Agent (Our Model)')
-    
-    plt.suptitle('Figure 2: MB/MF Signatures in Two-Step Task', fontsize=20, fontweight='bold', y=1.02)
     plt.tight_layout()
     
     filepath = os.path.join(output_dir, 'Figure_2_Signatures.png')
     plt.savefig(filepath, dpi=dpi, bbox_inches='tight')
     print_always(f"Сохранено: {filepath}")
     plt.close()
+    
+    return filepath
+
 
 # ============================================================================
 # FIGURE 3: V_G DYNAMICS AND HYSTERESIS
 # ============================================================================
 
-def generate_figure_3_vg_dynamics(output_dir='logs/figures/', n_trials=2000, 
-                                   changepoint=1000, seed=42, theta_mb=0.30,
-                                   dpi=300, verbose=False, nodebug=True):
+def generate_figure_3_vg_dynamics(data: Dict[str, pd.DataFrame],
+                                   changepoint: int = 1000,
+                                   output_dir: str = 'logs/figures/',
+                                   dpi: int = 300) -> str:
     """
-    Сбор данных и отрисовка Figure 3: Динамика расплавления V_G.
+    Отрисовка Figure 3: Динамика V_G с агрегацией по seeds.
     
     Args:
-        output_dir: Директория для сохранения
-        n_trials: Количество триалов
+        data: Dict {agent_name: DataFrame}
         changepoint: Триал смены правил
-        seed: Random seed
-        theta_mb: Порог переключения
-        dpi: Разрешение сохранения
-        verbose: Выводить ли прогресс
-        nodebug: Отключить ли вывод
+        output_dir: Директория для сохранения
+        dpi: Разрешение
+        
+    Returns:
+        Путь к сохранённому файлу
     """
     print_always("Генерация Figure 3: V_G Dynamics and Hysteresis...")
     
-    env = TwoStepEnv(n_trials=n_trials, changepoint_trial=changepoint, 
-                     seed=seed, with_changepoint=True)
-    agent = RheologicalAgent(theta_mb=theta_mb, seed=seed)
+    if 'Full' not in data:
+        raise ValueError("Нет данных для агента 'Full'")
     
-    v_g_history = []
-    mode_history = []
-    u_t_prev = np.zeros(4)
+    df = data['Full']
     
-    for trial in range(1, n_trials + 1):
-        s1 = env.reset()
-        a1 = agent.select_action_stage1(s1, u_t_prev)
-        mode = agent.get_mode()
-        
-        s2, trans_type = env.step_stage1(a1)
-        a2 = agent.select_action_stage2(s2)
-        reward, done, info = env.step_stage2(a2)
-        u_t_prev = agent.update(a1, a2, reward, s2, trans_type, s1)
-        
-        v_g_history.append(agent.V_G)
-        mode_history.append(1 if mode == 'EXPLORE' else 0)
-        
-        if verbose and not nodebug:
-            if trial in [changepoint-10, changepoint, changepoint+10, changepoint+50]:
-                print(f"  Trial {trial}: V_G={agent.V_G:.3f}, Mode={mode}")
-
+    # Агрегируем по trial и seed
+    # Группируем по trial, вычисляем mean и sem для V_G и mode
+    agg = df.groupby('trial').agg({
+        'V_G': ['mean', 'sem'],
+        'mode': ['mean']  # mode уже 0/1, mean = probability
+    }).reset_index()
+    
+    agg.columns = ['trial', 'V_G_mean', 'V_G_sem', 'EXPLORE_prob']
+    
     # Окно вокруг смены правил
     window_start = max(0, changepoint - 200)
-    window_end = min(n_trials, changepoint + 400)
-    window = range(window_start, window_end)
+    window_end = min(agg['trial'].max(), changepoint + 400)
+    window_mask = (agg['trial'] >= window_start) & (agg['trial'] <= window_end)
+    window = agg[window_mask]
     
     fig, ax1 = plt.subplots(figsize=(12, 6))
     
-    ax1.plot(window, np.array(v_g_history)[window], color='#1f77b4', 
+    # V_G с доверительным интервалом
+    ax1.plot(window['trial'], window['V_G_mean'], color='#1f77b4',
              label='V_G (Control Inertia)', linewidth=2.5)
-    ax1.axvline(x=changepoint, color='black', linestyle='--', linewidth=2, 
+    ax1.fill_between(window['trial'],
+                     window['V_G_mean'] - window['V_G_sem'],
+                     window['V_G_mean'] + window['V_G_sem'],
+                     color='#1f77b4', alpha=0.3, label='± SEM')
+    ax1.axvline(x=changepoint, color='black', linestyle='--', linewidth=2,
                 label='Changepoint (Rule Reversal)')
     
     ax1.set_xlabel('Trial', fontsize=14)
@@ -263,9 +317,9 @@ def generate_figure_3_vg_dynamics(output_dir='logs/figures/', n_trials=2000,
     ax1.tick_params(axis='y', labelcolor='#1f77b4')
     ax1.grid(True, alpha=0.3)
     
+    # EXPLORE probability
     ax2 = ax1.twinx()
-    explore_smooth = pd.Series(mode_history).rolling(window=20, min_periods=1).mean()
-    ax2.plot(window, explore_smooth[window], color='#ff7f0e', 
+    ax2.plot(window['trial'], window['EXPLORE_prob'], color='#ff7f0e',
              label='P(EXPLORE)', linewidth=2.5, alpha=0.8)
     ax2.set_ylabel('Probability of EXPLORE Mode', color='#ff7f0e', fontsize=14)
     ax2.tick_params(axis='y', labelcolor='#ff7f0e')
@@ -276,7 +330,7 @@ def generate_figure_3_vg_dynamics(output_dir='logs/figures/', n_trials=2000,
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right', fontsize=12)
     
-    plt.title('Figure 3: Gate Rheology Melting and Hysteresis', 
+    plt.title('Figure 3: Gate Rheology Melting and Hysteresis',
               fontsize=16, fontweight='bold', pad=20)
     plt.tight_layout()
     
@@ -284,84 +338,88 @@ def generate_figure_3_vg_dynamics(output_dir='logs/figures/', n_trials=2000,
     plt.savefig(filepath, dpi=dpi, bbox_inches='tight')
     print_always(f"Сохранено: {filepath}")
     plt.close()
+    
+    return filepath
+
 
 # ============================================================================
 # FIGURE 4: REVERSAL LEARNING CURVES (Le et al. 2023 style)
 # ============================================================================
 
-def generate_figure_4_reversal(output_dir='logs/figures/', n_trials=300, 
-                                rev_trial=150, n_seeds=30, seed_start=42,
-                                dpi=300, verbose=False, nodebug=True):
+def generate_figure_4_reversal(data: Dict[str, pd.DataFrame],
+                                reversal_trial: int = 1000,
+                                output_dir: str = 'logs/figures/',
+                                dpi: int = 300) -> str:
     """
-    Сбор данных и отрисовка Figure 4: Reversal Learning Curves.
+    Отрисовка Figure 4: Reversal Learning Curves.
     
     Args:
+        data: Dict {agent_name: DataFrame}
+        reversal_trial: Триал реверсала
         output_dir: Директория для сохранения
-        n_trials: Количество триалов
-        rev_trial: Триал реверсала
-        n_seeds: Количество семян для усреднения
-        seed_start: Начальное значение seed
-        dpi: Разрешение сохранения
-        verbose: Выводить ли прогресс
-        nodebug: Отключить ли вывод
+        dpi: Разрешение
+        
+    Returns:
+        Путь к сохранённому файлу
     """
-    print_always(f"Генерация Figure 4: Reversal Learning Curves ({n_seeds} seeds)...")
+    print_always("Генерация Figure 4: Reversal Learning Curves...")
     
-    accuracy_full = np.zeros(n_trials)
-    accuracy_novg = np.zeros(n_trials)
+    if 'Full' not in data or 'NoVG' not in data:
+        raise ValueError("Нет данных для агентов 'Full' и/или 'NoVG'")
     
-    for i in range(n_seeds):
-        seed = seed_start + i
-        
-        if verbose and not nodebug:
-            if (i + 1) % 10 == 0:
-                print(f"  Seed прогресс: {i + 1}/{n_seeds}")
-        
-        # Full Agent
-        df_full = run_reversal_single(RheologicalAgent, n_trials=n_trials, 
-                                       reversal_trial=rev_trial, seed=seed)
-        correct_action_full = df_full.apply(
-            lambda row: 1 if (row['a1'] == 0 and row['trial'] <= rev_trial) or 
-                         (row['a1'] == 1 and row['trial'] > rev_trial) else 0, 
+    # Вычисляем P(Correct) для каждого агента
+    def compute_accuracy(df, reversal_trial):
+        df = df.copy()
+        df['correct'] = df.apply(
+            lambda row: 1 if (row['a1'] == 0 and row['trial'] <= reversal_trial) or
+                         (row['a1'] == 1 and row['trial'] > reversal_trial) else 0,
             axis=1
         )
-        accuracy_full += correct_action_full.values
-        
-        # NoVG Agent
-        df_novg = run_reversal_single(RheologicalAgent_NoVG, n_trials=n_trials, 
-                                       reversal_trial=rev_trial, seed=seed)
-        correct_action_novg = df_novg.apply(
-            lambda row: 1 if (row['a1'] == 0 and row['trial'] <= rev_trial) or 
-                         (row['a1'] == 1 and row['trial'] > rev_trial) else 0, 
-            axis=1
-        )
-        accuracy_novg += correct_action_novg.values
-
-    accuracy_full /= n_seeds
-    accuracy_novg /= n_seeds
+        return df
     
-    # Сглаживание
-    acc_full_smooth = pd.Series(accuracy_full).rolling(window=10, min_periods=1).mean()
-    acc_novg_smooth = pd.Series(accuracy_novg).rolling(window=10, min_periods=1).mean()
-
-    plt.figure(figsize=(12, 6))
-    plt.plot(acc_full_smooth, label='Full Agent (with V_G)', color='#1f77b4', 
-             linewidth=2.5, alpha=0.9)
-    plt.plot(acc_novg_smooth, label='NoVG Agent (Ablation)', color='#d62728', 
-             linestyle='--', linewidth=2.5, alpha=0.9)
+    full_df = compute_accuracy(data['Full'], reversal_trial)
+    novg_df = compute_accuracy(data['NoVG'], reversal_trial)
     
-    plt.axvline(x=rev_trial, color='black', linestyle=':', linewidth=2, 
-                label='Reversal Point')
-    plt.axhline(y=0.5, color='gray', linestyle='-', alpha=0.5, label='Chance Level')
-    plt.axhline(y=0.8, color='green', linestyle='-.', alpha=0.5, label='Criterion (80%)')
+    # Агрегируем по trial
+    full_agg = full_df.groupby('trial')['correct'].agg(['mean', 'sem']).reset_index()
+    novg_agg = novg_df.groupby('trial')['correct'].agg(['mean', 'sem']).reset_index()
     
-    plt.ylim(0, 1.05)
-    plt.xlabel('Trial', fontsize=14)
-    plt.ylabel('P(Correct Choice)', fontsize=14)
-    plt.title('Figure 4: Reversal Learning & Perseveration', 
-              fontsize=16, fontweight='bold', pad=20)
-    plt.legend(loc='lower right', fontsize=12)
-    plt.grid(True, alpha=0.3)
+    # Сглаживание (rolling mean)
+    window = 10
+    full_agg['smooth'] = full_agg['mean'].rolling(window=window, min_periods=1).mean()
+    novg_agg['smooth'] = novg_agg['mean'].rolling(window=window, min_periods=1).mean()
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Full Agent
+    ax.plot(full_agg['trial'], full_agg['smooth'],
+            label='Full Agent (with V_G)', color='#1f77b4', linewidth=2.5, alpha=0.9)
+    ax.fill_between(full_agg['trial'],
+                    full_agg['smooth'] - full_agg['sem'],
+                    full_agg['smooth'] + full_agg['sem'],
+                    color='#1f77b4', alpha=0.2)
+    
+    # NoVG Agent
+    ax.plot(novg_agg['trial'], novg_agg['smooth'],
+            label='NoVG Agent (Ablation)', color='#d62728',
+            linestyle='--', linewidth=2.5, alpha=0.9)
+    ax.fill_between(novg_agg['trial'],
+                    novg_agg['smooth'] - novg_agg['sem'],
+                    novg_agg['smooth'] + novg_agg['sem'],
+                    color='#d62728', alpha=0.2)
+    
+    ax.axvline(x=reversal_trial, color='black', linestyle=':', linewidth=2,
+               label='Reversal Point')
+    ax.axhline(y=0.5, color='gray', linestyle='-', alpha=0.5, label='Chance Level')
+    ax.axhline(y=0.8, color='green', linestyle='-.', alpha=0.5, label='Criterion (80%)')
+    
+    ax.set_ylim(0, 1.05)
+    ax.set_xlabel('Trial', fontsize=14)
+    ax.set_ylabel('P(Correct Choice)', fontsize=14)
+    ax.set_title('Figure 4: Reversal Learning & Perseveration',
+                 fontsize=16, fontweight='bold', pad=20)
+    ax.legend(loc='lower right', fontsize=12)
+    ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
     
@@ -369,6 +427,9 @@ def generate_figure_4_reversal(output_dir='logs/figures/', n_trials=300,
     plt.savefig(filepath, dpi=dpi, bbox_inches='tight')
     print_always(f"Сохранено: {filepath}")
     plt.close()
+    
+    return filepath
+
 
 # ============================================================================
 # MAIN ENTRY POINT
@@ -376,71 +437,122 @@ def generate_figure_4_reversal(output_dir='logs/figures/', n_trials=300,
 
 def main():
     """Точка входа для генерации всех фигур."""
-    args = parse_args(description="Stage 2: Generate Publication-Ready Figures")
+    parser = parse_args(
+        description="Stage 2: Generate Publication-Ready Figures",
+        default_output_dir='logs/figures/'
+    )
     
-    # Дополнительные аргументы для фигур
-    import argparse
-    parser = argparse.ArgumentParser(parents=[argparse.ArgumentParser(add_help=False)])
-    parser.add_argument('--output-dir', type=str, default='logs/figures/',
-                       help='Директория для сохранения графиков')
+    # Дополнительные аргументы для figures
+    parser.add_argument('--input-dir', type=str, default=None,
+                       help='Прямая директория с логами (переопределяет --latest/--experiment-id)')
+    parser.add_argument('--latest', action='store_true', default=True,
+                       help='Использовать последний эксперимент (по умолчанию)')
+    parser.add_argument('--experiment-id', type=str, default=None,
+                       help='ID конкретного эксперимента')
     parser.add_argument('--dpi', type=int, default=300,
                        help='Разрешение сохранения (default: 300)')
-    parser.add_argument('--n-seeds', type=int, default=30,
-                       help='Количество семян для Reversal (default: 30)')
     parser.add_argument('--figure', type=str, default='all',
                        choices=['all', '2', '3', '4'],
                        help='Какую фигуру генерировать (default: all)')
     
-    # Парсим известные аргументы, игнорируем неизвестные
-    fig_args, _ = parser.parse_known_args()
+    args = parser.parse_args()
     
-    # Создаем директорию
-    os.makedirs(fig_args.output_dir, exist_ok=True)
+    # Определяем директорию эксперимента
+    exp_dir = None
+    
+    if args.input_dir:
+        exp_dir = args.input_dir
+        print_always(f"Используем директорию: {exp_dir}")
+    elif args.experiment_id:
+        exp_dir = find_experiment_by_id(args.experiment_id)
+        if exp_dir:
+            print_always(f"Найден эксперимент: {args.experiment_id}")
+        else:
+            print_always(f"✗ Эксперимент не найден: {args.experiment_id}")
+            return
+    else:  # --latest (по умолчанию)
+        # Пробуем twostep
+        exp_dir = find_latest_experiment('twostep')
+        if exp_dir:
+            print_always(f"Последний эксперимент (twostep): {Path(exp_dir).name}")
+        else:
+            print_always("✗ Эксперименты twostep не найдены")
+            return
+    
+    # Создаём директорию для фигур
+    os.makedirs(args.output_dir, exist_ok=True)
+    
+    # Загружаем данные
+    print_always("=" * 70)
+    print_always("Загрузка данных эксперимента...")
+    print_always("=" * 70)
+    
+    try:
+        data = load_experiment_data(exp_dir)
+        meta = load_meta_data(exp_dir)
+        
+        if meta:
+            print_always(f"Эксперимент: {meta.get('experiment_name', 'N/A')}")
+            print_always(f"Описание: {meta.get('description', 'N/A')}")
+            print_always(f"Конфигурация: {meta.get('config', {})}")
+        
+        print_always("--" * 35)
+    except Exception as e:
+        print_always(f"✗ Ошибка загрузки данных: {e}")
+        return
     
     # Настраиваем стиль
     setup_publication_style()
     
-    print_always("=" * 70)
-    print_always("Stage 2: Генерация публикационных графиков")
-    print_always("=" * 70)
-    print_always(f"Output Directory: {fig_args.output_dir}")
-    print_always(f"DPI: {fig_args.dpi}")
-    print_always(f"N Seeds (Reversal): {fig_args.n_seeds}")
-    print_always("")
+    # Получаем параметры из метаданных или используем дефолты
+    changepoint = 1000
+    reversal_trial = 1000
     
-    if fig_args.figure in ['all', '2']:
-        generate_figure_2_signatures(
-            output_dir=fig_args.output_dir,
-            dpi=fig_args.dpi,
-            verbose=args.verbose,
-            nodebug=args.nodebug
-        )
-        print_always("")
+    if meta and 'config' in meta:
+        changepoint = meta['config'].get('changepoint', 1000)
+        reversal_trial = meta['config'].get('reversal_trial', 1000)
     
-    if fig_args.figure in ['all', '3']:
-        generate_figure_3_vg_dynamics(
-            output_dir=fig_args.output_dir,
-            dpi=fig_args.dpi,
-            theta_mb=args.theta_mb,
-            verbose=args.verbose,
-            nodebug=args.nodebug
-        )
-        print_always("")
-    
-    if fig_args.figure in ['all', '4']:
-        generate_figure_4_reversal(
-            output_dir=fig_args.output_dir,
-            n_seeds=fig_args.n_seeds,
-            dpi=fig_args.dpi,
-            verbose=args.verbose,
-            nodebug=args.nodebug
-        )
-        print_always("")
-    
+    # Генерируем фигуры
+    print_always("\n" + "=" * 70)
+    print_always("Генерация фигур")
     print_always("=" * 70)
-    print_always("✓ Все графики сгенерированы!")
-    print_always(f"Проверьте папку: {os.path.abspath(fig_args.output_dir)}")
-    print_always("=" * 70)
+    
+    try:
+        if args.figure in ['all', '2']:
+            generate_figure_2_signatures(
+                data=data,
+                output_dir=args.output_dir,
+                dpi=args.dpi
+            )
+            print_always()
+        
+        if args.figure in ['all', '3']:
+            generate_figure_3_vg_dynamics(
+                data=data,
+                changepoint=changepoint,
+                output_dir=args.output_dir,
+                dpi=args.dpi
+            )
+            print_always()
+        
+        if args.figure in ['all', '4']:
+            generate_figure_4_reversal(
+                data=data,
+                reversal_trial=reversal_trial,
+                output_dir=args.output_dir,
+                dpi=args.dpi
+            )
+            print_always()
+        
+        print_always("=" * 70)
+        print_always("✓ Все графики сгенерированы!")
+        print_always(f"Проверьте папку: {os.path.abspath(args.output_dir)}")
+        print_always("=" * 70)
+        
+    except Exception as e:
+        print_always(f"✗ Ошибка генерации фигур: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
