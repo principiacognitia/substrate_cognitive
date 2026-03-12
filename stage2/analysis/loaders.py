@@ -54,6 +54,30 @@ def find_experiment_by_id(experiment_id: str, base_dir: str = 'logs/') -> Option
     
     return None
 
+def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Стандартизирует имена колонок в DataFrame.
+    
+    Разные эксперименты используют разные имена для одних и тех же данных:
+    - trans_factor / transition / trans_type
+    - mode_numeric / mode
+    - и т.д.
+    """
+    df = df.copy()
+    
+    # Если есть 'trans_type' (строка 'common'/'rare'), конвертируем в 'trans_factor' (1/-1)
+    if 'trans_type' in df.columns and 'trans_factor' not in df.columns:
+        df['trans_factor'] = df['trans_type'].apply(lambda x: 1 if x == 'common' else -1)
+    
+    # Если есть 'transition' (число 0/1), конвертируем в 'trans_factor' (1/-1)
+    if 'transition' in df.columns and 'trans_factor' not in df.columns:
+        df['trans_factor'] = df['transition'].apply(lambda x: 1 if x == 1 else -1)
+    
+    # Если есть 'mode' (строка), создаём 'mode_numeric'
+    if 'mode' in df.columns and 'mode_numeric' not in df.columns:
+        df['mode_numeric'] = df['mode'].apply(lambda x: 1 if x == 'EXPLORE' else 0)
+    
+    return df
 
 def load_experiment_data(exp_dir: str) -> Dict[str, pd.DataFrame]:
     """
@@ -87,7 +111,10 @@ def load_experiment_data(exp_dir: str) -> Dict[str, pd.DataFrame]:
         # Ищем часть с именем агента
         agent_name = None
         for part in parts:
-            if part in ['Full', 'NoVG', 'NoVp', 'MF', 'MB', 'RheologicalAgent']:
+        # Поддержка всех форматов имён агентов
+            if part in ['Full', 'NoVG', 'NoVp', 'MF', 'MB', 
+                        'RheologicalAgent', 'MFAgent', 'MBAgent',
+                        'RheologicalAgent_NoVG', 'RheologicalAgent_NoVp']:
                 agent_name = part
                 break
         
@@ -96,7 +123,9 @@ def load_experiment_data(exp_dir: str) -> Dict[str, pd.DataFrame]:
             for i, part in enumerate(parts):
                 if part.startswith('seed') and i > 0:
                     potential_agent = parts[i-1]
-                    if potential_agent in ['Full', 'NoVG', 'NoVp', 'MF', 'MB', 'RheologicalAgent']:
+                    if potential_agent in ['Full', 'NoVG', 'NoVp', 'MF', 'MB', 
+                        'RheologicalAgent', 'MFAgent', 'MBAgent',
+                        'RheologicalAgent_NoVG', 'RheologicalAgent_NoVp']:
                         agent_name = potential_agent
                         break
         
@@ -105,6 +134,8 @@ def load_experiment_data(exp_dir: str) -> Dict[str, pd.DataFrame]:
         
         # Загружаем CSV
         df = pd.read_csv(csv_file)
+
+        df = standardize_columns(df)
         
         if agent_name not in agent_data:
             agent_data[agent_name] = []

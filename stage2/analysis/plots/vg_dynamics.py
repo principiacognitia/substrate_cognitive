@@ -23,12 +23,15 @@ def generate_figure_3(data: Dict[str, pd.DataFrame],
     if 'Full' not in data:
         raise ValueError("Нет данных для агента 'Full'")
     
-    df = data['Full']
+    df = data['Full'].copy()
     
-    # Агрегируем по trial и seed
+    # ИСПРАВЛЕНИЕ: Конвертируем mode в 0/1 ПЕРЕД агрегацией
+    df['mode_numeric'] = df['mode'].apply(lambda x: 1 if x == 'EXPLORE' else 0)
+    
+    # Агрегируем по trial и seed — ТОЛЬКО числовые колонки
     agg = df.groupby('trial').agg({
         'V_G': ['mean', 'sem'],
-        'mode': ['mean']
+        'mode_numeric': ['mean']  # ← ИСПРАВЛЕНО: используем числовую колонку
     }).reset_index()
     
     agg.columns = ['trial', 'V_G_mean', 'V_G_sem', 'EXPLORE_prob']

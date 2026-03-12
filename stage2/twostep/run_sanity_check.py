@@ -172,6 +172,7 @@ def run_sanity_study(
             if result is not None:
                 all_results.append({
                     'agent_type': agent_name,
+                    'agent_class': f'{agent_name}Agent',  # 'MFAgent' или 'MBAgent'                    
                     'seed': seed,
                     'coef_reward': result.params['reward'],
                     'p_reward': result.pvalues['reward'],

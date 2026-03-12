@@ -20,6 +20,7 @@ def generate_figure_2(data: Dict[str, pd.DataFrame],
     setup_publication_style()
     
     # Определяем какой агент использовать для графика
+    # Приоритет: RheologicalAgent > Full > MB > MF
     if 'RheologicalAgent' in data:
         df = data['RheologicalAgent']
         title = 'Rheological Agent (Our Model)'
@@ -29,8 +30,17 @@ def generate_figure_2(data: Dict[str, pd.DataFrame],
     elif 'MB' in data:
         df = data['MB']
         title = 'MB Agent (Model-Based)'
+    elif 'MBAgent' in data:  # ← Добавить поддержку
+        df = data['MBAgent']
+        title = 'MB Agent (Model-Based)'
+    elif 'MF' in data:
+        df = data['MF']
+        title = 'MF Agent (Model-Free)'
+    elif 'MFAgent' in data:  # ← Добавить поддержку
+        df = data['MFAgent']
+        title = 'MF Agent (Model-Free)'
     else:
-        raise ValueError("Нет данных для агента (нужен RheologicalAgent/Full/MB)")
+        raise ValueError("Нет данных для агента")
     
     # Вычисляем stay probabilities по 4 условиям
     conditions = []
