@@ -76,7 +76,11 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
     # Если есть 'mode' (строка), создаём 'mode_numeric'
     if 'mode' in df.columns and 'mode_numeric' not in df.columns:
         df['mode_numeric'] = df['mode'].apply(lambda x: 1 if x == 'EXPLORE' else 0)
-    
+
+    # ← ДОБАВЛЕНО: Если нет 'stay', но есть 'a1' и 'prev_a1', вычисляем
+    if 'stay' not in df.columns and 'a1' in df.columns:
+        df['stay'] = df['a1'].eq(df['a1'].shift(1)).astype(int)
+
     return df
 
 def load_experiment_data(exp_dir: str) -> Dict[str, pd.DataFrame]:
