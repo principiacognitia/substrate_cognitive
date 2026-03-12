@@ -129,20 +129,33 @@ def load_experiment_data(exp_dir: str) -> Dict[str, pd.DataFrame]:
     if not csv_files:
         raise FileNotFoundError(f"CSV файлы не найдены в {exp_dir}")
     
-    # Группируем по агентам (Full, NoVG, NoVp)
+    # Группируем по агентам
     agent_data = {}
     
     for csv_file in csv_files:
         # Извлекаем имя агента из имени файла
-        # Формат: {exp_id}_{agent}_seed{N}_trials.csv
+        # Форматы:
+        #   {exp_id}_{agent}_seed{N}_trials.csv (Full, NoVG, NoVp)
+        #   {exp_id}_{agent}_seed{N}_trials.csv (MF, MB)
+        #   {exp_id}_RheologicalAgent_seed{N}_trials.csv
         parts = csv_file.stem.split('_')
         
         # Ищем часть с именем агента
         agent_name = None
-        for i, part in enumerate(parts):
-            if part in ['Full', 'NoVG', 'NoVp']:
+        for part in parts:
+            if part in ['Full', 'NoVG', 'NoVp', 'MF', 'MB', 'RheologicalAgent']:
                 agent_name = part
                 break
+        
+        # Если не нашли явное имя, пробуем найти по индексу (предпоследняя часть перед seed)
+        if agent_name is None:
+            for i, part in enumerate(parts):
+                if part.startswith('seed') and i > 0:
+                    # Предыдущая часть перед seed должна быть агентом
+                    potential_agent = parts[i-1]
+                    if potential_agent in ['Full', 'NoVG', 'NoVp', 'MF', 'MB', 'RheologicalAgent']:
+                        agent_name = potential_agent
+                        break
         
         if agent_name is None:
             print_always(f"⚠️ Не удалось определить агента для {csv_file.name}")
@@ -197,10 +210,19 @@ def generate_figure_2_signatures(data: Dict[str, pd.DataFrame],
     """
     print_always("Генерация Figure 2: MB/MF Signatures...")
     
-    if 'Full' not in data:
-        raise ValueError("Нет данных для агента 'Full'")
-    
-    df = data['Full']
+    # Определяем какой агент использовать для графика
+    # Приоритет: RheologicalAgent > Full > MB
+    if 'RheologicalAgent' in data:
+        df = data['RheologicalAgent']
+        title = 'Rheological Agent (Our Model)'
+    elif 'Full' in data:
+        df = data['Full']
+        title = 'Full Agent (V_G + V_p)'
+    elif 'MB' in data:
+        df = data['MB']
+        title = 'MB Agent (Model-Based)'
+    else:
+        raise ValueError("Нет данных для агента (нужен RheologicalAgent/Full/MB)")
     
     # Вычисляем stay probabilities по 4 условиям
     conditions = []
@@ -437,24 +459,78 @@ def generate_figure_4_reversal(data: Dict[str, pd.DataFrame],
 
 def main():
     """Точка входа для генерации всех фигур."""
-    parser = parse_args(
+    import argparse
+    
+    # Создаём парсер ПЕРЕД добавлением аргументов
+    parser = argparse.ArgumentParser(
         description="Stage 2: Generate Publication-Ready Figures",
-        default_output_dir='logs/figures/'
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Примеры использования:
+  python -m stage2.analysis.figures --latest
+  python -m stage2.analysis.figures --experiment-id twostep_ablation_20260308_201037
+  python -m stage2.analysis.figures --input-dir logs/twostep/twostep_ablation_20260308_201037/
+        """
     )
     
-    # Дополнительные аргументы для figures
-    parser.add_argument('--input-dir', type=str, default=None,
-                       help='Прямая директория с логами (переопределяет --latest/--experiment-id)')
-    parser.add_argument('--latest', action='store_true', default=True,
-                       help='Использовать последний эксперимент (по умолчанию)')
-    parser.add_argument('--experiment-id', type=str, default=None,
-                       help='ID конкретного эксперимента')
-    parser.add_argument('--dpi', type=int, default=300,
-                       help='Разрешение сохранения (default: 300)')
-    parser.add_argument('--figure', type=str, default='all',
-                       choices=['all', '2', '3', '4'],
-                       help='Какую фигуру генерировать (default: all)')
+    # ===== Общие аргументы (из args.py) =====
+    parser.add_argument(
+        '--nodebug',
+        action='store_true',
+        help='Отключить отладочный вывод в консоль'
+    )
     
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Включить расширенный вывод'
+    )
+    
+    parser.add_argument(
+        '--output-dir',
+        type=str,
+        default='logs/figures/',
+        help='Директория для сохранения графиков'
+    )
+    
+    # ===== Аргументы для figures =====
+    parser.add_argument(
+        '--input-dir',
+        type=str,
+        default=None,
+        help='Прямая директория с логами (переопределяет --latest/--experiment-id)'
+    )
+    
+    parser.add_argument(
+        '--latest',
+        action='store_true',
+        default=True,
+        help='Использовать последний эксперимент (по умолчанию)'
+    )
+    
+    parser.add_argument(
+        '--experiment-id',
+        type=str,
+        default=None,
+        help='ID конкретного эксперимента'
+    )
+    
+    parser.add_argument(
+        '--dpi',
+        type=int,
+        default=300,
+        help='Разрешение сохранения (default: 300)'
+    )
+    
+    parser.add_argument(
+        '--figure',
+        type=str,
+        default='all',
+        choices=['all', '2', '3', '4'],
+        help='Какую фигуру генерировать (default: all)'
+    )
+    
+    # Парсим аргументы
     args = parser.parse_args()
     
     # Определяем директорию эксперимента
@@ -494,11 +570,15 @@ def main():
         if meta:
             print_always(f"Эксперимент: {meta.get('experiment_name', 'N/A')}")
             print_always(f"Описание: {meta.get('description', 'N/A')}")
-            print_always(f"Конфигурация: {meta.get('config', {})}")
+            config = meta.get('config', {})
+            if config:
+                print_always(f"Конфигурация: {config}")
         
         print_always("--" * 35)
     except Exception as e:
         print_always(f"✗ Ошибка загрузки данных: {e}")
+        import traceback
+        traceback.print_exc()
         return
     
     # Настраиваем стиль
@@ -524,7 +604,7 @@ def main():
                 output_dir=args.output_dir,
                 dpi=args.dpi
             )
-            print_always()
+            print_always("")
         
         if args.figure in ['all', '3']:
             generate_figure_3_vg_dynamics(
@@ -533,7 +613,7 @@ def main():
                 output_dir=args.output_dir,
                 dpi=args.dpi
             )
-            print_always()
+            print_always("")
         
         if args.figure in ['all', '4']:
             generate_figure_4_reversal(
@@ -542,7 +622,7 @@ def main():
                 output_dir=args.output_dir,
                 dpi=args.dpi
             )
-            print_always()
+            print_always("")
         
         print_always("=" * 70)
         print_always("✓ Все графики сгенерированы!")
