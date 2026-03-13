@@ -1,29 +1,61 @@
 """
 Генерация всех графиков для Stage 2.
 
+Автоматически находит последние эксперименты каждого типа:
+  - Figure 2: Генерируется заново (запускает агентов)
+  - Figure 3: Ищет папку twostep_ablation_*
+  - Figure 4/4B: Ищет папку reversal_*
+
 Запуск:
-    python -m stage2.analysis.run_all --latest
-    python -m stage2.analysis.run_all --experiment-id twostep_ablation_20260310_195529
-    python -m stage2.analysis.run_all --task twostep --figure 3
+    python -m stage2.analysis.run_all
+    python -m stage2.analysis.run_all --figure 3 --dpi 600
+    python -m stage2.analysis.run_all --figure 4 --output-dir logs/figures/
 """
 
+import os
 import argparse
-import sys
 from pathlib import Path
+from typing import Optional, Dict
 
 from stage2.analysis.loaders import (
     find_latest_experiment,
-    find_experiment_by_id,
     load_experiment_data,
     load_meta_data
 )
-from stage2.analysis.plots import (
-    generate_figure_2,
-    generate_figure_3,
-    generate_figure_4
-)
-from stage2.analysis.plots.reversal import generate_figure_4b
+from stage2.analysis.plots.stay_prob import generate_figure_2
+from stage2.analysis.plots.vg_dynamics import generate_figure_3
+from stage2.analysis.plots.reversal import generate_figure_4, generate_figure_4b
 from substrate_analysis.style import setup_publication_style
+from stage2.core.args import print_always
+
+
+def find_experiment_by_pattern(pattern: str, base_dir: str = 'logs/') -> Optional[str]:
+    """
+    Ищет последнюю папку, соответствующую паттерну.
+    
+    Args:
+        pattern: Паттерн имени (например, 'twostep_ablation', 'reversal')
+        base_dir: Базовая директория логов
+        
+    Returns:
+        Путь к директории или None
+    """
+    search_dir = Path(base_dir) / 'twostep' if 'twostep' in pattern else Path(base_dir) / 'reversal'
+    
+    if not search_dir.exists():
+        return None
+    
+    # Ищем все папки с паттерном в имени
+    exp_dirs = [d for d in search_dir.iterdir() 
+                if d.is_dir() and pattern in d.name]
+    
+    if not exp_dirs:
+        return None
+    
+    # Сортируем по времени модификации (последняя = самая свежая)
+    exp_dirs.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+    
+    return str(exp_dirs[0])
 
 
 def main():
@@ -32,24 +64,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Примеры использования:
-  python -m stage2.analysis.run_all --latest
-  python -m stage2.analysis.run_all --experiment-id twostep_ablation_20260310_195529
-  python -m stage2.analysis.run_all --task reversal --figure 4
+  python -m stage2.analysis.run_all                    # Все фигуры
+  python -m stage2.analysis.run_all --figure 3         # Только Figure 3
+  python -m stage2.analysis.run_all --figure 4 --dpi 600
         """
     )
     
-    parser.add_argument('--task', type=str, default='all',
-                       choices=['all', 'twostep', 'reversal', 'sanity'],
-                       help='Какую задачу анализировать (default: all)')
     parser.add_argument('--figure', type=str, default='all',
                        choices=['all', '2', '3', '4'],
                        help='Какую фигуру генерировать (default: all)')
-    parser.add_argument('--experiment-id', type=str, default=None,
-                       help='ID конкретного эксперимента (переопределяет --latest)')
-    parser.add_argument('--twostep-exp', type=str, default=None,
-                       help='ID Two-Step эксперимента (для Figure 2/3)')
-    parser.add_argument('--reversal-exp', type=str, default=None,
-                       help='ID Reversal эксперимента (для Figure 4)')
     parser.add_argument('--output-dir', type=str, default='logs/figures/',
                        help='Директория для сохранения графиков')
     parser.add_argument('--dpi', type=int, default=300,
@@ -65,97 +88,84 @@ def main():
     # Настраиваем стиль
     setup_publication_style()
     
-    print("=" * 70)
-    print("Генерация фигур для Stage 2")
-    print("=" * 70)
-    
-    # Определяем какие эксперименты использовать
-    twostep_exp = args.twostep_exp or args.experiment_id
-    reversal_exp = args.reversal_exp or args.experiment_id
-    
-    # Если не указано явно, ищем последние эксперименты каждого типа
-    if not twostep_exp and args.task in ['all', 'twostep', 'sanity']:
-        twostep_exp = find_latest_experiment('twostep')
-        if twostep_exp:
-            print(f"Найден Two-Step эксперимент: {Path(twostep_exp).name}")
-    
-    if not reversal_exp and args.task in ['all', 'reversal']:
-        reversal_exp = find_latest_experiment('reversal')
-        if reversal_exp:
-            print(f"Найден Reversal эксперимент: {Path(reversal_exp).name}")
+    print_always("=" * 70)
+    print_always("Stage 2: Генерация публикационных графиков")
+    print_always("=" * 70)
+    print_always(f"Output Directory: {args.output_dir}")
+    print_always(f"DPI: {args.dpi}")
+    print_always("=" * 70)
+    print_always()
     
     # Генерируем фигуры
-    print("\n" + "=" * 70)
-    print("Генерация фигур...")
-    print("=" * 70)
-    
     try:
-        # Figure 2: MB/MF Signatures (нужен sanity_check или ablation)
-        if args.figure in ['all', '2'] and args.task in ['all', 'twostep', 'sanity']:
-            if twostep_exp:
-                data = load_experiment_data(twostep_exp)
-                meta = load_meta_data(twostep_exp)
-                
-                # Проверяем есть ли данные для Figure 2
-                has_mf_mb = 'MF' in data or 'MFAgent' in data or 'MB' in data or 'MBAgent' in data
-                has_full = 'Full' in data or 'RheologicalAgent' in data
-                
-                if has_mf_mb or has_full:
-                    filepath = generate_figure_2(args.output_dir, args.dpi)
-                    print(f"✓ Figure 2: {filepath}")
-                else:
-                    print(f"⚠️ Пропуск Figure 2: нет данных MF/MB/Full в {twostep_exp}")
-            else:
-                print("⚠️ Пропуск Figure 2: не найден Two-Step эксперимент")
+        # Figure 2: MB/MF Signatures (генерируется заново, не требует логов)
+        if args.figure in ['all', '2']:
+            print_always("Генерация Figure 2: MB/MF Signatures...")
+            filepath = generate_figure_2(args.output_dir, args.dpi)
+            print_always(f"✓ Figure 2: {filepath}")
+            print_always("")
         
-        # Figure 3: V_G Dynamics (нужен ablation с Full агентом)
-        if args.figure in ['all', '3'] and args.task in ['all', 'twostep']:
-            if twostep_exp:
-                data = load_experiment_data(twostep_exp)
-                meta = load_meta_data(twostep_exp)
+        # Figure 3: V_G Dynamics (требует twostep_ablation_*)
+        if args.figure in ['all', '3']:
+            print_always("Поиск эксперимента для Figure 3 (twostep_ablation_*)...")
+            exp_dir = find_experiment_by_pattern('twostep_ablation')
+            
+            if exp_dir:
+                print_always(f"  Найдено: {Path(exp_dir).name}")
+                data = load_experiment_data(exp_dir)
+                meta = load_meta_data(exp_dir)
                 
                 if 'Full' in data or 'RheologicalAgent' in data:
                     changepoint = 1000
                     if meta and 'config' in meta:
                         changepoint = int(meta['config'].get('changepoint', 1000))
+                        reversal_trial = int(meta['config'].get('reversal_trial', 1000))
                     
                     filepath = generate_figure_3(data, changepoint, args.output_dir, args.dpi)
-                    print(f"✓ Figure 3: {filepath}")
+                    print_always(f"✓ Figure 3: {filepath}")
                 else:
-                    print(f"⚠️ Пропуск Figure 3: нет данных Full/RheologicalAgent в {twostep_exp}")
+                    print_always(f"⚠️ Пропуск Figure 3: нет данных Full/RheologicalAgent")
             else:
-                print("⚠️ Пропуск Figure 3: не найден Two-Step эксперимент")
+                print_always("⚠️ Пропуск Figure 3: не найдена папка twostep_ablation_*")
+            print_always("")
         
-        # Figure 4: Reversal Learning (нужен reversal эксперимент)
-        if args.figure in ['all', '4'] and args.task in ['all', 'reversal']:
-            if reversal_exp:
-                data = load_experiment_data(reversal_exp)
-                meta = load_meta_data(reversal_exp)
+        # Figure 4 & 4B: Reversal Learning (требует reversal_*)
+        if args.figure in ['all', '4']:
+            print_always("Поиск эксперимента для Figure 4 (reversal_*)...")
+            exp_dir = find_experiment_by_pattern('reversal')
+            
+            if exp_dir:
+                print_always(f"  Найдено: {Path(exp_dir).name}")
+                data = load_experiment_data(exp_dir)
+                meta = load_meta_data(exp_dir)
                 
                 if 'Full' in data and 'NoVG' in data:
                     reversal_trial = 1000
                     if meta and 'config' in meta:
-                        changepoint = int(meta['config'].get('changepoint', 1000))
+                        reversal_trial = int(meta['config'].get('reversal_trial', 1000))
                         reversal_trial = int(meta['config'].get('reversal_trial', 1000))
                     
                     filepath = generate_figure_4(data, reversal_trial, args.output_dir, args.dpi)
-                    print(f"✓ Figure 4: {filepath}")
+                    print_always(f"✓ Figure 4: {filepath}")
                     
-                    filepath = generate_figure_4b(data, reversal_trial, args.output_dir, args.dpi)
-                    print(f"✓ Figure 4B: {filepath}")
+                    filepath = generate_figure_4b(data, reversal_trial, 50, 100, args.output_dir, args.dpi)
+                    print_always(f"✓ Figure 4B: {filepath}")
                 else:
-                    print(f"⚠️ Пропуск Figure 4: нет данных Full/NoVG в {reversal_exp}")
+                    print_always(f"⚠️ Пропуск Figure 4: нет данных Full/NoVG")
             else:
-                print("⚠️ Пропуск Figure 4: не найден Reversal эксперимент")
+                print_always("⚠️ Пропуск Figure 4: не найдена папка reversal_*")
+            print_always("")
         
-        print("=" * 70)
-        print(f"✓ Все доступные графики сгенерированы!")
-        print(f"Проверьте папку: {Path(args.output_dir).absolute()}")
+        print_always("=" * 70)
+        print_always("✓ Все доступные графики сгенерированы!")
+        print_always(f"Проверьте папку: {Path(args.output_dir).absolute()}")
+        print_always("=" * 70)
         
     except Exception as e:
-        print(f"✗ Ошибка генерации фигур: {e}")
+        print_always(f"✗ Ошибка генерации фигур: {e}")
         import traceback
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()

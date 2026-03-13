@@ -114,6 +114,11 @@ def generate_figure_4b(data: Dict[str, pd.DataFrame],
     setup_publication_style()
     
     print_always("Генерация Figure 4B: Reversal Learning (Zoomed)...")
+
+    # КОНВЕРТАЦИЯ: гарантируем что reversal_trial это int, а window_before/after тоже int
+    reversal_trial = int(reversal_trial)
+    window_before = int(window_before)
+    window_after = int(window_after)
     
     if 'Full' not in data or 'NoVG' not in data:
         raise ValueError("Нет данных для агентов 'Full' и/или 'NoVG'")
