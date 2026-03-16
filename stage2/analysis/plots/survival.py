@@ -12,7 +12,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from lifelines import KaplanMeierFitter
 from pathlib import Path
-from stage2.analysis.loaders import find_experiment_by_pattern, load_experiment_data
+
+from seaborn import colors
+from stage2.analysis.loaders import find_latest_experiment, load_experiment_data, find_experiment_by_id
 from substrate_analysis.style import setup_publication_style
 from stage2.core.args import print_always
 
@@ -86,7 +88,7 @@ def generate_supplementary_figure_1(
     # Загружаем данные если не предоставлены
     if data is None:
         if experiment_id is None:
-            experiment_id = find_experiment_by_pattern('twostep_ablation')
+            experiment_id = find_experiment_by_id('twostep_ablation')
         
         if experiment_id is None:
             raise ValueError("Не указан experiment_id и не найден twostep_ablation эксперимент")
@@ -122,26 +124,34 @@ def generate_supplementary_figure_1(
         
         kmf_results[agent] = kmf
         
-        # Plot with confidence intervals
+        # ИСПРАВЛЕНИЕ: median_survival_time_ уже скаляр в lifelines 0.27+
+        median_time = kmf.median_survival_time_
+        
+        # Обработка случая когда медиана не определена (все цензурировано)
+        if np.isinf(median_time) or pd.isna(median_time):
+            median_str = 'N/A'
+        else:
+            median_str = f'{median_time:.0f}'
+        
         ax.step(
             kmf.cumulative_density_.index,
-            kmf.cumulative_density_['KM_estimate'],
+            kmf.cumulative_density_.iloc[:, 0],
             where='post',
-            label=f'{agent} (median={kmf.median_survival_time_.values[0]:.0f})',
+            label=f'{agent} (median={median_str})',
             color=colors.get(agent, 'gray'),
             linestyle=linestyles.get(agent, '-'),
             linewidth=2.5
         )
         
-        # Confidence interval band
+        # Confidence interval
         ax.fill_between(
             kmf.confidence_interval_.index,
-            kmf.confidence_interval_['KM_estimate_lower_0.95'],
-            kmf.confidence_interval_['KM_estimate_upper_0.95'],
+            kmf.confidence_interval_.iloc[:, 0],
+            kmf.confidence_interval_.iloc[:, 1],
             alpha=0.2,
             color=colors.get(agent, 'gray')
         )
-    
+            
     # Оформление
     ax.set_xlabel('Trials After Changepoint', fontsize=14)
     ax.set_ylabel('Proportion Switched to EXPLORE', fontsize=14)
@@ -215,9 +225,31 @@ def main():
     
     args = parser.parse_args()
     
+    # ИСПРАВЛЕНИЕ: Используем find_experiment_by_pattern вместо find_experiment_by_id
+    from stage2.analysis.loaders import find_latest_experiment, load_experiment_data
+    
+    if args.experiment_id is None:
+        # Автоматический поиск последнего twostep_ablation эксперимента
+        experiment_path = find_latest_experiment('twostep_ablation')
+    else:
+        # Ручной поиск по ID
+        from pathlib import Path
+        # Пробуем найти в twostep директории
+        experiment_path = Path('logs/twostep') / args.experiment_id
+        if not experiment_path.exists():
+            print_always(f"✗ Эксперимент не найден: {experiment_path}")
+            return
+    
+    if experiment_path is None:
+        print_always("✗ Эксперимент twostep_ablation не найден")
+        print_always("Запустите сначала: python -m stage2.twostep.run_twostep --n-seeds 30")
+        return
+    
+    print_always(f"Используем эксперимент: {experiment_path}")
+    
     try:
         filepath = generate_supplementary_figure_1(
-            experiment_id=args.experiment_id,
+            experiment_id=str(experiment_path),  # ← ИСПРАВЛЕНО: передаём путь, не ID
             changepoint=args.changepoint,
             max_trials=args.max_trials,
             output_dir=args.output_dir,
