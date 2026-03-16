@@ -61,6 +61,19 @@ BASE_PARAMS = {
 # ============================================================================
 # ФУНКЦИИ ДЛЯ SWEEP
 # ============================================================================
+def rank_biserial_correlation(u_stat, n1, n2):
+    """
+    Вычисляет rank-biserial correlation для Mann-Whitney U.
+    Возвращает значение в диапазоне [-1, 1].
+    """
+    if n1 == 0 or n2 == 0:
+        return 0.0
+    
+    # Правильная формула
+    r_rb = (2 * u_stat) / (n1 * n2) - 1
+    
+    # Клиппинг на случай численных ошибок
+    return max(-1.0, min(1.0, r_rb))
 
 def run_single_sweep_combination(
     param_name: str,
@@ -93,7 +106,7 @@ def run_single_sweep_combination(
         # Full agent
         full_params = base_params.copy()
         full_params[param_name] = param_value
-        
+
         # ИСПРАВЛЕНИЕ: передаём только те параметры которые принимает RheologicalAgent
         full_agent = RheologicalAgent(
             seed=seed,
@@ -203,24 +216,31 @@ def run_single_sweep_combination(
     full_lat_valid = [l for l in full_latencies if l != 999]
     novg_lat_valid = [l for l in novg_latencies if l != 999]
     
+    # ИСПРАВЛЕНИЕ: Правильная формула effect size
+    def rank_biserial_correlation(u_stat, n1, n2):
+        if n1 == 0 or n2 == 0:
+            return 0.0
+        r_rb = (2 * u_stat) / (n1 * n2) - 1
+        return max(-1.0, min(1.0, r_rb))
+    
     if len(full_lat_valid) > 0 and len(novg_lat_valid) > 0:
         u_stat_vg, p_val_vg = stats.mannwhitneyu(full_lat_valid, novg_lat_valid, alternative='greater')
-        effect_vg = 1 - (2 * u_stat_vg) / (len(full_lat_valid) * len(novg_lat_valid))
+        effect_vg = rank_biserial_correlation(u_stat_vg, len(full_lat_valid), len(novg_lat_valid))
     else:
         effect_vg, p_val_vg = 0.0, 1.0
     
     if len(full_persev) > 0 and len(novp_persev) > 0:
         u_stat_vp, p_val_vp = stats.mannwhitneyu(full_persev, novp_persev, alternative='greater')
-        effect_vp = 1 - (2 * u_stat_vp) / (len(full_persev) * len(novp_persev))
+        effect_vp = rank_biserial_correlation(u_stat_vp, len(full_persev), len(novp_persev))
     else:
         effect_vp, p_val_vp = 0.0, 1.0
     
     return {
         'param_name': param_name,
         'param_value': param_value,
-        'vg_effect': effect_vg,
+        'vg_effect': effect_vg,  # ← Теперь в диапазоне [-1, 1]
         'vg_pvalue': p_val_vg,
-        'vp_effect': np.mean(full_persev) - np.mean(novp_persev),  # Разница в персеверации
+        'vp_effect': effect_vp,  # ← Теперь effect size, не разность средних
         'vp_pvalue': p_val_vp,
         'n_seeds': n_seeds,
         'seeds_completed': n_seeds
