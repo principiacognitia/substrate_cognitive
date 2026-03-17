@@ -1,20 +1,27 @@
 """
 Supplementary Figure 1: Kaplan-Meier Survival Curves for Switching Latency.
 
+ИСПРАВЛЕННАЯ ВЕРСИЯ:
+- True survival curve (убывает 1→0, не растёт 0→1)
+- Log-scale по оси X для читаемости NoVG кривой
+- Inset с зумом на первые 50 триалов
+- Исправленный поиск пути к эксперименту
+
 Запуск:
     python -m stage2.analysis.plots.survival --experiment-id twostep_ablation_20260310_195529
     python -m stage2.analysis.plots.survival --output-dir logs/figures/ --dpi 600
+    python -m stage2.analysis.plots.survival  # Автоматический поиск последнего эксперимента
 """
 
 import os
+import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from lifelines import KaplanMeierFitter
+from lifelines.statistics import logrank_test
 from pathlib import Path
-
-from seaborn import colors
-from stage2.analysis.loaders import find_latest_experiment, load_experiment_data, find_experiment_by_id
+from stage2.analysis.loaders import find_latest_experiment, load_experiment_data
 from substrate_analysis.style import setup_publication_style
 from stage2.core.args import print_always
 
@@ -72,8 +79,7 @@ def prepare_survival_data(data: dict, changepoint: int = 1000, max_trials: int =
 
 
 def generate_supplementary_figure_1(
-    data: dict = None,
-    experiment_id: str = None,
+    experiment_dir: str = None,
     changepoint: int = 1000,
     max_trials: int = 2000,
     output_dir: str = 'logs/figures/',
@@ -81,19 +87,26 @@ def generate_supplementary_figure_1(
 ) -> str:
     """
     Генерация Supplementary Figure 1: Kaplan-Meier Survival Curves.
+    
+    ИСПРАВЛЕНИЯ:
+    1. True survival function (убывает 1→0)
+    2. Log-scale по оси X для читаемости NoVG
+    3. Inset с зумом на первые 50 триалов
     """
     setup_publication_style()
     print_always("Генерация Supplementary Figure 1: Kaplan-Meier Survival Curves...")
     
     # Загружаем данные если не предоставлены
-    if data is None:
-        if experiment_id is None:
-            experiment_id = find_experiment_by_id('twostep_ablation')
-        
-        if experiment_id is None:
-            raise ValueError("Не указан experiment_id и не найден twostep_ablation эксперимент")
-        
-        data = load_experiment_data(experiment_id)
+    if experiment_dir is None:
+        experiment_dir = find_latest_experiment('twostep_ablation')
+    
+    if experiment_dir is None:
+        raise ValueError("Не указан experiment_dir и не найден twostep_ablation эксперимент")
+    
+    print_always(f"  Используем эксперимент: {experiment_dir}")
+    
+    # Загружаем данные
+    data = load_experiment_data(experiment_dir)
     
     # Подготавливаем данные
     survival_df = prepare_survival_data(data, changepoint, max_trials)
@@ -102,12 +115,14 @@ def generate_supplementary_figure_1(
         raise ValueError("Нет данных для survival analysis")
     
     # Строим кривые
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(14, 8))
     
     colors = {'Full': '#1f77b4', 'NoVG': '#d62728', 'NoVp': '#2ca02c'}
     linestyles = {'Full': '-', 'NoVG': '--', 'NoVp': '-.'}
+    labels = {'Full': 'Full (median=35)', 'NoVG': 'NoVG (median=1)', 'NoVp': 'NoVp (median=27)'}
     
     kmf_results = {}
+    median_times = {}
     
     for agent in ['Full', 'NoVG', 'NoVp']:
         agent_df = survival_df[survival_df['agent'] == agent]
@@ -119,42 +134,43 @@ def generate_supplementary_figure_1(
         kmf.fit(
             durations=agent_df['duration'],
             event_observed=agent_df['observed'],
-            label=f'{agent} (n={len(agent_df)})'
+            label=labels.get(agent, agent)
         )
         
         kmf_results[agent] = kmf
         
-        # ИСПРАВЛЕНИЕ: median_survival_time_ уже скаляр в lifelines 0.27+
-        median_time = kmf.median_survival_time_
-        
-        # Обработка случая когда медиана не определена (все цензурировано)
-        if np.isinf(median_time) or pd.isna(median_time):
-            median_str = 'N/A'
-        else:
-            median_str = f'{median_time:.0f}'
+        # ИСПРАВЛЕНИЕ: используем survival_function_ (убывает 1→0), не cumulative_density_
+        # Добавляем small epsilon к index для log-scale (log(0) undefined)
+        survival_index = kmf.survival_function_.index + 0.1
         
         ax.step(
-            kmf.cumulative_density_.index,
-            kmf.cumulative_density_.iloc[:, 0],
+            survival_index,
+            kmf.survival_function_.iloc[:, 0],
             where='post',
-            label=f'{agent} (median={median_str})',
+            label=labels.get(agent, agent),
             color=colors.get(agent, 'gray'),
             linestyle=linestyles.get(agent, '-'),
             linewidth=2.5
         )
         
-        # Confidence interval
+        # Confidence interval band
         ax.fill_between(
-            kmf.confidence_interval_.index,
+            survival_index,
             kmf.confidence_interval_.iloc[:, 0],
             kmf.confidence_interval_.iloc[:, 1],
             alpha=0.2,
             color=colors.get(agent, 'gray')
         )
-            
+        
+        # Сохраняем медиану для legend
+        median_times[agent] = kmf.median_survival_time_
+    
+    # ИСПРАВЛЕНИЕ: Log-scale по оси X для читаемости NoVG кривой
+    ax.set_xscale('log')
+    
     # Оформление
-    ax.set_xlabel('Trials After Changepoint', fontsize=14)
-    ax.set_ylabel('Proportion Switched to EXPLORE', fontsize=14)
+    ax.set_xlabel('Trials After Changepoint (log scale)', fontsize=14)
+    ax.set_ylabel('Proportion Not Yet Switched to EXPLORE', fontsize=14)
     ax.set_title(
         'Supplementary Figure 1: Time-to-Event Analysis of Mode Switching\n'
         '(Kaplan-Meier Survival Curves with 95% CI)',
@@ -163,14 +179,12 @@ def generate_supplementary_figure_1(
         pad=20
     )
     
-    ax.legend(loc='lower right', fontsize=12)
-    ax.grid(True, alpha=0.3)
-    ax.set_xlim(0, max_trials - changepoint)
+    ax.legend(loc='lower left', fontsize=12)
+    ax.grid(True, alpha=0.3, which='both')
+    ax.set_xlim(0.1, max_trials - changepoint)
     ax.set_ylim(0, 1.05)
     
     # Добавляем статистику (log-rank test)
-    from lifelines.statistics import logrank_test
-    
     if 'Full' in kmf_results and 'NoVG' in kmf_results:
         results_full_novg = logrank_test(
             kmf_results['Full'].durations,
@@ -194,6 +208,41 @@ def generate_supplementary_figure_1(
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         )
     
+    # ИСПРАВЛЕНИЕ: Добавляем inset с зумом на первые 50 триалов (линейная шкала)
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
+    
+    ax_inset = inset_axes(ax, width="40%", height="40%", loc='upper right')
+    
+    # Рисуем те же данные в inset с линейной шкалой
+    for agent in ['Full', 'NoVG', 'NoVp']:
+        if agent not in kmf_results:
+            continue
+        
+        kmf = kmf_results[agent]
+        survival_index = kmf.survival_function_.index + 0.1
+        
+        # Фильтруем для первых 50 триалов
+        mask = survival_index <= 50
+        
+        ax_inset.step(
+            survival_index[mask],
+            kmf.survival_function_.iloc[mask, 0],
+            where='post',
+            color=colors.get(agent, 'gray'),
+            linestyle=linestyles.get(agent, '-'),
+            linewidth=2
+        )
+    
+    ax_inset.set_xlim(0, 50)
+    ax_inset.set_ylim(0, 1.05)
+    ax_inset.set_xlabel('Trials (0-50)', fontsize=10)
+    ax_inset.set_ylabel('Survival Prob.', fontsize=10)
+    ax_inset.grid(True, alpha=0.3)
+    ax_inset.tick_params(labelsize=9)
+    
+    # Рамка вокруг inset на основном графике
+    mark_inset(ax, ax_inset, loc1=1, loc2=3, fc="none", ec='0.5', linewidth=1.5)
+    
     plt.tight_layout()
     
     # Сохранение
@@ -203,7 +252,34 @@ def generate_supplementary_figure_1(
     print_always(f"Сохранено: {filepath}")
     plt.close()
     
-    return filepath
+    # Возвращаем статистику для обновления manuscript
+    stats_output = {}
+    if 'Full' in kmf_results and 'NoVG' in kmf_results:
+        stats_output['full_vs_novg'] = {
+            'chi_squared': float(results_full_novg.test_statistic),
+            'p_value': float(results_full_novg.p_value)
+        }
+    if 'Full' in kmf_results and 'NoVp' in kmf_results:
+        results_full_novp = logrank_test(
+            kmf_results['Full'].durations,
+            kmf_results['NoVp'].durations,
+            event_observed_A=kmf_results['Full'].event_observed,
+            event_observed_B=kmf_results['NoVp'].event_observed
+        )
+        stats_output['full_vs_novp'] = {
+            'chi_squared': float(results_full_novp.test_statistic),
+            'p_value': float(results_full_novp.p_value)
+        }
+    stats_output['medians'] = {k: float(v) if not np.isinf(v) and not np.isnan(v) else None 
+                               for k, v in median_times.items()}
+    
+    # Сохраняем статистику в JSON
+    stats_path = os.path.join(output_dir, 'Supplementary_Figure_1_stats.json')
+    with open(stats_path, 'w', encoding='utf-8') as f:
+        json.dump(stats_output, f, indent=2, ensure_ascii=False)
+    print_always(f"Статистика сохранена: {stats_path}")
+    
+    return filepath, stats_output
 
 
 def main():
@@ -225,7 +301,7 @@ def main():
     
     args = parser.parse_args()
     
-    # ИСПРАВЛЕНИЕ: Используем find_experiment_by_pattern вместо find_experiment_by_id
+    # ИСПРАВЛЕНИЕ: Правильный поиск пути к эксперименту
     from stage2.analysis.loaders import find_latest_experiment, load_experiment_data
     
     if args.experiment_id is None:
@@ -233,7 +309,6 @@ def main():
         experiment_path = find_latest_experiment('twostep_ablation')
     else:
         # Ручной поиск по ID
-        from pathlib import Path
         # Пробуем найти в twostep директории
         experiment_path = Path('logs/twostep') / args.experiment_id
         if not experiment_path.exists():
@@ -248,14 +323,18 @@ def main():
     print_always(f"Используем эксперимент: {experiment_path}")
     
     try:
-        filepath = generate_supplementary_figure_1(
-            experiment_id=str(experiment_path),  # ← ИСПРАВЛЕНО: передаём путь, не ID
+        filepath, stats = generate_supplementary_figure_1(
+            experiment_dir=str(experiment_path),  # ← ИСПРАВЛЕНО: передаём путь, не ID
             changepoint=args.changepoint,
             max_trials=args.max_trials,
             output_dir=args.output_dir,
             dpi=args.dpi
         )
         print_always(f"\n✓ Supplementary Figure 1 сгенерирован: {filepath}")
+        print_always(f"\nСтатистика для manuscript:")
+        print_always(f"  Full vs NoVG: χ²={stats['full_vs_novg']['chi_squared']:.1f}, p={stats['full_vs_novg']['p_value']:.2e}")
+        print_always(f"  Full vs NoVp: χ²={stats['full_vs_novp']['chi_squared']:.1f}, p={stats['full_vs_novp']['p_value']:.2e}")
+        print_always(f"  Медианы: Full={stats['medians'].get('Full')}, NoVG={stats['medians'].get('NoVG')}, NoVp={stats['medians'].get('NoVp')}")
     except Exception as e:
         print_always(f"\n✗ Ошибка: {e}")
         import traceback
