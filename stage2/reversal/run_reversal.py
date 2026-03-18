@@ -20,6 +20,13 @@ from scipy import stats
 from datetime import datetime
 from typing import Dict, List, Tuple
 
+try:
+    from lifelines.statistics import logrank_test
+    HAS_LIFELINES = True
+except ImportError:
+    logrank_test = None
+    HAS_LIFELINES = False
+
 from stage2.reversal.env_reversal import ReversalEnv
 from stage2.core.baselines import (
     RheologicalAgent,
@@ -28,6 +35,28 @@ from stage2.core.baselines import (
 )
 from stage2.core.args import parse_args, print_debug, print_always
 from stage2.core.logger import TrialLogger, ExperimentLogger
+
+
+def _prepare_survival_data(latencies, max_followup: int) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Преобразует latency-массив в формат для survival analysis.
+
+    Правило:
+    - latency == 999 -> событие не произошло в пределах окна наблюдения
+      => right-censored at max_followup
+    - иначе событие наблюдалось на latency trial
+    """
+    lat = np.asarray(latencies, dtype=int)
+    observed = (lat != 999).astype(int)
+    durations = np.where(lat != 999, lat, max_followup)
+    return durations, observed
+
+
+def _rank_biserial_from_u(u_stat: float, n1: int, n2: int) -> float:
+    """
+    Rank-biserial correlation from Mann-Whitney U.
+    """
+    return (2 * u_stat) / (n1 * n2) - 1
 
 
 def run_reversal_single(
@@ -274,6 +303,12 @@ def analyze_results(df: pd.DataFrame, nodebug: bool = False) -> Dict:
     """
     Анализирует результаты Reversal и выводит статистику.
     """
+    # max_followup = число post-reversal trial'ов, доступных для first EXPLORE
+    # При reversal_trial=1000 и n_trials=2000 окно = 1000.
+    # Вычисляем из данных, чтобы не хардкодить.
+    max_trial = int(df['seed'].count())  # placeholder to avoid linter noise
+    del max_trial
+
     print_always("\n" + "=" * 70)
     print_always("РЕЗУЛЬТАТЫ (Медианы и Средние)")
     print_always("=" * 70)
@@ -305,20 +340,37 @@ def analyze_results(df: pd.DataFrame, nodebug: bool = False) -> Dict:
     
     # СТАТИСТИКА ДВОЙНОЙ ДИССОЦИАЦИИ
     print_always("\n" + "=" * 70)
-    print_always("ДОКАЗАТЕЛЬСТВО ДВОЙНОЙ ДИССОЦИАЦИИ (Mann-Whitney U)")
+    print_always("ДОКАЗАТЕЛЬСТВО ДВОЙНОЙ ДИССОЦИАЦИИ")
     print_always("=" * 70)
-    
+
     stats_results = {}
-    
+
+    # Получаем все latency, включая censored=999, для survival analysis
+    lat_full_all = df[df['agent_class'] == 'RheologicalAgent']['latency_to_explore'].values
+    lat_novg_all = df[df['agent_class'] == 'RheologicalAgent_NoVG']['latency_to_explore'].values
+    lat_novp_all = df[df['agent_class'] == 'RheologicalAgent_NoVp']['latency_to_explore'].values
+
+    # Для MWU используем только наблюдавшиеся события, как и раньше
+    lat_full = [l for l in lat_full_all if l != 999]
+    lat_novg = [l for l in lat_novg_all if l != 999]
+    lat_novp = [l for l in lat_novp_all if l != 999]
+
+    # Survival follow-up window = максимум post-reversal latency
+    observed_latencies = [l for l in np.concatenate([lat_full_all, lat_novg_all, lat_novp_all]) if l != 999]
+    max_followup = int(max(observed_latencies)) if len(observed_latencies) > 0 else 1000
+    # Безопаснее принудительно не опускаться ниже 1000 для стандартного Stage 2B
+    max_followup = max(max_followup, 1000)
+
     # 1. Влияние V_G на Латентность (Full vs NoVG)
-    lat_full = [l for l in df[df['agent_class'] == 'RheologicalAgent']['latency_to_explore'].values if l != 999]
-    lat_novg = [l for l in df[df['agent_class'] == 'RheologicalAgent_NoVG']['latency_to_explore'].values if l != 999]
-    
     if len(lat_full) > 0 and len(lat_novg) > 0:
         u_lat, p_lat = stats.mannwhitneyu(lat_full, lat_novg, alternative='greater')
         n1, n2 = len(lat_full), len(lat_novg)
-        effect_size = 1 - (2 * u_lat) / (n1 * n2)
-        stats_results['latency'] = {'U': u_lat, 'p': p_lat, 'effect_size': effect_size}
+        effect_size = _rank_biserial_from_u(u_lat, n1, n2)
+        stats_results['latency'] = {
+            'U': u_lat,
+            'p': p_lat,
+            'effect_size': effect_size
+        }
         print_always(f"Ось 1 (Инерция контроля V_G): Full vs NoVG Latency -> p = {p_lat:.2e}, effect = {effect_size:.3f}")
     else:
         print_always("Ось 1 (Инерция контроля V_G): Недостаточно данных")
@@ -329,24 +381,75 @@ def analyze_results(df: pd.DataFrame, nodebug: bool = False) -> Dict:
     pe_novp = df[df['agent_class'] == 'RheologicalAgent_NoVp']['perseverative_errors'].values
     u_pe, p_pe = stats.mannwhitneyu(pe_full, pe_novp, alternative='greater')
     n1, n2 = len(pe_full), len(pe_novp)
-    effect_size = 1 - (2 * u_pe) / (n1 * n2)
-    stats_results['perseveration'] = {'U': u_pe, 'p': p_pe, 'effect_size': effect_size}
+    effect_size = _rank_biserial_from_u(u_pe, n1, n2)
+    stats_results['perseveration'] = {
+        'U': u_pe,
+        'p': p_pe,
+        'effect_size': effect_size
+    }
     print_always(f"Ось 2 (Инерция действия V_p): Full vs NoVp Perseveration -> p = {p_pe:.2e}, effect = {effect_size:.3f}")
     
-    # 3. Full vs NoVp по Latency (проверка "ортогональности")
-    lat_novp = [l for l in df[df['agent_class'] == 'RheologicalAgent_NoVp']['latency_to_explore'].values if l != 999]
+    # 3. Full vs NoVp по Latency (secondary effect / проверка частичной связности)
     if len(lat_full) > 0 and len(lat_novp) > 0:
         u_lat_novp, p_lat_novp = stats.mannwhitneyu(lat_full, lat_novp, alternative='two-sided')
         n1, n2 = len(lat_full), len(lat_novp)
-        effect_size = 1 - (2 * u_lat_novp) / (n1 * n2)
-        stats_results['full_vs_novp_latency'] = {'U': u_lat_novp, 'p': p_lat_novp, 'effect_size': effect_size}
+        effect_size = _rank_biserial_from_u(u_lat_novp, n1, n2)
+        stats_results['full_vs_novp_latency'] = {
+            'U': u_lat_novp,
+            'p': p_lat_novp,
+            'effect_size': effect_size
+        }
         print_always(f"Full vs NoVp Latency (secondary effect): p = {p_lat_novp:.2e}, effect = {effect_size:.3f}")
+    else:
+        p_lat_novp = 1.0
+
+    # 4. Survival analysis (log-rank) для latency
+    if HAS_LIFELINES:
+        dur_full, evt_full = _prepare_survival_data(lat_full_all, max_followup=max_followup)
+        dur_novg, evt_novg = _prepare_survival_data(lat_novg_all, max_followup=max_followup)
+        dur_novp, evt_novp = _prepare_survival_data(lat_novp_all, max_followup=max_followup)
+
+        lr_full_vs_novg = logrank_test(
+            dur_full, dur_novg,
+            event_observed_A=evt_full,
+            event_observed_B=evt_novg
+        )
+        stats_results['latency_logrank_full_vs_novg'] = {
+            'chi2': float(lr_full_vs_novg.test_statistic),
+            'p': float(lr_full_vs_novg.p_value)
+        }
+        print_always(
+            f"Full vs NoVG Latency (log-rank): "
+            f"chi2 = {lr_full_vs_novg.test_statistic:.3f}, p = {lr_full_vs_novg.p_value:.2e}"
+        )
+
+        lr_full_vs_novp = logrank_test(
+            dur_full, dur_novp,
+            event_observed_A=evt_full,
+            event_observed_B=evt_novp
+        )
+        stats_results['latency_logrank_full_vs_novp'] = {
+            'chi2': float(lr_full_vs_novp.test_statistic),
+            'p': float(lr_full_vs_novp.p_value)
+        }
+        print_always(
+            f"Full vs NoVp Latency (log-rank): "
+            f"chi2 = {lr_full_vs_novp.test_statistic:.3f}, p = {lr_full_vs_novp.p_value:.2e}"
+        )
+    else:
+        print_always("⚠ lifelines не установлен: log-rank test пропущен")
+        stats_results['latency_logrank_full_vs_novg'] = None
+        stats_results['latency_logrank_full_vs_novp'] = None
     
     # Финальный вердикт
     print_always("\n" + "=" * 70)
     if p_lat < 0.05 and p_pe < 0.05:
         print_always("✓ УСПЕХ: Двойная диссоциация доказана.")
-        print_always("V_G и V_p dissociably управляют контролем и поведением.")
+        if p_lat_novp < 0.05:
+            print_always("⚠ Secondary effect detected: NoVp также влияет на latency в Reversal.")
+            print_always("Интерпретация: сильная диссоциация с частичной cross-coupling.")
+        else:
+            print_always("V_G и V_p dissociably управляют контролем и поведением.")
         print_always("=" * 70)
         return {'success': True, 'stats': stats_results}
     else:
