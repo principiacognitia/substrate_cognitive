@@ -87,7 +87,7 @@ def generate_figure_4(data: Dict[str, pd.DataFrame],
     ax.set_ylim(0, 1.05)
     ax.set_xlabel('Trial', fontsize=14)
     ax.set_ylabel('P(Correct Choice)', fontsize=14)
-    ax.set_title('Figure 4: Reversal Learning & Perseveration',
+    ax.set_title('Figure 4A: Reversal Learning & Perseveration',
                  fontsize=16, fontweight='bold', pad=20)
     ax.legend(loc='lower right', fontsize=12)
     ax.grid(True, alpha=0.3)
