@@ -117,7 +117,7 @@ python -m stage3.core.compatibility
 | [Stage 3.0 Overview](stage3/README.md) | Architectural refactor and quick start guide |
 | [Stage 3.0 Specification](docs/SPECIFICATION3.md) | Complete technical specification for Stage 3.0 |
 | [Mapping Document](docs/mapping.md) | Correspondence between latent variables and observable metrics |
-| [Preprint Manuscript](Gate-Rheology-Final.md) | Full Manuscript for bioRxiv |
+| [Preprint Manuscript](docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf) | Full Manuscript for bioRxiv |
 
 ---
 
