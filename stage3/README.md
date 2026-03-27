@@ -1,340 +1,336 @@
-# Stage 3.0 — Technical Specification
+# Stage 3.0: Architectural Refactor
 
-## 1. Purpose
+**Status:** 🟡 **In Development**
 
-Stage 3.0 is an architectural refactor of the Stage 2 agent.
+**Purpose:** Refactor the Gate interface from instantaneous diagnostics to two-layer control (instantaneous + temporal).
 
-Its purpose is to preserve the single-Gate logic of S-O-R+Gate while extending the input interface from a purely instantaneous diagnostic vector to a two-layer control interface:
-
-- instantaneous diagnostics
-- compressed temporal state
-
-Stage 3.0 does **not** implement the full Shelter Cross task, full absence inference, or a richer rheological theory.
-It prepares the architecture for Stage 3.1 and Stage 3.2.
+**Full Specification:** [docs/SPECIFICATION3.md](../docs/SPECIFICATION3.md)
 
 ---
 
-## 2. Core Design Constraints
+## 📖 Description
 
-### 2.1 One Gate only
-There is exactly one Gate.
-No parallel arbitration modules for threat, reward, absence, or visibility.
+Stage 3.0 is an **architectural refactor** of the Stage 2 agent, which extends the Gate input interface from a purely instantaneous diagnostic vector to a **two-layer control system**:
 
-### 2.2 No `argmax` arbitration
-Gate routing must not be implemented as:
+1. **Instantaneous Diagnostics ($u_t$)** — instantaneous diagnostic variables (inherited from Stage 2)
+2. **Temporal State ($h_t$)** — compressed temporal history
+3. **Exposure Aggregates** — aggregated curvatures of the exposure field
 
-- global scoring over all modes
-- utility ranking
-- `argmax(mode_score)`
+### Key Principle
 
-Mode selection must be implemented as a **cascade of thresholds / interrupts**, where stronger signals override weaker ones.
+> **No Ready Semions at Port.** The sensory input does not contain pre-classified object labels ("snake," "stick"). Instead, it consists of valence/exposure-weighted embeddings. ---
 
-### 2.3 No ready semions at port
-Sensory preprocessing must not deliver pre-classified object labels such as `"snake"`, `"stick"`, `"food"`, or `"predator"`.
+## 🗂️ Structure
 
-The sensory interface may only return:
-
-- valence-/exposure-weighted embeddings
-- aggregated field quantities
-- compressed traces
-
-A semion is not an object label at the input.
-A semion is a downstream stabilization/compression in the S-O-R cycle.
-
-### 2.4 Ontology ≠ engineering decomposition
-For the agent, valence and observability are one prospective field of expected future entropy change.
-
-For implementation, logging, ablation, and tests, the field may be analytically decomposed as:
-
-\[
-X = O \cdot \nu
-\]
-
-where:
-
-- \(\nu\) = valence-weighted signal profile
-- \(O\) = detectability / observability
-- \(X\) = integrated exposure
-
-This decomposition is engineering-facing, not an ontological claim about separate primitives inside the agent.
-
-### 2.5 One-shot is not a separate module
-One-shot learning is not a new memory subsystem.
-
-It is an **amplitude-dependent update regime** of the same temporal state:
-- either many weak events
-- or one strong event
-
-must be able to shift the same traces.
+```
+stage3/
+├── core/                       # Stage 3.0 Core
+│   ├── gate_modes.py           # Gate Modes (enum only)
+│   ├── gate_inputs.py          # Dataclass Definitions (3 layers)
+│   ├── exposure_field.py       # Calculation of ν, O, X → aggregates
+│   ├── temporal_state.py       # Updating h_risk, h_opp, h_time
+│   ├── gate_stage3.py          # Threshold Cascade Routing
+│   ├── agent_stage3.py         # Orchestration (env → gate → action)
+│   └── compatibility.py        # Stage 2 Compatibility Shims
+├── configs/                    # Configurations
+│   ├── config_stage3_base.py
+│   └── config_stage3_debug.py
+├── envs/                       # Test Environments
+│   ├── dummy_temporal_env.py
+│   └── open_covered_choice_env.py
+├── tests/                      # Integration Tests
+│   ├── test_no_ready_semions.py
+│   ├── test_temporal_state.py
+│   ├── test_gate_stage3.py
+│   ├── test_backward_compatibility.py
+│   └── test_action_basin_equivalence.py
+└── README.md                   # This file
+```
 
 ---
 
-## 3. Gate Input Architecture
+## 🚀 Quick Start
 
-The Gate reads three typed layers.
+### Installation
 
-### 3.1 `InstantDiagnostics`
-Minimal instantaneous diagnostics inherited from Stage 2:
+```bash
+# From the repository root
+cd substrate_cognitive
 
-- `u_delta`: unsigned prediction error
-- `u_entropy`: policy entropy
-- `u_volatility`: volatility proxy
+# Install dependencies (if not already installed)
+pip install -r requirements.txt
+```
 
-These are scalar, non-categorical quantities.
+### Running Tests
 
-### 3.2 `ExposureAggregates`
-Aggregated field quantities produced by `exposure_field.py`:
+```bash
+# Unit tests for each module
+python -m stage3.core.gate_inputs
+python -m stage3.core.gate_modes
+python -m stage3.core.exposure_field
+python -m stage3.core.temporal_state
+python -m stage3.core.gate_stage3
+python -m stage3.core.agent_stage3
+python -m stage3.core.compatibility
+```
 
-- `X_risk`: current risky exposure
-- `X_opp`: current opportunity exposure
-- `D_est`: current diagnosticity / visibility estimate
+###  Creating an Agent
 
-These are the only exposure quantities directly visible to the Gate.
-
-The Gate must not receive raw object labels, raw taxonomies, or semantically named classes.
-
-### 3.3 `TemporalState`
-Compressed temporal history:
-
-- `h_risk`: exponentially smoothed risky exposure trace
-- `h_opp`: exponentially smoothed opportunity trace
-- `h_time`: time trace since last high-salience event
-
-This is the minimal temporal state for Stage 3.0.
-
-No additional temporal variables are part of the core Stage 3.0 contract.
-
----
-
-## 4. Temporal Update Rules
-
-Stage 3.0 must implement the temporal layer through simple trace dynamics.
-
-### 4.1 Risk trace
-\[
-h_{risk}(t+1)=\lambda_r h_{risk}(t)+(1-\lambda_r)X_{risk}(t)
-\]
-
-### 4.2 Opportunity trace
-\[
-h_{opp}(t+1)=\lambda_o h_{opp}(t)+(1-\lambda_o)X_{opp}(t)
-\]
-
-### 4.3 Time trace
-\[
-h_{time}(t+1)=
-\begin{cases}
-0, & \text{if salience} > \tau_{sal} \\
-h_{time}(t)+1, & \text{otherwise}
-\end{cases}
-\]
-
-### 4.4 One-shot regime
-One-shot occurs when event amplitude is high enough to produce a large instantaneous shift in `h_risk` or `h_opp`.
-
-This is not a separate module and must not introduce a second memory architecture.
-
----
-
-## 5. Gate Routing Logic
-
-Mode routing must be implemented as a threshold cascade.
-
-Available modes:
-
-- `EXPLOIT`
-- `EXPLORE`
-- `EXPLOIT_SAFE`
-- `ABSENCE_CHECK`
-
-### 5.1 Threat override
-If risky temporal pressure is critical, the Gate must immediately route to `EXPLOIT_SAFE`.
-
-Conceptually:
 ```python
-if h_risk > THRESHOLD_CRITICAL_RISK:
-    return EXPLOIT_SAFE
-````
+from stage3.core.agent_stage3 import AgentStage3, AgentStage3Config
 
-This route can bypass the standard explore barrier.
+# Configuration
+config = AgentStage3Config( 
+compatibility_mode=False, # Stage 3 mode (not Stage 2 emulation) 
+log_level=1
+)
 
-### 5.2 Absence trigger
+# Creating an agent
+agent = AgentStage3(config)
 
-If suspicion remains elevated, current visibility is poor, and the temporal state indicates that the system can afford a costly check, the Gate may enter `ABSENCE_CHECK`.
+# One step
+observation = { 
+'prediction_error': 0.5, 
+'policy_entropy': 0.3, 
+'q_values': [0.6, 0.4]
+}
 
-Conceptually:
+action, metadata = agent.step( 
+observation=observation, 
+reward=0.8, 
+action=0
+)
+
+print(f"Selected mode: {metadata['mode']}")
+print(f"Gate constraint: {metadata['gate_constraint']}")
+```
+
+### Backward Compatibility (Stage 2 emulation)
+
+```python
+from stage3.core.agent_stage3 import AgentStage3, AgentStage3Config
+
+# Enable Stage 2 compatibility mode
+config = AgentStage3Config(
+compatibility_mode=True, # Zero exposure and temporal
+log_level=1
+)
+
+agent = AgentStage3(config)
+
+# Behavior must match Stage 2 (within 5% tolerance)
+```
+
+---
+
+## 🎯 Design Constraints
+
+### 1. One Gate only
+
+No parallel arbitration modules for threat, reward, absence, or visibility. Gate **one**.
+
+### 2. No `argmax` arbitration
+
+Mode selection is implemented as a **cascade of thresholds/interrupts**, where strong signals override weaker ones:
 
 ```
-if h_risk > THRESHOLD_SUSPICION and D_est < THRESHOLD_VISIBILITY and h_time > THRESHOLD_WAIT:
-    return ABSENCE_CHECK
+Priority (highest → lowest):
+1. ABSENCE_CHECK — high stakes + poor visibility + safe window
+2. EXPLOIT_SAFE — critical threat exposure
+3. EXPLORE — high uncertainty + low threat
+4. EXPLOIT — default
 ```
 
-### 5.3 Standard arbitration
+### 3. No ready-made semions at the port
 
-If no critical override is active, Stage 2 logic is preserved:
+The sensory input does not contain string labels:
 
+```python
+# ❌ INCORRECT:
+observation = {'object': 'snake', 'threat_level': 'high'}
+
+# ✅ CORRECT:
+observation = {
+'prediction_error': 0.8,
+'policy_entropy': 0.3,
+'q_values': [0.2, 0.8]
+}
 ```
-pressure = compute_pressure(u_t)
-if pressure * (1 - V_G) > THETA_MB:
-    return EXPLORE
+
+### 4. Ontology ≠ Engineering Interface
+
+For the agent: a unified *prospective field* of expected entropy change.
+For the researcher: an analytical decomposition into ν, O, and X for tracing purposes.
+
+### 5. One-shot learning is not a separate module
+
+One-shot learning is an **amplitude-dependent update regime** applied to the *same* temporal state, not a separate memory module.
+
+---
+
+## 📊 Acceptance Criteria
+
+Stage 3.0 is considered complete only if all the following conditions are met:
+
+| # | Criterion | How to Test |
+| :--- | :--- | :--- |
+| **8.1** | Backward compatibility | With zero exposure/temporal values ​​→ Stage 2 behavior |
+| **8.2** | No ready-made semions | The sensory interface contains no object labels |
+| **8.3** | One-shot as an update regime | A single high-amplitude event shifts the same traces |
+| **8.4** | Exposure-aware routing | High X_risk forces the EXPLOIT_SAFE mode |
+| **8.5** | Action-basin equivalence | perceptually distinct → same mode basin |
+
+---
+
+## 🧪 Tests
+
+### Running All Tests
+
+```bash
+# From the repository root
+python -m stage3.tests.test_no_ready_semions
+python -m stage3.tests.test_temporal_state
+python -m stage3.tests.test_gate_stage3
+python -m stage3.tests.test_backward_compatibility
+python -m stage3.tests.test_action_basin_equivalence
+```
+
+### Example: test_backward_compatibility.py
+
+```python
+from stage3.core.agent_stage3 import AgentStage3, AgentStage3Config
+from stage3.core.compatibility import verify_backward_compatibility
+
+# Stage 3 in compatibility mode
+config = AgentStage3Config(compatibility_mode=True)
+agent = AgentStage3(config)
+
+# Run an episode
+for trial in range(100):
+action, metadata = agent.step(observation, reward)
+
+# Verify Stage 2 equivalence
+stage3_results = {...}  # metrics from Stage 3
+stage2_results = {...}  # metrics from Stage 2
+
+passed, message = verify_backward_compatibility(
+stage3_results,
+stage2_results,
+tolerance=0.05
+)
+
+assert passed, message
+```
+
+---
+
+## 📈 Gate Modes
+
+| Mode | Activation Condition | Priority |
+| :--- | :--- | :--- |
+| **EXPLOIT** | Default (low uncertainty) | 4 (lowest) |
+| **EXPLORE** | High uncertainty + low threat | 3 |
+| **EXPLOIT_SAFE** | Critical threat exposure | 2 |
+| **ABSENCE_CHECK** | High stakes + poor visibility + safe window | 1 (highest) | ### Threshold Cascade Logic
+
+```python
+# Simplified logic (full: gate_stage3.py)
+
+if h_risk > THRESHOLD_SUSPICION and D_est < THRESHOLD_VISIBILITY and h_time > THRESHOLD_WAIT: 
+return ABSENCE_CHECK
+
+if X_risk > THRESHOLD_CRITICAL_RISK: 
+return EXPLOIT_SAFE
+
+if pressure * (1 - V_G) > THETA_MB: 
+return EXPLORE
+
 return EXPLOIT
 ```
 
-No global comparison over modes is allowed.
+---
 
-* * *
+## 🔧 Configuration
 
-6\. Backward Compatibility
---------------------------
+###AgentStage3Config
 
-Stage 3.0 must degrade to Stage 2 behavior when:
+```python
+from stage3.core.agent_stage3 import AgentStage3Config
 
-*   `X_risk = 0`
-*   `X_opp = 0`
-*   `D_est = 0`
-*   `h_risk = 0`
-*   `h_opp = 0`
-*   `h_time = 0`
-*   only `EXPLOIT` and `EXPLORE` are reachable
+config = AgentStage3Config( 
+compatibility_mode=False, # Stage 3 mode 
+exposure_field_config={ # exposure_field.py parameters 
+'valence_scale': 1.0, 
+'observability_scale': 1.0, 
+'risk_threshold': 0.5 
+}, 
+temporal_state_config={ # temporal_state.py options 
+'lambda_risk': 0.9, 
+'lambda_opp': 0.9, 
+'salience_threshold': 0.5, 
+'one_shot_threshold': 5.0, 
+'one_shot_boost': 2.0 
+}, 
+gate_thresholds={ # gate_stage3.py thresholds 
+'critical_risk_threshold': 0.7, 
+'suspicion_threshold': 0.5, 
+'visibility_threshold': 0.3, 
+'safe_window_threshold': 50, 
+'theta_mb': 0.30, 
+'theta_u': 1.5 
+}, 
+log_level=1 # 0=none, 1=summary, 2=full
+)
+```
 
-Under these conditions, Stage 3.0 must reproduce Stage 2A/2B behavior up to numerical tolerance.
+---
 
-* * *
+## 📄 Documents
 
-7\. Repository Responsibilities
--------------------------------
+| Document | Description |
+| :--- | :--- |
+| [Full Specification](../docs/SPECIFICATION3.md) | Full technical specification Stage 3.0 |
+| [Stage 2 README](../stage2/README.md) | Previous Version (for comparison) |
+| [Root README](../README.md) | Project Overview |
 
-### 7.1 `stage3/core/gate_modes.py`
+---
 
-Contains:
+## 🐛 Troubleshooting
 
-*   mode enum / constants only
+### Error: "NameError: temporal is not defined"
 
-No gate logic.
+Ensure that `gate_stage3.py` receives all three layers:
 
-### 7.2 `stage3/core/gate_inputs.py`
+```python
+# ✅ CORRECT:
+instant = gate_input.instant
+exposure = gate_input.exposure
+temporal = gate_input.temporal
 
-Contains:
+# ❌ INCORRECT:
+if self._should_trigger_explore(instant, exposure):  # missing temporal
+```
 
-*   dataclass definitions only:
-    *   `InstantDiagnostics`
-    *   `ExposureAggregates`
-    *   `TemporalState`
-    *   optional `GateInput`
+### Error: "No Ready Semions constraint violated"
 
-No update logic.  
-No field computation.  
-No unit tests.  
-No scoring/vectorization utilities required by `argmax`.
+The sensory input contains string labels:
 
-### 7.3 `stage3/core/exposure_field.py`
+```python
+# ❌ INCORRECT:
+observation = {'object_label': 'snake'}
 
-Responsible for:
+# ✅ CORRECT:
+observation = {'prediction_error': 0.5, 'policy_entropy': 0.3}
+```
 
-*   computing internal  $\nu$ ,  $O$ ,  $X$ 
-*   exporting only:
-    *   `X_risk`
-    *   `X_opp`
-    *   `D_est`
+---
 
-### 7.4 `stage3/core/temporal_state.py`
+## 📬 Contact
 
-Responsible for:
+**Author:** Alex Snow (Aleksey L. Snigirov)
+**Email:** alex2saaba@gmail.com
+**ORCID:** 0009-0001-3713-055X
 
-*   updating `h_risk`
-*   updating `h_opp`
-*   updating `h_time`
-*   implementing one-shot as amplitude-dependent update regime
+---
 
-### 7.5 `stage3/core/gate_stage3.py`
-
-Responsible for:
-
-*   threshold cascade
-*   mode routing
-*   no global optimizer
-*   no `argmax`
-
-### 7.6 `stage3/core/compatibility.py`
-
-Responsible for:
-
-*   Stage 2 compatibility shims
-*   zero-exposure degradation mode
-
-* * *
-
-8\. Acceptance Criteria
------------------------
-
-Stage 3.0 is complete only if all of the following hold.
-
-### 8.1 Backward compatibility
-
-With zero exposure and zero temporal traces, Stage 3.0 reproduces Stage 2 behavior.
-
-### 8.2 No ready semions
-
-The sensory interface does not expose categorical object labels to the Gate.
-
-### 8.3 One-shot as update regime
-
-A single high-amplitude event can shift the same temporal traces that many weak events shift gradually.
-
-### 8.4 Exposure-aware routing
-
-High risky exposure can force `EXPLOIT_SAFE` without global mode comparison.
-
-### 8.5 Action-basin equivalence
-
-Two perceptually different stimuli that induce similar exposure profiles and require the same response regime must lead to similar Gate routing.
-
-* * *
-
-9\. Required Tests
-------------------
-
-### 9.1 `test_no_ready_semions.py`
-
-Must verify that the Gate-facing input contains no object labels or semantic class names.
-
-### 9.2 `test_temporal_state.py`
-
-Must verify correct updates of:
-
-*   `h_risk`
-*   `h_opp`
-*   `h_time`
-*   one-shot amplitude regime
-
-### 9.3 `test_gate_stage3.py`
-
-Must verify:
-
-*   threat override
-*   absence trigger
-*   standard Stage 2 fallback
-
-### 9.4 `test_backward_compatibility.py`
-
-Must verify Stage 2-equivalent routing under zeroed Stage 3 fields.
-
-### 9.5 `test_action_basin_equivalence.py`
-
-Must verify that perceptually different but actionally equivalent stimuli converge to the same mode basin.
-
-* * *
-
-10\. Non-Goals of Stage 3.0
----------------------------
-
-Stage 3.0 does not implement:
-
-*   a full absence-check task
-*   a full Shelter Cross environment
-*   full spatial VTE matching
-*   a richer thixotropic rheology
-*   a unified field ontology engine inside the repo
-
-Stage 3.0 is an interface refactor, not a full new experimental paper.
-
+**Last updated:** March 2026
