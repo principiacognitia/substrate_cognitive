@@ -26,7 +26,7 @@ Cognitive rigidity does not stem from the content of representations, but rather
 
 | Stage | Task | Status | Documentation |
 | :--- | :--- | :--- | :--- |
-| **Stage 2** | Two-Step + Reversal Task | ✅ **Complete** | [Preprint]([docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf](https://github.com/principiacognitia/substrate_cognitive/blob/main/docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf)), [stage2/README.md](stage2/README.md) |
+| **Stage 2** | Two-Step + Reversal Task | ✅ **Complete** | [Preprint](docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf), [stage2/README.md](stage2/README.md) |
 | **Stage 3.0** | Architectural Refactor | 🟡 **In Development** | [SPECIFICATION3.md](docs/SPECIFICATION3.md), [stage3/README.md](stage3/README.md) |
 | **Stage 3.1** | Open/Covered Choice Maze | ⬜ Planned | — |
 | **Stage 3.2** | Shelter Cross / Absence Check | ⬜ Planned | — | ---
