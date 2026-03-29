@@ -277,7 +277,9 @@ class OpenCoveredChoiceEnv:
             info: Dict с дополнительной информацией
         """
         self.state.tick += 1
-        previous_node = self.state.current_node
+
+        # Сохраняем previous_node в state ПЕРЕД движением
+        self.state.previous_node = self.state.current_node
         
         # =====================================================================
         # 1. Движение по графу
@@ -315,7 +317,7 @@ class OpenCoveredChoiceEnv:
             'trial': self.state.trial,
             'tick': self.state.tick,
             'node_id': self.state.current_node,
-            'previous_node': previous_node,
+            'previous_node': self.state.previous_node,
             'at_junction': self.state.at_junction,
             'candidate_path': self.state.candidate_path,
             'committed_path': self.state.committed_path,
@@ -389,8 +391,6 @@ class OpenCoveredChoiceEnv:
         elif current == self.goal_node:
             pass  # Триал завершён, движение не происходит
         
-        # Обновляем previous_node
-        self.state.previous_node = previous_node
     
     def _move_along_path(self, action: int) -> None:
         """
