@@ -21,7 +21,7 @@ Usage:
         action = agent.step(observation, reward)
 """
 
-from typing import Dict, Optional, Tuple, Any, List
+from typing import Dict, Optional, Tuple, Any, List, Union
 from dataclasses import dataclass, field
 import numpy as np
 
@@ -99,16 +99,23 @@ class AgentStage3:
             action = agent.step(observation, reward)
     """
     
-    def __init__(self, config: Optional[AgentStage3Config] = None):
+    # ИСПРАВЛЕНО:
+    def __init__(self, config: Optional[Union[AgentStage3Config, Dict[str, Any]]] = None):
         """
         Инициализирует агента Stage 3.0.
         
         Args:
-            config: Конфигурация агента
+            config: Конфигурация агента (dataclass или dict)
         """
-        self.config = config or AgentStage3Config()
+        # Конвертируем dict в dataclass если нужно
+        if config is None:
+            self.config = AgentStage3Config()
+        elif isinstance(config, dict):
+            self.config = AgentStage3Config(**config)
+        else:
+            self.config = config
         
-        # Инициализация компонентов
+        # Инициализация компонентов (теперь работает с dataclass)
         self.exposure_field = ExposureField(**self.config.exposure_field_config)
         
         temporal_config = TemporalStateConfig(**self.config.temporal_state_config)
