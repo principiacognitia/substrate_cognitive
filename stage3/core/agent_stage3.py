@@ -55,6 +55,20 @@ class AgentStage3Config:
     temporal_state_config: Dict = field(default_factory=dict)
     gate_thresholds: Dict = field(default_factory=dict)
     log_level: int = 1
+
+    # Aliases для совместимости с config_stage3_1a.py
+    exposure_field: Dict = field(default_factory=dict)
+    temporal_state: Dict = field(default_factory=dict)
+    
+    # Stage 2 viscosity parameters (для backward compatibility)
+    viscosity: Dict = field(default_factory=lambda: {
+        'alpha': 0.35,
+        'beta': 4.0,
+        'k_use': 0.08,
+        'k_melt': 0.20,
+        'lambda_decay': 0.01,
+        'tau_vol': 0.50
+    })
     
     def __post_init__(self):
         """Валидация конфигурации."""
@@ -62,6 +76,15 @@ class AgentStage3Config:
             raise ValueError(f"compatibility_mode must be bool: {self.compatibility_mode}")
         if self.log_level not in [0, 1, 2]:
             raise ValueError(f"log_level must be 0, 1, or 2: {self.log_level}")
+        
+        """Merge alias fields into main config fields."""
+        # Если exposure_field задан, используем его вместо exposure_field_config
+        if self.exposure_field and not self.exposure_field_config:
+            self.exposure_field_config = self.exposure_field
+        
+        # Если temporal_state задан, используем его вместо temporal_state_config
+        if self.temporal_state and not self.temporal_state_config:
+            self.temporal_state_config = self.temporal_state            
 
 
 @dataclass
@@ -111,7 +134,18 @@ class AgentStage3:
         if config is None:
             self.config = AgentStage3Config()
         elif isinstance(config, dict):
-            self.config = AgentStage3Config(**config)
+            # Handle alias field names from config_stage3_1a.py
+            config_copy = config.copy()
+            
+            # Map temporal_state → temporal_state_config
+            if 'temporal_state' in config_copy and 'temporal_state_config' not in config_copy:
+                config_copy['temporal_state_config'] = config_copy.pop('temporal_state')
+            
+            # Map exposure_field → exposure_field_config
+            if 'exposure_field' in config_copy and 'exposure_field_config' not in config_copy:
+                config_copy['exposure_field_config'] = config_copy.pop('exposure_field')
+            
+            self.config = AgentStage3Config(**config_copy)
         else:
             self.config = config
         
@@ -170,12 +204,22 @@ class AgentStage3:
         # =====================================================================
         # 2. Вычисление Exposure Aggregates (X_risk, X_opp, D_est)
         # =====================================================================
-        exposure_aggregates = self.exposure_field.compute_exposure(
-            observation=observation,
-            action=action,
-            reward=reward,
-            trial=self.trial_count
-        )
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую вместо recomputation
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            # Fallback: вычисляем через ExposureField
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
         
         # =====================================================================
         # 3. Обновление Temporal State (h_risk, h_opp, h_time)

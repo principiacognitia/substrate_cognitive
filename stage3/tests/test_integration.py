@@ -209,12 +209,15 @@ def test_gate_mode_selection_spatial():
 # TEST 5: VTE proxies logged at junction
 # =============================================================================
 
+# ИСПРАВЛЕНО:
 def test_vte_proxies_logged():
     """
     Test: VTE proxies логируются на junction.
+    
+    Note: VTE proxies возвращаются в info от env.step(), не в metadata от agent.step().
     """
     env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
-    agent = AgentStage3(CONFIG_3_1A['agent'], log_level=2)
+    agent = AgentStage3({**CONFIG_3_1A['agent'], 'log_level': 2})
     
     # Reset
     observation = env.reset(trial=1)
@@ -227,15 +230,15 @@ def test_vte_proxies_logged():
         action, metadata = agent.step(observation=observation, reward=0.0)
         observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
         
-        # Проверяем что VTE proxies в metadata
-        if 'vte_proxies' in metadata:
-            vte = metadata['vte_proxies']
+        # ИСПРАВЛЕНИЕ: Проверяем что VTE proxies в info (от env.step())
+        if 'vte_proxies' in info:
+            vte = info['vte_proxies']
             assert 'junction_pause_duration' in vte
             assert 'reorientation_count' in vte
             junction_logs.append(vte)
     
     # Проверяем что логи VTE записаны
-    assert len(junction_logs) > 0
+    assert len(junction_logs) > 0, f"No VTE proxies logged. junction_logs={junction_logs}"
     
     # Проверяем что trial summary содержит VTE метрики
     summaries = env.get_trial_summaries()
@@ -292,7 +295,11 @@ def test_multiple_trials_logging():
     Test: Логирование консистентно для нескольких триалов.
     """
     env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
-    agent = AgentStage3(CONFIG_3_1A['agent'], log_level=2)
+    # Создаём config с log_level=2
+    agent_config = CONFIG_3_1A['agent'].copy()
+    agent_config['log_level'] = 2
+    
+    agent = AgentStage3(agent_config)  # ← Правильно: log_level внутри config
     
     n_trials = 5
     
@@ -381,7 +388,11 @@ def test_save_logs():
     import shutil
     
     env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
-    agent = AgentStage3(CONFIG_3_1A['agent'], log_level=2)
+    # Создаём config с log_level=2
+    agent_config = CONFIG_3_1A['agent'].copy()
+    agent_config['log_level'] = 2
+    
+    agent = AgentStage3(agent_config)  # ← Правильно: log_level внутри config
     
     # Запускаем триал
     observation = env.reset(trial=1)
