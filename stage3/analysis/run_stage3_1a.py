@@ -74,7 +74,7 @@ def run_experiment(seed: int, n_trials: int, output_dir: str, ablation: str = 'f
                 agent_config['temporal_state']['one_shot_threshold'] = 999.0
                 agent_config['temporal_state']['one_shot_boost'] = 0.0
     
-    agent = AgentStage3(agent_config)
+    agent = AgentStage3(agent_config, seed=seed)  # ← Передать seed
     
     # Запускаем триалы
     for trial in range(n_trials):

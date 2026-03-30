@@ -38,37 +38,67 @@ from stage3.core.gate_stage3 import GateStage3, GateThresholds
 from stage3.core.compatibility import Stage2CompatShim, Stage2CompatConfig
 
 
+# ИСПРАВЛЕНО (разделение по ролям):
 @dataclass
 class AgentStage3Config:
     """
     Конфигурация агента Stage 3.0.
     
-    Attributes:
-        compatibility_mode: Включить ли Stage 2 backward compatibility
-        exposure_field_config: Конфигурация для exposure_field.py
-        temporal_state_config: Конфигурация для temporal_state.py
-        gate_thresholds: Пороги для gate_stage3.py
-        log_level: Уровень логирования (0=none, 1=summary, 2=full)
+    Разделение параметров по ролям:
+    - stage2_legacy: Backward compatibility (обучение + viscosity)
+    - action_policy: Stochastic action selection (mode-specific)
+    - temporal_state_config: Trace dynamics
+    - gate_thresholds: Threshold cascade
+    - exposure_field_config: Exposure computation
     """
     compatibility_mode: bool = False
+    log_level: int = 1
+    
+    # === Stage 2 Legacy (backward compatibility) ===
+    stage2_legacy: Dict = field(default_factory=lambda: {
+        'alpha': 0.35,           # Learning rate
+        'beta': 4.0,             # Inverse softmax temperature (fallback for beta_exploit)
+        'k_use': 0.08,           # Hardening rate
+        'k_melt': 0.20,          # Melting rate
+        'lambda_decay': 0.01,    # Viscosity decay
+        'tau_vol': 0.50,         # Volatility threshold
+    })
+    
+    # === Stage 3 Action Policy (mode-specific stochastic selection) ===
+    action_policy: Dict = field(default_factory=lambda: {
+        'beta_exploit': 4.0,     # Inverse temperature for EXPLOIT mode
+        'beta_explore': 1.0,     # Inverse temperature for EXPLORE mode (lower = more random)
+        'beta_safe': 5.0,        # Inverse temperature for EXPLOIT_SAFE mode (higher = more conservative)
+        'lambda_risk': 2.0,      # Risk penalty weight for EXPLOIT_SAFE
+        'epsilon_explore': 0.0,  # Optional epsilon for explore (0.0 = pure softmax)
+    })
+    
+    # === Stage 3 Core Configs ===
     exposure_field_config: Dict = field(default_factory=dict)
     temporal_state_config: Dict = field(default_factory=dict)
     gate_thresholds: Dict = field(default_factory=dict)
-    log_level: int = 1
-
-    # Aliases для совместимости с config_stage3_1a.py
-    exposure_field: Dict = field(default_factory=dict)
-    temporal_state: Dict = field(default_factory=dict)
     
-    # Stage 2 viscosity parameters (для backward compatibility)
-    viscosity: Dict = field(default_factory=lambda: {
-        'alpha': 0.35,
-        'beta': 4.0,
-        'k_use': 0.08,
-        'k_melt': 0.20,
-        'lambda_decay': 0.01,
-        'tau_vol': 0.50
-    })
+    def __post_init__(self):
+        """
+        Валидация и миграция параметров.
+        
+        Если beta_exploit не задан, наследуем от stage2_legacy['beta'].
+        """
+        # Миграция: beta_exploit по умолчанию от legacy beta
+        if 'beta_exploit' not in self.action_policy:
+            self.action_policy['beta_exploit'] = self.stage2_legacy.get('beta', 4.0)
+        
+        # Валидация stage2_legacy
+        required_legacy = ['alpha', 'beta', 'k_use', 'k_melt', 'lambda_decay', 'tau_vol']
+        for key in required_legacy:
+            if key not in self.stage2_legacy:
+                raise ValueError(f"stage2_legacy must contain '{key}'")
+        
+        # Валидация action_policy
+        required_policy = ['beta_exploit', 'beta_explore', 'beta_safe', 'lambda_risk']
+        for key in required_policy:
+            if key not in self.action_policy:
+                raise ValueError(f"action_policy must contain '{key}'")
     
     def __post_init__(self):
         """Валидация конфигурации."""
@@ -123,12 +153,17 @@ class AgentStage3:
     """
     
     # ИСПРАВЛЕНО:
-    def __init__(self, config: Optional[Union[AgentStage3Config, Dict[str, Any]]] = None):
+    def __init__(
+    self,
+    config: Optional[Union[AgentStage3Config, Dict[str, Any]]] = None,
+    seed: Optional[int] = None  # ← ДОБАВИТЬ
+    ):
         """
         Инициализирует агента Stage 3.0.
         
         Args:
             config: Конфигурация агента (dataclass или dict)
+            seed: Random seed для воспроизводимости
         """
         # Конвертируем dict в dataclass если нужно
         if config is None:
@@ -148,6 +183,35 @@ class AgentStage3:
             self.config = AgentStage3Config(**config_copy)
         else:
             self.config = config
+        
+            # === Инициализация RNG ===
+        if seed is not None:
+            self.rng = np.random.default_rng(seed)
+        else:
+            self.rng = np.random.default_rng()
+        
+        # Инициализация компонентов
+        self.exposure_field = ExposureField(**self.config.exposure_field_config)
+        
+        temporal_config = TemporalStateConfig(**self.config.temporal_state_config)
+        self.temporal_updater = TemporalStateUpdater(temporal_config)
+        
+        gate_thresholds = GateThresholds(**self.config.gate_thresholds)
+        self.gate = GateStage3(gate_thresholds)
+        
+        # Backward compatibility shim
+        compat_config = Stage2CompatConfig(enabled=self.config.compatibility_mode)
+        self.compat_shim = Stage2CompatShim(compat_config)
+        
+        # Внутреннее состояние
+        self.current_temporal_state = TemporalState.zeros()
+        self.trial_count = 0
+        self.log_buffer: List[AgentLog] = []
+        
+        # Stage 2 совместимость (для backward compat mode)
+        self.u_delta_history: List[float] = []
+        self.u_entropy_history: List[float] = []
+        self.u_volatility_history: List[float] = []
         
         # Инициализация компонентов (теперь работает с dataclass)
         self.exposure_field = ExposureField(**self.config.exposure_field_config)
@@ -355,6 +419,7 @@ class AgentStage3:
             trial=self.trial_count
         )
     
+    # ИСПРАВЛЕНО: Использует action_policy параметры
     def _select_action_for_mode(
         self,
         mode: GateMode,
@@ -362,54 +427,88 @@ class AgentStage3:
         instant_diagnostics: InstantDiagnostics
     ) -> int:
         """
-        Выбирает действие на основе режима Gate.
+        Выбирает действие через mode-specific stochastic policy.
         
-        Mode-specific action selection:
-        - EXPLOIT: Выбирать действие с максимальной Q-ценностью
-        - EXPLORE: Выбирать действие с максимальной энтропией/неопределённостью
-        - EXPLOIT_SAFE: Выбирать безопасное действие (минимальный риск)
-        - ABSENCE_CHECK: Выбирать проверочное действие (сбор информации)
-        
-        Args:
-            mode: Выбранный режим Gate
-            observation: Raw observation
-            instant_diagnostics: Instant diagnostics
-        
-        Returns:
-            action: Выбранное действие
+        Design Principle: Principled stochasticity, не hand-coded random.
         """
-        # Получаем Q-ценности из observation (если есть)
         q_values = observation.get('q_values', [0.5, 0.5])
+        q_values = np.array(q_values, dtype=np.float64)
         
+        # === Получаем параметры из action_policy ===
+        beta_exploit = self.config.action_policy.get('beta_exploit', 
+                            self.config.stage2_legacy.get('beta', 4.0))
+        beta_explore = self.config.action_policy.get('beta_explore', 1.0)
+        beta_safe = self.config.action_policy.get('beta_safe', 5.0)
+        lambda_risk = self.config.action_policy.get('lambda_risk', 2.0)
+        epsilon_explore = self.config.action_policy.get('epsilon_explore', 0.0)
+        
+        # === EXPLOIT: Softmax с высоким beta ===
         if mode == GateMode.EXPLOIT:
-            # Выбирать действие с максимальной Q-ценностью
-            action = int(np.argmax(q_values))
+            logits = beta_exploit * q_values
+            probs = self._softmax(logits)
+            action = self.rng.choice(len(q_values), p=probs)
         
+        # === EXPLORE: Softmax с низким beta (более случайно) ===
         elif mode == GateMode.EXPLORE:
-            # Выбирать действие с максимальной неопределённостью
-            # Для простоты: случайное действие с bias к менее исследованным
-            if len(q_values) == 2:
-                # Если 2 действия, выбирать менее предпочтительное
-                action = 0 if np.argmin(q_values) == 1 else 1
+            if epsilon_explore > 0:
+                # Epsilon-soft policy
+                if self.rng.random() < epsilon_explore:
+                    action = self.rng.randint(0, len(q_values))
+                else:
+                    logits = beta_explore * q_values
+                    probs = self._softmax(logits)
+                    action = self.rng.choice(len(q_values), p=probs)
             else:
-                action = np.random.randint(0, len(q_values))
+                # Pure softmax с низким beta
+                logits = beta_explore * q_values
+                probs = self._softmax(logits)
+                action = self.rng.choice(len(q_values), p=probs)
         
+        # === EXPLOIT_SAFE: Softmax над risk-penalized values ===
         elif mode == GateMode.EXPLOIT_SAFE:
-            # Выбирать безопасное действие (минимальный риск)
-            # Для простоты: действие с максимальной Q-ценностью но с conservative bias
-            safe_q = [q * 0.9 for q in q_values]  # Conservative bias
-            action = int(np.argmax(safe_q))
+            # Получаем risk values из observation
+            risk_values = observation.get('risk_values', [0.5, 0.5])
+            risk_values = np.array(risk_values, dtype=np.float64)
+            
+            # Penalized Q-values: Q_safe = Q - lambda_risk * risk
+            q_safe = q_values - lambda_risk * risk_values
+            
+            logits = beta_safe * q_safe
+            probs = self._softmax(logits)
+            action = self.rng.choice(len(q_values), p=probs)
         
+        # === ABSENCE_CHECK: Как EXPLORE (пока нет full scan policy) ===
         elif mode == GateMode.ABSENCE_CHECK:
-            # Выбирать проверочное действие (сбор информации)
-            # Для простоты: чередовать действия для максимального coverage
-            action = self.trial_count % len(q_values)
+            logits = beta_explore * q_values
+            probs = self._softmax(logits)
+            action = self.rng.choice(len(q_values), p=probs)
         
         else:
-            # Fallback на EXPLOIT
-            action = int(np.argmax(q_values))
+            # Fallback: равномерное распределение
+            action = self.rng.randint(0, len(q_values))
         
-        return action
+        return int(action)
+
+    def _softmax(self, logits: np.ndarray) -> np.ndarray:
+        """
+        Numerically stable softmax.
+        
+        Args:
+            logits: Raw logits (beta * Q)
+        
+        Returns:
+            Probability distribution
+        """
+        # Subtract max for numerical stability
+        logits_shifted = logits - np.max(logits)
+        exp_logits = np.exp(logits_shifted)
+        probs = exp_logits / np.sum(exp_logits)
+        
+        # Clip to avoid numerical issues
+        probs = np.clip(probs, 1e-10, 1.0 - 1e-10)
+        probs = probs / np.sum(probs)  # Renormalize
+        
+        return probs
     
     def _create_log_entry(
         self,

@@ -103,47 +103,57 @@ ENV_CONFIG: Dict[str, Any] = {
 # AGENT CONFIGURATION
 # =============================================================================
 
+# ИСПРАВЛЕНО:
 AGENT_CONFIG: Dict[str, Any] = {
-    # === Gate Thresholds (Stage 3.0) ===
+    # === Backward Compatibility ===
+    'compatibility_mode': False,
+    'log_level': 2,
+    
+    # === Stage 2 Legacy (learning + viscosity) ===
+    'stage2_legacy': {
+        'alpha': 0.35,
+        'beta': 4.0,              # Fallback для beta_exploit
+        'k_use': 0.08,
+        'k_melt': 0.20,
+        'lambda_decay': 0.01,
+        'tau_vol': 0.50,
+    },
+    
+    # === Stage 3 Action Policy (mode-specific) ===
+    'action_policy': {
+        'beta_exploit': 4.0,      # EXPLOIT: deterministic-ish
+        'beta_explore': 1.0,      # EXPLORE: more stochastic
+        'beta_safe': 5.0,         # EXPLOIT_SAFE: very conservative
+        'lambda_risk': 2.0,       # Risk penalty weight
+        'epsilon_explore': 0.0,   # Pure softmax (no epsilon)
+    },
+    
+    # === Stage 3 Core ===
     'gate_thresholds': {
-        'critical_risk_threshold': 0.7,    # Порог для EXPLOIT_SAFE
-        'suspicion_threshold': 0.5,        # Порог для ABSENCE_CHECK
-        'visibility_threshold': 0.3,       # Максимальная D_est для ABSENCE_CHECK
-        'safe_window_threshold': 50,       # Минимальный h_time для ABSENCE_CHECK
-        'theta_mb': 0.30,                  # Mode switch threshold (Stage 2)
-        'theta_u': 1.5,                    # Uncertainty baseline (Stage 2)
+        'critical_risk_threshold': 0.7,
+        'suspicion_threshold': 0.5,
+        'visibility_threshold': 0.3,
+        'safe_window_threshold': 50,
+        'theta_mb': 0.30,
+        'theta_u': 1.5,
     },
     
-    # === Temporal State Config ===
+    # === Temporal State ===
     'temporal_state': {
-        'lambda_risk': 0.9,                # Decay rate для h_risk
-        'lambda_opp': 0.9,                 # Decay rate для h_opp
-        'salience_threshold': 0.5,         # Порог для сброса h_time
-        'one_shot_threshold': 5.0,         # Порог амплитуды для one-shot
-        'one_shot_boost': 2.0,             # Множитель для one-shot update
+        'lambda_risk': 0.9,
+        'lambda_opp': 0.9,
+        'salience_threshold': 0.5,
+        'one_shot_threshold': 5.0,
+        'one_shot_boost': 2.0,
     },
     
-    # === Exposure Field Config ===
+    # === Exposure Field ===
     'exposure_field': {
-        'valence_scale': 1.0,              # Масштаб для валентности
-        'observability_scale': 1.0,        # Масштаб для наблюдаемости
-        'risk_threshold': 0.5,             # Порог для X_risk агрегации
-        'opportunity_threshold': 0.5,      # Порог для X_opp агрегации
+        'valence_scale': 1.0,
+        'observability_scale': 1.0,
+        'risk_threshold': 0.5,
+        'opportunity_threshold': 0.5,
     },
-    
-    # === Stage 2 Compatibility ===
-    'compatibility_mode': False,           # False = Stage 3 режим
-    'log_level': 2,                        # 0=none, 1=summary, 2=full
-    
-    # === Viscosity Parameters (Stage 2, для совместимости) ===
-    'viscosity': {
-        'alpha': 0.35,                     # Learning rate
-        'beta': 4.0,                       # Inverse softmax temperature
-        'k_use': 0.08,                     # Hardening rate
-        'k_melt': 0.20,                    # Melting rate
-        'lambda_decay': 0.01,              # Decay rate
-        'tau_vol': 0.50,                   # Volatility threshold
-    }
 }
 
 
