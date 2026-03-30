@@ -30,6 +30,7 @@ License: MIT
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field
 import numpy as np
+import pandas as pd
 from pathlib import Path
 
 from stage3.envs.maze_builder import MazeBuilder, MazeGraph, NodeType
