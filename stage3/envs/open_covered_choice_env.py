@@ -689,22 +689,25 @@ class OpenCoveredChoiceEnv:
         """
         return self.maze
     
-    def save_logs(self, output_dir: str) -> None:
+    def save_logs(self, output_dir: str, filename: str) -> None:
         """
-        Сохраняет логи в CSV.
+        Сохраняет логи в CSV файл внутри директории.
         
         Args:
-            output_dir: Директория для сохранения
+            output_dir: Директория для сохранения (существующая)
+            filename: Имя файла (например, "stage3_1a_seed42_trials.csv")
         """
-        import pandas as pd
+        dir_path = Path(output_dir)
+        dir_path.mkdir(parents=True, exist_ok=True)  # Создаём директорию
         
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
+        file_path = dir_path / filename  # Полный путь к файлу
         
-        # Trial summaries
         if self.trial_summaries:
             df_trials = pd.DataFrame([s.to_dict() for s in self.trial_summaries])
-            df_trials.to_csv(output_path / f"stage3_1a_seed{self.seed}_trials.csv", index=False)
+            df_trials.to_csv(file_path, index=False)
+            print(f"  Logs saved: {file_path.name} ({len(df_trials)} trials)")
+        else:
+            print(f"  ⚠ No trial summaries to save")
 
 
 # =============================================================================

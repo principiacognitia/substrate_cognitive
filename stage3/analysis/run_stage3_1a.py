@@ -97,10 +97,9 @@ def run_experiment(seed: int, n_trials: int, output_dir: str, ablation: str = 'f
     
     # Сохраняем логи в ОБЩУЮ папку (все seeds в одной директории)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_filename = f"stage3_1a_seed{seed}_{timestamp}_trials.csv"
-    log_path = Path(output_dir) / log_filename
+    log_filename = f"stage3_1a_seed{seed}_trials.csv"
     
-    env.save_logs(str(log_path))
+    env.save_logs(output_dir, log_filename)  # ← Два аргумента!
     
     return len(env.trial_summaries)
 
@@ -166,7 +165,7 @@ def main():
     # Завершаем метаданные
     metadata['end_time'] = datetime.now().isoformat()
     metadata['total_trials'] = total_trials
-    metadata['files_created'] = len(list(output_path.glob('*_trials.csv')))
+    metadata['files_created'] = len(list(output_path.glob('*.csv')))
     
     with open(output_path / 'metadata.json', 'w', encoding='utf-8') as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
