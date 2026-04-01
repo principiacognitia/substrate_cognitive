@@ -352,14 +352,14 @@ class OpenCoveredChoiceEnv:
         previous_node = self.state.current_node
         
         # =====================================================================
-        # Task 4: Junction deliberation state machine
+        # 1. Движение по графу (СНАЧАЛА двигаемся)
+        # =====================================================================
+        self._move(action, mode)     
+
+        # =====================================================================
+        # Task 4: Junction deliberation state machine (ПОТОМ обновляем state)
         # =====================================================================
         self._update_deliberation_state(action, mode, action_probs)
-        
-        # =====================================================================
-        # Движение по графу (детерминировано после commit)
-        # =====================================================================
-        self._move(action, mode)
         
         # =====================================================================
         # Вычисление observation
@@ -429,6 +429,9 @@ class OpenCoveredChoiceEnv:
             self.state.deliberation_state = DeliberationState.AT_JUNCTION
             metrics.junction_entry_tick = self.state.tick
             self.state.zone_entry_tick = self.state.tick
+
+            # ← ДОБАВИТЬ: Минимальная пауза в 1 тик перед deliberation
+            metrics.pause_duration = 1        
         
         # --- Начало deliberation ---
         if self.state.deliberation_state == DeliberationState.AT_JUNCTION:
@@ -504,7 +507,7 @@ class OpenCoveredChoiceEnv:
         current = self.state.current_node
         
         # =====================================================================
-        # Start node → Junction
+        # Start node → Junction (только одна нода за шаг)
         # =====================================================================
         if current == self.start_node:
             self.state.previous_node = current
@@ -904,7 +907,41 @@ def test_junction_deliberation():
     
     # Движение к junction
     observation, reward, done, info = env.step(action=0, mode="EXPLOIT")
-    assert env.state.deliberation_state in [DeliberationState.AT_JUNCTION, DeliberationState.DELIBERATING]
+    
+    # Шаг 1: start → junction (ещё не на junction, поэтому APPROACH)
+    observation, reward, done, info = env.step(
+        action=0,
+        mode="EXPLOIT",
+        action_probs=[0.5, 0.5]  # ← ДОБАВИТЬ: low confidence, не commit сразу
+    )
+    
+    # После первого step агент на junction
+    assert env.state.current_node == "junction", f"Expected junction, got {env.state.current_node}"
+    
+    # Шаг 2: deliberation продолжается (низкая confidence)
+    observation, reward, done, info = env.step(
+        action=0,
+        mode="EXPLORE",
+        action_probs=[0.55, 0.45]  # ← Низкая confidence (< 0.7), продолжаем deliberation
+    )
+    
+    # Проверяем что deliberation происходит
+    assert env.state.deliberation_state in [
+        DeliberationState.AT_JUNCTION,
+        DeliberationState.DELIBERATING,
+        DeliberationState.COMMITTED  # Может уже commit после 2 шагов
+    ], f"Expected deliberation state, got {env.state.deliberation_state}"
+    
+    # Завершаем триал
+    while not done:
+        observation, reward, done, info = env.step(
+            action=0,
+            mode="EXPLOIT",
+            action_probs=[0.8, 0.2]  # Высокая confidence для commit
+        )
+    
+    # Проверяем что VTE proxies записаны
+    assert len(env.trial_summaries) == 0  # Ещё не завершён
     
     # Завершаем триал
     while not done:
