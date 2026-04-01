@@ -77,6 +77,11 @@ class AgentStage3Config:
     exposure_field_config: Dict = field(default_factory=dict)
     temporal_state_config: Dict = field(default_factory=dict)
     gate_thresholds: Dict = field(default_factory=dict)
+
+    # === Aliases для совместимости с config_stage3_1a.py ===
+    # Эти поля НЕ используются напрямую, только для mapping в __init__
+    exposure_field: Dict = field(default_factory=dict, repr=False, compare=False)
+    temporal_state: Dict = field(default_factory=dict, repr=False, compare=False)
     
     def __post_init__(self):
         """
@@ -100,23 +105,6 @@ class AgentStage3Config:
             if key not in self.action_policy:
                 raise ValueError(f"action_policy must contain '{key}'")
     
-    def __post_init__(self):
-        """Валидация конфигурации."""
-        if not isinstance(self.compatibility_mode, bool):
-            raise ValueError(f"compatibility_mode must be bool: {self.compatibility_mode}")
-        if self.log_level not in [0, 1, 2]:
-            raise ValueError(f"log_level must be 0, 1, or 2: {self.log_level}")
-        
-        """Merge alias fields into main config fields."""
-        # Если exposure_field задан, используем его вместо exposure_field_config
-        if self.exposure_field and not self.exposure_field_config:
-            self.exposure_field_config = self.exposure_field
-        
-        # Если temporal_state задан, используем его вместо temporal_state_config
-        if self.temporal_state and not self.temporal_state_config:
-            self.temporal_state_config = self.temporal_state            
-
-
 @dataclass
 class AgentLog:
     """
@@ -184,7 +172,7 @@ class AgentStage3:
         else:
             self.config = config
         
-            # === Инициализация RNG ===
+        # === Инициализация RNG ===
         if seed is not None:
             self.rng = np.random.default_rng(seed)
         else:
@@ -213,28 +201,6 @@ class AgentStage3:
         self.u_entropy_history: List[float] = []
         self.u_volatility_history: List[float] = []
         
-        # Инициализация компонентов (теперь работает с dataclass)
-        self.exposure_field = ExposureField(**self.config.exposure_field_config)
-        
-        temporal_config = TemporalStateConfig(**self.config.temporal_state_config)
-        self.temporal_updater = TemporalStateUpdater(temporal_config)
-        
-        gate_thresholds = GateThresholds(**self.config.gate_thresholds)
-        self.gate = GateStage3(gate_thresholds)
-        
-        # Backward compatibility shim
-        compat_config = Stage2CompatConfig(enabled=self.config.compatibility_mode)
-        self.compat_shim = Stage2CompatShim(compat_config)
-        
-        # Внутреннее состояние
-        self.current_temporal_state = TemporalState.zeros()
-        self.trial_count = 0
-        self.log_buffer: List[AgentLog] = []
-        
-        # Stage 2 совместимость (для backward compat mode)
-        self.u_delta_history: List[float] = []
-        self.u_entropy_history: List[float] = []
-        self.u_volatility_history: List[float] = []
     
     def step(
         self,

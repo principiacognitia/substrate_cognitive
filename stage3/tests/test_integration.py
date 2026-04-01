@@ -385,14 +385,13 @@ def test_save_logs():
     Test: Сохранение логов работает корректно.
     """
     import tempfile
-    import shutil
+    from pathlib import Path
     
     env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
-    # Создаём config с log_level=2
-    agent_config = CONFIG_3_1A['agent'].copy()
-    agent_config['log_level'] = 2
     
-    agent = AgentStage3(agent_config)  # ← Правильно: log_level внутри config
+    # Создаём агент с log_level=2 через dict
+    agent_config = {**CONFIG_3_1A['agent'], 'log_level': 2}
+    agent = AgentStage3(agent_config, seed=42)
     
     # Запускаем триал
     observation = env.reset(trial=1)
@@ -404,10 +403,12 @@ def test_save_logs():
     
     # Сохраняем логи во временную директорию
     with tempfile.TemporaryDirectory() as tmpdir:
-        env.save_logs(tmpdir)
+        # ИСПРАВЛЕНО: два аргумента (output_dir, filename)
+        filename = f"stage3_1a_seed{env.seed}_trials.csv"
+        env.save_logs(tmpdir, filename)
         
         # Проверяем что файл создан
-        log_file = Path(tmpdir) / f"stage3_1a_seed{env.seed}_trials.csv"
+        log_file = Path(tmpdir) / filename
         assert log_file.exists(), f"Log file not created: {log_file}"
         
         # Проверяем что файл не пустой
