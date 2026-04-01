@@ -1,27 +1,19 @@
 """
-Stage 3.0: Agent Orchestration.
+Stage 3.0: Agent Orchestration with Stochastic Policy.
 
-Оркестрирует полный цикл агента:
-1. Получение observation из среды
-2. Вычисление exposure aggregates (exposure_field.py)
-3. Обновление temporal state (temporal_state.py)
-4. Выбор режима через threshold cascade (gate_stage3.py)
-5. Выбор действия на основе режима
-6. Логирование всех промежуточных состояний
+Оркестрирует полный цикл агента с mode-specific softmax policies.
 
-Design Constraints:
-- Backward Compatibility: при нулевых exposure/temporal деградирует в Stage 2
-- No Ready Semions: observation не содержит категориальных меток
-- Traceability: все промежуточные состояния логируются для анализа
+Design Principles:
+- Policy stochasticity via softmax (не argmax)
+- Mode-specific inverse temperatures (beta_exploit, beta_explore, beta_safe)
+- Risk-penalized values for EXPLOIT_SAFE
+- Full logging of action_probs, q_values, risk_values
 
-Usage:
-    agent = AgentStage3(config)
-    for trial in range(n_trials):
-        observation, reward, done = env.step(action)
-        action = agent.step(observation, reward)
+Author: Alex Snow (Aleksey L. Snigirov)
+License: MIT
 """
 
-from typing import Dict, Optional, Tuple, Any, List, Union
+from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field
 import numpy as np
 
@@ -32,13 +24,48 @@ from stage3.core.gate_inputs import (
     ExposureAggregates,
     TemporalState
 )
-from stage3.core.exposure_field import ExposureField, ExposureAggregates as ExposureAgg
+from stage3.core.exposure_field import ExposureField
 from stage3.core.temporal_state import TemporalStateUpdater, TemporalStateConfig
 from stage3.core.gate_stage3 import GateStage3, GateThresholds
 from stage3.core.compatibility import Stage2CompatShim, Stage2CompatConfig
 
 
-# ИСПРАВЛЕНО (разделение по ролям):
+@dataclass
+class AgentLog:
+    """
+    Лог одного шага агента (расширенный для Stage 3.1).
+    
+    Соответствует logging contract из ТЗ.
+    """
+    seed: int = 0
+    trial: int = 0
+    tick: int = 0
+    node_id: str = ""
+    at_junction: bool = False
+    state_machine_state: str = ""
+    mode_before: str = ""
+    mode_after: str = ""
+    gate_trigger: str = ""
+    q_values: List[float] = field(default_factory=list)
+    risk_values: List[float] = field(default_factory=list)
+    action_probs: List[float] = field(default_factory=list)
+    sampled_action: int = 0
+    candidate_path: str = ""
+    committed_path: str = ""
+    reward: float = 0.0
+    salience: float = 0.0
+    u_delta: float = 0.0
+    u_entropy: float = 0.0
+    u_volatility: float = 0.0
+    X_risk: float = 0.0
+    X_opp: float = 0.0
+    D_est: float = 0.0
+    h_risk: float = 0.0
+    h_opp: float = 0.0
+    h_time: int = 0
+    one_shot_fired: bool = False
+
+
 @dataclass
 class AgentStage3Config:
     """
@@ -56,38 +83,37 @@ class AgentStage3Config:
     
     # === Stage 2 Legacy (backward compatibility) ===
     stage2_legacy: Dict = field(default_factory=lambda: {
-        'alpha': 0.35,           # Learning rate
-        'beta': 4.0,             # Inverse softmax temperature (fallback for beta_exploit)
-        'k_use': 0.08,           # Hardening rate
-        'k_melt': 0.20,          # Melting rate
-        'lambda_decay': 0.01,    # Viscosity decay
-        'tau_vol': 0.50,         # Volatility threshold
+        'alpha': 0.35,
+        'beta': 4.0,
+        'k_use': 0.08,
+        'k_melt': 0.20,
+        'lambda_decay': 0.01,
+        'tau_vol': 0.50,
     })
     
     # === Stage 3 Action Policy (mode-specific stochastic selection) ===
     action_policy: Dict = field(default_factory=lambda: {
-        'beta_exploit': 4.0,     # Inverse temperature for EXPLOIT mode
-        'beta_explore': 1.0,     # Inverse temperature for EXPLORE mode (lower = more random)
-        'beta_safe': 5.0,        # Inverse temperature for EXPLOIT_SAFE mode (higher = more conservative)
-        'lambda_risk': 2.0,      # Risk penalty weight for EXPLOIT_SAFE
-        'epsilon_explore': 0.0,  # Optional epsilon for explore (0.0 = pure softmax)
+        'beta_exploit': 4.0,
+        'beta_explore': 1.0,
+        'beta_safe': 5.0,
+        'lambda_risk': 2.0,
+        'epsilon_explore': 0.0,
+        'commit_confidence': 0.7,  # Threshold for deliberation commit
+        'max_deliberation_ticks': 10,  # Max ticks in DELIBERATING state
     })
     
     # === Stage 3 Core Configs ===
     exposure_field_config: Dict = field(default_factory=dict)
     temporal_state_config: Dict = field(default_factory=dict)
     gate_thresholds: Dict = field(default_factory=dict)
-
+    
     # === Aliases для совместимости с config_stage3_1a.py ===
-    # Эти поля НЕ используются напрямую, только для mapping в __init__
     exposure_field: Dict = field(default_factory=dict, repr=False, compare=False)
     temporal_state: Dict = field(default_factory=dict, repr=False, compare=False)
     
     def __post_init__(self):
         """
         Валидация и миграция параметров.
-        
-        Если beta_exploit не задан, наследуем от stage2_legacy['beta'].
         """
         # Миграция: beta_exploit по умолчанию от legacy beta
         if 'beta_exploit' not in self.action_policy:
@@ -104,47 +130,28 @@ class AgentStage3Config:
         for key in required_policy:
             if key not in self.action_policy:
                 raise ValueError(f"action_policy must contain '{key}'")
-    
-@dataclass
-class AgentLog:
-    """
-    Лог одного шага агента.
-    
-    Содержит все промежуточные состояния для анализа.
-    """
-    trial: int
-    observation: Dict
-    exposure: Dict
-    temporal_state: Dict
-    instant_diagnostics: Dict
-    mode_scores: Dict
-    selected_mode: str
-    action: int
-    reward: float
-    gate_constraint: str
 
 
 class AgentStage3:
     """
-    Agent Stage 3 с orchestration полного цикла.
+    Agent Stage 3 с mode-specific stochastic policies.
     
     Architecture:
-        Environment → ExposureField → TemporalState → Gate → Action
+        Environment → ExposureField → TemporalState → Gate → Stochastic Policy → Action
     
     Usage:
         config = AgentStage3Config()
-        agent = AgentStage3(config)
+        agent = AgentStage3(config, seed=42)
         
         for trial in range(n_trials):
             observation, reward, done = env.step(action)
-            action = agent.step(observation, reward)
+            action, metadata = agent.step(observation, reward)
     """
     
-    # ИСПРАВЛЕНО:
     def __init__(
-    self,
-    config: Optional[Union[AgentStage3Config, Dict[str, Any]]] = None,
-    seed: Optional[int] = None  # ← ДОБАВИТЬ
+        self,
+        config: Optional[Union[AgentStage3Config, Dict[str, Any]]] = None,
+        seed: Optional[int] = None
     ):
         """
         Инициализирует агента Stage 3.0.
@@ -157,26 +164,30 @@ class AgentStage3:
         if config is None:
             self.config = AgentStage3Config()
         elif isinstance(config, dict):
-            # Handle alias field names from config_stage3_1a.py
             config_copy = config.copy()
             
-            # Map temporal_state → temporal_state_config
+            # Map aliases
             if 'temporal_state' in config_copy and 'temporal_state_config' not in config_copy:
                 config_copy['temporal_state_config'] = config_copy.pop('temporal_state')
             
-            # Map exposure_field → exposure_field_config
             if 'exposure_field' in config_copy and 'exposure_field_config' not in config_copy:
                 config_copy['exposure_field_config'] = config_copy.pop('exposure_field')
+            
+            # Remove aliases
+            config_copy.pop('exposure_field', None)
+            config_copy.pop('temporal_state', None)
             
             self.config = AgentStage3Config(**config_copy)
         else:
             self.config = config
         
-        # === Инициализация RNG ===
+        # === Инициализация RNG (Task 1) ===
         if seed is not None:
             self.rng = np.random.default_rng(seed)
+            self.seed = seed
         else:
             self.rng = np.random.default_rng()
+            self.seed = 0
         
         # Инициализация компонентов
         self.exposure_field = ExposureField(**self.config.exposure_field_config)
@@ -196,33 +207,36 @@ class AgentStage3:
         self.trial_count = 0
         self.log_buffer: List[AgentLog] = []
         
-        # Stage 2 совместимость (для backward compat mode)
+        # Stage 2 совместимость
         self.u_delta_history: List[float] = []
         self.u_entropy_history: List[float] = []
         self.u_volatility_history: List[float] = []
-        
     
     def step(
         self,
         observation: Dict,
         reward: Optional[float] = None,
         action: Optional[int] = None,
-        salience: Optional[float] = None,
-        stakes: float = 1.0
+        salience: Optional[float] = None
     ) -> Tuple[int, Dict]:
         """
-        Один шаг агента.
+        Один шаг агента с mode-specific stochastic policy.
         
         Args:
-            observation: Raw observation из среды (без категориальных меток!)
-            reward: Reward signal (optional)
-            action: Previous action (optional, для exposure computation)
-            salience: Salience estimate (optional, вычисляется если None)
-            stakes: Stakes/modulator (default: 1.0)
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
         
         Returns:
             (action, metadata_dict)
-            metadata_dict содержит все промежуточные состояния для логирования
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
         """
         # =====================================================================
         # 1. Вычисление Instant Diagnostics (u_t)
@@ -232,10 +246,10 @@ class AgentStage3:
         )
         
         # =====================================================================
-        # 2. Вычисление Exposure Aggregates (X_risk, X_opp, D_est)
+        # 2. Вычисление Exposure Aggregates
         # =====================================================================
         # Если observation уже содержит exposure aggregates (из spatial env),
-        # используем их напрямую вместо recomputation
+        # используем их напрямую
         if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
             exposure_aggregates = ExposureAggregates(
                 X_risk=observation['X_risk'],
@@ -243,7 +257,6 @@ class AgentStage3:
                 D_est=observation['D_est']
             )
         else:
-            # Fallback: вычисляем через ExposureField
             exposure_aggregates = self.exposure_field.compute_exposure(
                 observation=observation,
                 action=action,
@@ -252,22 +265,21 @@ class AgentStage3:
             )
         
         # =====================================================================
-        # 3. Обновление Temporal State (h_risk, h_opp, h_time)
+        # 3. Обновление Temporal State
         # =====================================================================
-        # Вычисляем salience если не предоставлена
         if salience is None:
-            salience = instant_diagnostics.u_delta  # PE как proxy для salience
+            salience = instant_diagnostics.u_delta
         
         self.current_temporal_state = self.temporal_updater.update(
             state=self.current_temporal_state,
             X_risk=exposure_aggregates.X_risk,
             X_opp=exposure_aggregates.X_opp,
             salience=salience,
-            stakes=stakes
+            stakes=1.0
         )
         
         # =====================================================================
-        # 4. Backward Compatibility (Stage 2 emulation)
+        # 4. Backward Compatibility
         # =====================================================================
         if self.config.compatibility_mode:
             gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
@@ -284,16 +296,17 @@ class AgentStage3:
         selected_mode, gate_metadata = self.gate.select_mode(gate_input)
         
         # =====================================================================
-        # 6. Action Selection на основе режима
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
         # =====================================================================
-        action = self._select_action_for_mode(
+        action, action_metadata = self._select_action_for_mode_stochastic(
             mode=selected_mode,
             observation=observation,
-            instant_diagnostics=instant_diagnostics
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
         )
         
         # =====================================================================
-        # 7. Логирование
+        # 7. Логирование (расширенное для Stage 3.1)
         # =====================================================================
         if self.config.log_level > 0:
             log_entry = self._create_log_entry(
@@ -305,11 +318,11 @@ class AgentStage3:
                 selected_mode=selected_mode,
                 action=action,
                 reward=reward or 0.0,
-                gate_constraint=gate_metadata['winning_constraint']
+                gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
             )
             self.log_buffer.append(log_entry)
         
-        # Инкремент trial count
         self.trial_count += 1
         
         # Metadata для внешнего использования
@@ -334,127 +347,100 @@ class AgentStage3:
             },
             'mode_scores': {str(k): v for k, v in gate_metadata['mode_scores'].items()},
             'gate_constraint': gate_metadata['winning_constraint'],
-            'one_shot_pending': self.current_temporal_state.one_shot_pending
+            'one_shot_pending': self.current_temporal_state.one_shot_pending,
+            # === Новые поля для Stage 3.1 ===
+            'action_probs': action_metadata.get('action_probs', []),
+            'q_values': action_metadata.get('q_values', []),
+            'risk_values': action_metadata.get('risk_values', []),
         }
         
         return action, metadata
     
-    def _compute_instant_diagnostics(
-        self,
-        observation: Dict,
-        reward: Optional[float],
-        action: Optional[int]
-    ) -> InstantDiagnostics:
-        """
-        Вычисляет InstantDiagnostics из observation/reward.
-        
-        Для Stage 3.0 это минимальный набор:
-        - u_delta: unsigned prediction error
-        - u_entropy: policy entropy
-        - u_volatility: EMA(u_delta)
-        """
-        # Вычисляем u_delta (prediction error)
-        if reward is not None:
-            # Если есть reward, используем его для PE
-            expected_reward = observation.get('expected_reward', 0.0)
-            u_delta = abs(reward - expected_reward)
-        else:
-            # Иначе используем observation features
-            u_delta = observation.get('prediction_error', 0.0)
-        
-        # Вычисляем u_entropy (policy entropy)
-        u_entropy = observation.get('policy_entropy', 0.0)
-        
-        # Вычисляем u_volatility (EMA of u_delta)
-        alpha = 0.3
-        if len(self.u_delta_history) > 0:
-            prev_volatility = self.u_volatility_history[-1] if self.u_volatility_history else 0.0
-            u_volatility = alpha * u_delta + (1 - alpha) * prev_volatility
-        else:
-            u_volatility = u_delta
-        
-        # Сохраняем историю для backward compatibility
-        self.u_delta_history.append(u_delta)
-        self.u_entropy_history.append(u_entropy)
-        self.u_volatility_history.append(u_volatility)
-        
-        return InstantDiagnostics(
-            u_delta=float(u_delta),
-            u_entropy=float(u_entropy),
-            u_volatility=float(u_volatility),
-            trial=self.trial_count
-        )
-    
-    # ИСПРАВЛЕНО: Использует action_policy параметры
-    def _select_action_for_mode(
+    def _select_action_for_mode_stochastic(
         self,
         mode: GateMode,
         observation: Dict,
-        instant_diagnostics: InstantDiagnostics
-    ) -> int:
+        instant_diagnostics: InstantDiagnostics,
+        exposure: ExposureAggregates
+    ) -> Tuple[int, Dict]:
         """
-        Выбирает действие через mode-specific stochastic policy.
+        Task 2: Mode-specific stochastic policy через softmax.
         
         Design Principle: Principled stochasticity, не hand-coded random.
+        
+        Returns:
+            (action, metadata)
+            metadata содержит action_probs, q_values, risk_values для логирования
         """
         q_values = observation.get('q_values', [0.5, 0.5])
         q_values = np.array(q_values, dtype=np.float64)
+        n_actions = len(q_values)
         
         # === Получаем параметры из action_policy ===
         beta_exploit = self.config.action_policy.get('beta_exploit', 
-                            self.config.stage2_legacy.get('beta', 4.0))
+                              self.config.stage2_legacy.get('beta', 4.0))
         beta_explore = self.config.action_policy.get('beta_explore', 1.0)
         beta_safe = self.config.action_policy.get('beta_safe', 5.0)
         lambda_risk = self.config.action_policy.get('lambda_risk', 2.0)
         epsilon_explore = self.config.action_policy.get('epsilon_explore', 0.0)
         
+        # === Риск для каждого действия (из exposure) ===
+        # Для простоты: open path (action=0) имеет риск X_risk, covered (action=1) имеет 0
+        risk_values = np.array([exposure.X_risk, 0.0])[:n_actions]
+        
         # === EXPLOIT: Softmax с высоким beta ===
         if mode == GateMode.EXPLOIT:
             logits = beta_exploit * q_values
             probs = self._softmax(logits)
-            action = self.rng.choice(len(q_values), p=probs)
+            action = self.rng.choice(n_actions, p=probs)
         
         # === EXPLORE: Softmax с низким beta (более случайно) ===
         elif mode == GateMode.EXPLORE:
             if epsilon_explore > 0:
                 # Epsilon-soft policy
                 if self.rng.random() < epsilon_explore:
-                    action = self.rng.randint(0, len(q_values))
+                    action = self.rng.randint(0, n_actions)
+                    probs = np.ones(n_actions) / n_actions
                 else:
                     logits = beta_explore * q_values
                     probs = self._softmax(logits)
-                    action = self.rng.choice(len(q_values), p=probs)
+                    action = self.rng.choice(n_actions, p=probs)
             else:
                 # Pure softmax с низким beta
                 logits = beta_explore * q_values
                 probs = self._softmax(logits)
-                action = self.rng.choice(len(q_values), p=probs)
+                action = self.rng.choice(n_actions, p=probs)
         
         # === EXPLOIT_SAFE: Softmax над risk-penalized values ===
         elif mode == GateMode.EXPLOIT_SAFE:
-            # Получаем risk values из observation
-            risk_values = observation.get('risk_values', [0.5, 0.5])
-            risk_values = np.array(risk_values, dtype=np.float64)
-            
             # Penalized Q-values: Q_safe = Q - lambda_risk * risk
             q_safe = q_values - lambda_risk * risk_values
             
             logits = beta_safe * q_safe
             probs = self._softmax(logits)
-            action = self.rng.choice(len(q_values), p=probs)
+            action = self.rng.choice(n_actions, p=probs)
         
         # === ABSENCE_CHECK: Как EXPLORE (пока нет full scan policy) ===
         elif mode == GateMode.ABSENCE_CHECK:
             logits = beta_explore * q_values
             probs = self._softmax(logits)
-            action = self.rng.choice(len(q_values), p=probs)
+            action = self.rng.choice(n_actions, p=probs)
         
         else:
             # Fallback: равномерное распределение
-            action = self.rng.randint(0, len(q_values))
+            probs = np.ones(n_actions) / n_actions
+            action = self.rng.choice(n_actions, p=probs)
         
-        return int(action)
-
+        # Metadata для логирования
+        metadata = {
+            'action_probs': probs.tolist(),
+            'q_values': q_values.tolist(),
+            'risk_values': risk_values.tolist(),
+            'sampled_action': int(action)
+        }
+        
+        return int(action), metadata
+    
     def _softmax(self, logits: np.ndarray) -> np.ndarray:
         """
         Numerically stable softmax.
@@ -476,80 +462,86 @@ class AgentStage3:
         
         return probs
     
+    def _compute_instant_diagnostics(
+        self,
+        observation: Dict,
+        reward: Optional[float],
+        action: Optional[int]
+    ) -> InstantDiagnostics:
+        """Вычисляет InstantDiagnostics из observation/reward."""
+        if reward is not None:
+            expected_reward = observation.get('expected_reward', 0.0)
+            u_delta = abs(reward - expected_reward)
+        else:
+            u_delta = observation.get('prediction_error', 0.0)
+        
+        u_entropy = observation.get('policy_entropy', 0.0)
+        
+        # u_volatility (EMA of u_delta)
+        alpha = 0.3
+        if len(self.u_delta_history) > 0:
+            prev_volatility = self.u_volatility_history[-1] if self.u_volatility_history else 0.0
+            u_volatility = alpha * u_delta + (1 - alpha) * prev_volatility
+        else:
+            u_volatility = u_delta
+        
+        self.u_delta_history.append(u_delta)
+        self.u_entropy_history.append(u_entropy)
+        self.u_volatility_history.append(u_volatility)
+        
+        return InstantDiagnostics(
+            u_delta=float(u_delta),
+            u_entropy=float(u_entropy),
+            u_volatility=float(u_volatility),
+            trial=self.trial_count
+        )
+    
     def _create_log_entry(
         self,
         observation: Dict,
-        exposure: ExposureAgg,
+        exposure: ExposureAggregates,
         temporal_state: TemporalState,
         instant_diagnostics: InstantDiagnostics,
         mode_scores: Dict,
         selected_mode: GateMode,
         action: int,
         reward: float,
-        gate_constraint: str
+        gate_constraint: str,
+        action_metadata: Dict
     ) -> AgentLog:
-        """
-        Создаёт лог entry для одного шага.
-        
-        Args:
-            observation: Raw observation
-            exposure: Exposure aggregates
-            temporal_state: Temporal state
-            instant_diagnostics: Instant diagnostics
-            mode_scores: Scores для каждого режима
-            selected_mode: Выбранный режим
-            action: Выбранное действие
-            reward: Полученная награда
-            gate_constraint: Какой порог сработал
-        
-        Returns:
-            AgentLog entry
-        """
+        """Создаёт расширенный лог entry для Stage 3.1."""
         return AgentLog(
+            seed=self.seed,
             trial=self.trial_count,
-            observation=observation,
-            exposure={
-                'X_risk': exposure.X_risk,
-                'X_opp': exposure.X_opp,
-                'D_est': exposure.D_est
-            },
-            temporal_state={
-                'h_risk': temporal_state.h_risk,
-                'h_opp': temporal_state.h_opp,
-                'h_time': temporal_state.h_time,
-                'one_shot_pending': temporal_state.one_shot_pending
-            },
-            instant_diagnostics={
-                'u_delta': instant_diagnostics.u_delta,
-                'u_entropy': instant_diagnostics.u_entropy,
-                'u_volatility': instant_diagnostics.u_volatility
-            },
-            mode_scores={str(k): v for k, v in mode_scores.items()},
-            selected_mode=str(selected_mode),
-            action=action,
+            tick=self.trial_count,
+            node_id=observation.get('node_id', 'unknown'),
+            at_junction=observation.get('at_junction', False),
+            state_machine_state=observation.get('state', 'TRAVERSING_PATH'),
+            mode_before='',
+            mode_after=str(selected_mode),
+            gate_trigger=gate_constraint,
+            q_values=action_metadata.get('q_values', []),
+            risk_values=action_metadata.get('risk_values', []),
+            action_probs=action_metadata.get('action_probs', []),
+            sampled_action=action,
+            candidate_path=observation.get('candidate_path', ''),
+            committed_path=observation.get('committed_path', ''),
             reward=reward,
-            gate_constraint=gate_constraint
+            salience=instant_diagnostics.u_delta,
+            u_delta=instant_diagnostics.u_delta,
+            u_entropy=instant_diagnostics.u_entropy,
+            u_volatility=instant_diagnostics.u_volatility,
+            X_risk=exposure.X_risk,
+            X_opp=exposure.X_opp,
+            D_est=exposure.D_est,
+            h_risk=temporal_state.h_risk,
+            h_opp=temporal_state.h_opp,
+            h_time=temporal_state.h_time,
+            one_shot_fired=temporal_state.one_shot_pending
         )
     
-    def get_logs(self) -> List[AgentLog]:
-        """
-        Возвращает все логи с начала эпизода.
-        
-        Returns:
-            List of AgentLog entries
-        """
-        return self.log_buffer
-    
-    def clear_logs(self):
-        """
-        Очищает лог буфер.
-        """
-        self.log_buffer = []
-    
     def reset(self):
-        """
-        Сбрасывает внутреннее состояние агента (для нового эпизода).
-        """
+        """Сбрасывает внутреннее состояние агента."""
         self.current_temporal_state = TemporalState.zeros()
         self.trial_count = 0
         self.log_buffer = []
@@ -558,12 +550,7 @@ class AgentStage3:
         self.u_volatility_history = []
     
     def get_current_state(self) -> Dict:
-        """
-        Возвращает текущее внутреннее состояние агента.
-        
-        Returns:
-            Dict с текущими значениями всех переменных
-        """
+        """Возвращает текущее внутреннее состояние."""
         return {
             'trial': self.trial_count,
             'temporal_state': {
@@ -574,205 +561,31 @@ class AgentStage3:
             'compatibility_mode': self.config.compatibility_mode,
             'log_buffer_size': len(self.log_buffer)
         }
-
-
+    
 # =============================================================================
 # CONVENIENCE FUNCTIONS (для тестирования)
 # =============================================================================
 
 def create_test_agent(
     compatibility_mode: bool = False,
-    log_level: int = 1
+    log_level: int = 1,
+    seed: Optional[int] = None
 ) -> AgentStage3:
     """
     Создаёт тестового агента Stage 3.0.
     
-    Только для тестов!
+    Используется в интеграционных тестах (stage3/tests/).
+    
+    Args:
+        compatibility_mode: Включить ли Stage 2 emulation
+        log_level: Уровень логирования (0=none, 1=summary, 2=full)
+        seed: Random seed для воспроизводимости
+    
+    Returns:
+        AgentStage3 конфигурированный для тестирования
     """
     config = AgentStage3Config(
         compatibility_mode=compatibility_mode,
         log_level=log_level
     )
-    return AgentStage3(config)
-
-
-# =============================================================================
-# TESTS (для быстрой проверки)
-# =============================================================================
-
-def test_agent_step():
-    """
-    Test: Agent Step.
-    
-    Проверяет что agent.step() работает корректно.
-    """
-    agent = create_test_agent()
-    
-    # Тестовое observation (без категориальных меток!)
-    observation = {
-        'prediction_error': 0.5,
-        'policy_entropy': 0.3,
-        'q_values': [0.6, 0.4],
-        'expected_reward': 0.5
-    }
-    
-    action, metadata = agent.step(
-        observation=observation,
-        reward=0.8,
-        action=0
-    )
-    
-    # Проверяем что action валидный
-    assert isinstance(action, int), f"Action should be int, got {type(action)}"
-    assert 0 <= action < 2, f"Action should be 0 or 1, got {action}"
-    
-    # Проверяем что metadata содержит все поля
-    assert 'mode' in metadata, "Metadata should contain 'mode'"
-    assert 'exposure' in metadata, "Metadata should contain 'exposure'"
-    assert 'temporal_state' in metadata, "Metadata should contain 'temporal_state'"
-    assert 'gate_constraint' in metadata, "Metadata should contain 'gate_constraint'"
-    
-    print("✓ PASS: Agent Step")
-    return True
-
-
-def test_backward_compatibility_mode():
-    """
-    Test: Backward Compatibility Mode.
-    
-    Проверяет что compatibility mode работает корректно.
-    """
-    agent = create_test_agent(compatibility_mode=True)
-    
-    observation = {
-        'prediction_error': 0.5,
-        'policy_entropy': 0.3,
-        'q_values': [0.6, 0.4],
-        'expected_reward': 0.5
-    }
-    
-    action, metadata = agent.step(
-        observation=observation,
-        reward=0.8
-    )
-    
-    # В compatibility mode должны быть только EXPLOIT/EXPLORE режимы
-    mode = metadata['mode']
-    assert mode in ['exploit', 'explore'], f"Unexpected mode in compat mode: {mode}"
-    
-    print("✓ PASS: Backward Compatibility Mode")
-    return True
-
-
-def test_mode_specific_actions():
-    """
-    Test: Mode-Specific Action Selection.
-    
-    Проверяет что разные режимы дают разные действия.
-    """
-    agent = create_test_agent(log_level=2)
-    
-    observation = {
-        'prediction_error': 0.5,
-        'policy_entropy': 0.3,
-        'q_values': [0.8, 0.2],  # Явное предпочтение action 0
-        'expected_reward': 0.5
-    }
-    
-    # EXPLOIT должен выбрать action 0 (max Q)
-    action_exploit, _ = agent.step(observation, reward=0.8, action=0)
-    
-    # EXPLORE должен выбрать action 1 (менее предпочтительное)
-    action_explore, _ = agent.step(observation, reward=0.8, action=0)
-    
-    # Note: В текущей реализации режимы выбираются Gate, не вручную
-    # Этот тест проверяет что action selection работает
-    assert isinstance(action_exploit, int)
-    assert isinstance(action_explore, int)
-    
-    print("✓ PASS: Mode-Specific Action Selection")
-    return True
-
-
-def test_logging():
-    """
-    Test: Logging.
-    
-    Проверяет что логирование работает корректно.
-    """
-    agent = create_test_agent(log_level=2)
-    
-    observation = {
-        'prediction_error': 0.5,
-        'policy_entropy': 0.3,
-        'q_values': [0.6, 0.4],
-        'expected_reward': 0.5
-    }
-    
-    # Несколько шагов
-    for _ in range(5):
-        agent.step(observation, reward=0.8)
-    
-    # Проверяем что логи записаны
-    logs = agent.get_logs()
-    assert len(logs) == 5, f"Should have 5 logs, got {len(logs)}"
-    
-    # Проверяем структуру лога
-    log = logs[0]
-    assert hasattr(log, 'trial'), "Log should have 'trial'"
-    assert hasattr(log, 'selected_mode'), "Log should have 'selected_mode'"
-    assert hasattr(log, 'action'), "Log should have 'action'"
-    
-    print("✓ PASS: Logging")
-    return True
-
-
-def test_reset():
-    """
-    Test: Reset.
-    
-    Проверяет что reset() работает корректно.
-    """
-    agent = create_test_agent(log_level=2)
-    
-    observation = {
-        'prediction_error': 0.5,
-        'policy_entropy': 0.3,
-        'q_values': [0.6, 0.4],
-        'expected_reward': 0.5
-    }
-    
-    # Несколько шагов
-    for _ in range(5):
-        agent.step(observation, reward=0.8)
-    
-    # Проверяем что state не нулевой
-    state = agent.get_current_state()
-    assert state['trial'] == 5, f"Trial should be 5, got {state['trial']}"
-    
-    # Reset
-    agent.reset()
-    
-    # Проверяем что state нулевой
-    state = agent.get_current_state()
-    assert state['trial'] == 0, f"Trial should be 0 after reset, got {state['trial']}"
-    assert len(agent.get_logs()) == 0, "Logs should be cleared after reset"
-    
-    print("✓ PASS: Reset")
-    return True
-
-
-if __name__ == "__main__":
-    print("=" * 70)
-    print("Stage 3.0: Agent Stage 3 — Unit Tests")
-    print("=" * 70)
-    
-    test_agent_step()
-    test_backward_compatibility_mode()
-    test_mode_specific_actions()
-    test_logging()
-    test_reset()
-    
-    print("=" * 70)
-    print("All tests completed!")
-    print("=" * 70)
+    return AgentStage3(config, seed=seed)    

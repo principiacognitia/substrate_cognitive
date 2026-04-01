@@ -11,10 +11,19 @@ Design Principles:
 - Downward compatibility со Stage 2 logging format
 - NoX-to-Gate абляция = нулевые ExposureAggregates
 
+Task 3: Principled stochasticity
+- Bernoulli reward at goal (open_reward_prob, covered_reward_prob)
+- Softmax action selection (beta_exploit, beta_explore, beta_safe)
+
+Task 4: Junction deliberation
+- Confidence-based commit (commit_confidence threshold)
+- Max deliberation ticks fallback
+- VTE proxies emergent from deliberation microdynamics
+
 Usage:
     from stage3.configs.config_stage3_1a import CONFIG_3_1A
-    agent = AgentStage3(CONFIG_3_1A['agent'])
-    env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'])
+    agent = AgentStage3(CONFIG_3_1A['agent'], seed=42)
+    env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
 
 Author: Alex Snow (Aleksey L. Snigirov)
 License: MIT
@@ -48,6 +57,7 @@ ENV_CONFIG: Dict[str, Any] = {
         'open': {
             'length': 3,                 # Длина пути (в тиках)
             'base_reward': 1.0,          # Базовая награда
+            'reward_prob': 0.7,          # Task 3: Bernoulli reward probability
             'exposure_profile': {        # Exposure profile для open path
                 'X_risk': 0.7,           # Высокая экспозиция
                 'X_opp': 0.5,
@@ -57,6 +67,7 @@ ENV_CONFIG: Dict[str, Any] = {
         'covered': {
             'length': 3,                 # Длина пути (одинаковая с open)
             'base_reward': 1.0,          # Одинаковая награда (3.1A)
+            'reward_prob': 0.7,          # Task 3: Bernoulli reward probability
             'exposure_profile': {        # Exposure profile для covered path
                 'X_risk': 0.2,           # Низкая экспозиция
                 'X_opp': 0.5,
@@ -95,7 +106,14 @@ ENV_CONFIG: Dict[str, Any] = {
         'junction_pause_min': 1,         # Минимальная пауза на junction
         'junction_pause_max': 10,        # Максимальная пауза на junction
         'inter_trial_interval': 5        # Интервал между триалами (тики)
-    }
+    },
+    
+    # === Task 3: World Stochasticity ===
+    'observability_noise_std': 0.0,      # Optional exposure noise (default: none)
+    
+    # === Task 4: Deliberation Parameters ===
+    'commit_confidence': 0.7,            # Threshold for confidence-based commit
+    'max_deliberation_ticks': 10,        # Max ticks in DELIBERATING state
 }
 
 
@@ -103,56 +121,57 @@ ENV_CONFIG: Dict[str, Any] = {
 # AGENT CONFIGURATION
 # =============================================================================
 
-# ИСПРАВЛЕНО:
 AGENT_CONFIG: Dict[str, Any] = {
     # === Backward Compatibility ===
-    'compatibility_mode': False,
-    'log_level': 2,
+    'compatibility_mode': False,         # False = Stage 3 режим
+    'log_level': 2,                      # 0=none, 1=summary, 2=full
     
     # === Stage 2 Legacy (learning + viscosity) ===
     'stage2_legacy': {
-        'alpha': 0.35,
-        'beta': 4.0,              # Fallback для beta_exploit
-        'k_use': 0.08,
-        'k_melt': 0.20,
-        'lambda_decay': 0.01,
-        'tau_vol': 0.50,
+        'alpha': 0.35,                   # Learning rate
+        'beta': 4.0,                     # Inverse softmax temperature (fallback)
+        'k_use': 0.08,                   # Hardening rate
+        'k_melt': 0.20,                  # Melting rate
+        'lambda_decay': 0.01,            # Decay rate
+        'tau_vol': 0.50,                 # Volatility threshold
     },
     
-    # === Stage 3 Action Policy (mode-specific) ===
+    # === Stage 3 Action Policy (mode-specific stochastic selection) ===
     'action_policy': {
-        'beta_exploit': 4.0,      # EXPLOIT: deterministic-ish
-        'beta_explore': 1.0,      # EXPLORE: more stochastic
-        'beta_safe': 5.0,         # EXPLOIT_SAFE: very conservative
-        'lambda_risk': 2.0,       # Risk penalty weight
-        'epsilon_explore': 0.0,   # Pure softmax (no epsilon)
+        'beta_exploit': 4.0,             # EXPLOIT: deterministic-ish (high beta)
+        'beta_explore': 1.0,             # EXPLORE: more stochastic (low beta)
+        'beta_safe': 5.0,                # EXPLOIT_SAFE: very conservative
+        'lambda_risk': 2.0,              # Risk penalty weight for EXPLOIT_SAFE
+        'epsilon_explore': 0.0,          # Pure softmax (no epsilon)
+        'commit_confidence': 0.7,        # Threshold for deliberation commit
+        'max_deliberation_ticks': 10,    # Max ticks before forced commit
     },
     
-    # === Stage 3 Core ===
+    # === Stage 3 Core: Gate Thresholds ===
     'gate_thresholds': {
-        'critical_risk_threshold': 0.7,
-        'suspicion_threshold': 0.5,
-        'visibility_threshold': 0.3,
-        'safe_window_threshold': 50,
-        'theta_mb': 0.30,
-        'theta_u': 1.5,
+        'critical_risk_threshold': 0.7,    # Порог для EXPLOIT_SAFE
+        'suspicion_threshold': 0.5,        # Порог для ABSENCE_CHECK
+        'visibility_threshold': 0.3,       # Максимальная D_est для ABSENCE_CHECK
+        'safe_window_threshold': 50,       # Минимальный h_time для ABSENCE_CHECK
+        'theta_mb': 0.30,                  # Mode switch threshold (Stage 2)
+        'theta_u': 1.5,                    # Uncertainty baseline (Stage 2)
     },
     
-    # === Temporal State ===
+    # === Stage 3 Core: Temporal State ===
     'temporal_state': {
-        'lambda_risk': 0.9,
-        'lambda_opp': 0.9,
-        'salience_threshold': 0.5,
-        'one_shot_threshold': 5.0,
-        'one_shot_boost': 2.0,
+        'lambda_risk': 0.9,                # Decay rate для h_risk
+        'lambda_opp': 0.9,                 # Decay rate для h_opp
+        'salience_threshold': 0.5,         # Порог для сброса h_time
+        'one_shot_threshold': 5.0,         # Порог амплитуды для one-shot
+        'one_shot_boost': 2.0,             # Множитель для one-shot update
     },
     
-    # === Exposure Field ===
+    # === Stage 3 Core: Exposure Field ===
     'exposure_field': {
-        'valence_scale': 1.0,
-        'observability_scale': 1.0,
-        'risk_threshold': 0.5,
-        'opportunity_threshold': 0.5,
+        'valence_scale': 1.0,              # Масштаб для валентности
+        'observability_scale': 1.0,        # Масштаб для наблюдаемости
+        'risk_threshold': 0.5,             # Порог для X_risk агрегации
+        'opportunity_threshold': 0.5,      # Порог для X_opp агрегации
     },
 }
 
@@ -175,6 +194,7 @@ LOGGING_CONFIG: Dict[str, Any] = {
         'node_id',
         'edge_id',
         'at_junction',
+        'deliberation_state',             # NEW: APPROACH/AT_JUNCTION/DELIBERATING/etc.
         'candidate_path',
         'committed_path',
         'mode_before',
@@ -193,7 +213,12 @@ LOGGING_CONFIG: Dict[str, Any] = {
         'h_risk',
         'h_opp',
         'h_time',
-        'one_shot_fired'
+        'one_shot_fired',
+        # === NEW: Action policy logging ===
+        'q_values',                       # NEW: для debugging policy
+        'risk_values',                    # NEW: для EXPLOIT_SAFE
+        'action_probs',                   # NEW: для confidence computation
+        'sampled_action',                 # NEW: для verification
     ],
     
     # === Trial Summary Log Fields (mandatory) ===
@@ -202,11 +227,11 @@ LOGGING_CONFIG: Dict[str, Any] = {
         'trial',
         'path_choice',                      # 'open' или 'covered'
         'reward_total',
-        'junction_pause_duration',          # VTE proxy 1
-        'reorientation_count',              # VTE proxy 2
+        'junction_pause_duration',          # VTE proxy 1 (emergent from deliberation)
+        'reorientation_count',              # VTE proxy 2 (emergent from candidate switches)
         'retreat_return_count',             # VTE proxy 3
-        'commit_latency',                   # VTE proxy 4
-        'junction_deliberation_proxy',      # Optional composite
+        'commit_latency',                   # VTE proxy 4 (ticks to commit)
+        'junction_deliberation_proxy',      # Optional composite (z-scored mean)
         'mode_at_junction',
         'final_mode',
         'one_shot_fired',
@@ -355,7 +380,7 @@ STATS_CONFIG: Dict[str, Any] = {
             'name': 'Full vs NoVG (path choice)',
             'group1': 'full',
             'group2': 'novg',
-            'metric': 'P(open_path)',
+            'metric': 'P(covered_path)',
             'test': 'chi_square',
             'alpha': 0.017               # Bonferroni-corrected
         },
@@ -440,7 +465,26 @@ ACCEPTANCE_CRITERIA: Dict[str, Dict[str, Any]] = {
         'metric': 'Stage 2 metrics deviation',
         'threshold': 0.05,               # Максимум 5% отклонение
         'test': 'assert_le'
-    }
+    },
+    # === NEW: Task 3+4 Acceptance Criteria ===
+    '10.8_behavioral_variability': {
+        'description': 'Разные seeds дают разные траектории (не identical logs)',
+        'metric': 'variance(path_choice) across seeds',
+        'threshold': 0.01,               # Минимальная вариация
+        'test': 'assert_ge'
+    },
+    '10.9_vte_emergent': {
+        'description': 'VTE proxies > 0 хотя бы в некоторых триалах (emergent from deliberation)',
+        'metric': 'P(junction_pause_duration > 0)',
+        'threshold': 0.1,                # Хотя бы 10% триалов с паузой
+        'test': 'assert_ge'
+    },
+    '10.10_bernoulli_rewards': {
+        'description': 'Rewards варьируются (не всегда 1.0)',
+        'metric': 'unique(reward_total) > 1',
+        'threshold': 1,                  # Хотя бы 2 разных значения
+        'test': 'assert_gt'
+    },
 }
 
 
@@ -537,7 +581,21 @@ def test_config_structure():
     assert len(VTE_CONFIG['primary_metrics']) == 4
     
     # Проверка что acceptance criteria определены
-    assert len(ACCEPTANCE_CRITERIA) == 7
+    assert len(ACCEPTANCE_CRITERIA) == 10  # 7 original + 3 new for Task 3+4
+    
+    # Проверка что Bernoulli rewards настроены
+    assert 'reward_prob' in ENV_CONFIG['paths']['open']
+    assert 'reward_prob' in ENV_CONFIG['paths']['covered']
+    
+    # Проверка что deliberation parameters настроены
+    assert 'commit_confidence' in ENV_CONFIG
+    assert 'max_deliberation_ticks' in ENV_CONFIG
+    
+    # Проверка что action_policy определён
+    assert 'action_policy' in AGENT_CONFIG
+    assert 'beta_exploit' in AGENT_CONFIG['action_policy']
+    assert 'beta_explore' in AGENT_CONFIG['action_policy']
+    assert 'beta_safe' in AGENT_CONFIG['action_policy']
     
     print("✓ PASS: Config structure validation")
     return True
@@ -558,7 +616,9 @@ def test_helper_functions():
     
     # Test get_step_log_fields
     step_fields = get_step_log_fields()
-    assert len(step_fields) > 20  # Минимум 20 полей
+    assert len(step_fields) > 25  # Минимум 25 полей (expanded for Task 3+4)
+    assert 'action_probs' in step_fields  # NEW
+    assert 'q_values' in step_fields  # NEW
     
     # Test get_trial_log_fields
     trial_fields = get_trial_log_fields()
@@ -569,13 +629,32 @@ def test_helper_functions():
     return True
 
 
+def test_acceptance_criteria():
+    """
+    Test: Acceptance criteria defined correctly.
+    """
+    # Проверка что новые criteria для Task 3+4 добавлены
+    assert '10.8_behavioral_variability' in ACCEPTANCE_CRITERIA
+    assert '10.9_vte_emergent' in ACCEPTANCE_CRITERIA
+    assert '10.10_bernoulli_rewards' in ACCEPTANCE_CRITERIA
+    
+    # Проверка что thresholds разумные
+    assert ACCEPTANCE_CRITERIA['10.8_behavioral_variability']['threshold'] > 0
+    assert ACCEPTANCE_CRITERIA['10.9_vte_emergent']['threshold'] > 0
+    assert ACCEPTANCE_CRITERIA['10.10_bernoulli_rewards']['threshold'] >= 1
+    
+    print("✓ PASS: Acceptance criteria")
+    return True
+
+
 if __name__ == "__main__":
     print("=" * 70)
-    print("Stage 3.1A: Config Validation")
+    print("Stage 3.1A: Config Validation (Task 3+4)")
     print("=" * 70)
     
     test_config_structure()
     test_helper_functions()
+    test_acceptance_criteria()
     
     print("=" * 70)
     print("All config tests passed!")
