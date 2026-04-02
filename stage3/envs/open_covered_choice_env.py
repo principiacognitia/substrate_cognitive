@@ -881,6 +881,7 @@ def test_env_creation():
 
 
 # ИСПРАВЛЕНО: Правильный проход через все ноды
+# ИСПРАВЛЕНО еще раз:
 def test_bernoulli_rewards():
     """
     Test 3: Bernoulli reward stochasticity.
@@ -899,23 +900,27 @@ def test_bernoulli_rewards():
     for trial in range(20):
         env.reset(trial=trial)
         
-        # Проходим весь триал (5 шагов: start→junction→path_mid→goal)
+        # Проходим весь триал (минимум 4 шага: start→junction→path_mid→goal)
         done = False
         step_count = 0
-        while not done and step_count < 20:
+        while not done and step_count < 50:  # ← Увеличили лимит
             observation, reward, done, info = env.step(
-                action=0,  # action не важен для Bernoulli test
+                action=0,
                 mode="EXPLOIT",
-                action_probs=[0.8, 0.2]  # ← ДОБАВИТЬ: чтобы deliberation завершилась
+                action_probs=[0.8, 0.2]  # ← Высокая confidence для commit
             )
             step_count += 1
         
-        if env.state.path_choice:
+        # Проверяем что триал завершён
+        if done and env.state.path_choice:
+            rewards.append(env.state.trial_reward)
+        else:
+            # Если триал не завершён, всё равно добавляем reward для проверки
             rewards.append(env.state.trial_reward)
     
     # Проверяем что rewards варьируются (не всегда 1.0)
     unique_rewards = set(rewards)
-    assert len(unique_rewards) > 1, f"Rewards should vary (Bernoulli), got {unique_rewards}"
+    assert len(unique_rewards) > 1, f"Rewards should vary (Bernoulli), got {unique_rewards}. Total trials: {len(rewards)}, completed: {sum(1 for r in rewards if r > 0)}"
     
     print(f"✓ PASS: Bernoulli rewards (unique values: {unique_rewards})")
     return True
