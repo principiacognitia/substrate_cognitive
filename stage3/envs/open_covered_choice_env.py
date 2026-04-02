@@ -420,8 +420,15 @@ class OpenCoveredChoiceEnv:
         - DELIBERATING → COMMITTED (при confidence > threshold или max ticks)
         - COMMITTED → TRAVERSING_PATH (движение по пути)
         - TRAVERSING_PATH → AT_GOAL (достижение цели)
+
+        Вызывается ПОСЛЕ _move(), поэтому current_node уже обновлён.
+    
+        Design Principle:
+        - Deliberation происходит на junction (не двигает агента)
+        - Commit происходит когда confidence > threshold
+        - После commit движение происходит в следующем step
         """
-        current = self.state.current_node
+        current = self.state.current_node # ← Должно быть string ("junction", "open_mid", etc.)
         metrics = self.state.deliberation_metrics
         
         # --- Переход в junction zone ---
@@ -431,7 +438,7 @@ class OpenCoveredChoiceEnv:
             self.state.zone_entry_tick = self.state.tick
 
             # ← ДОБАВИТЬ: Минимальная пауза в 1 тик перед deliberation
-            metrics.pause_duration = 1        
+            # metrics.pause_duration = 1        
         
         # --- Начало deliberation ---
         if self.state.deliberation_state == DeliberationState.AT_JUNCTION:
@@ -468,6 +475,7 @@ class OpenCoveredChoiceEnv:
         
         # --- После commit ---
         if self.state.deliberation_state == DeliberationState.COMMITTED:
+            # Движение произойдёт в следующем step() через _move()
             self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
         
         # --- Достижение goal ---
@@ -497,7 +505,11 @@ class OpenCoveredChoiceEnv:
         """
         Обновляет позицию агента на графе.
         
-        Design Principle (Task 3): Path execution deterministic after commit.
+        Design Principle:
+        - Один step = одна нода (не телепортация)
+        - Node ID всегда string (не integer action)
+        - Deliberation не двигает агента (остаётся на junction)
+        - Движение происходит только после COMMITTED
         Среда не переопределяет выбор агента.
         
         Args:
@@ -505,38 +517,52 @@ class OpenCoveredChoiceEnv:
             mode: Режим Gate
         """
         current = self.state.current_node
+        self.state.previous_node = current
         
         # =====================================================================
-        # Start node → Junction (только одна нода за шаг)
+        # Start node → Junction (один шаг)
         # =====================================================================
         if current == self.start_node:
-            self.state.previous_node = current
             self.state.current_node = self.junction_node
+            self.state.zone_entry_tick = self.state.tick
         
         # =====================================================================
-        # Junction node (deliberation происходит здесь)
+        # Junction node (остаётся пока deliberation)
         # =====================================================================
         elif current == self.junction_node:
-            self.state.previous_node = current
-            # Движение происходит только после commit
-            if self.state.committed_path is not None:
+            # Остаётся на junction пока не COMMITTED
+            if self.state.deliberation_state == DeliberationState.COMMITTED:
+                # Commit произошёл, двигаемся на следующую ноду
                 if self.state.committed_path == "open":
                     self.state.current_node = "open_mid"
-                else:
+                elif self.state.committed_path == "covered":
                     self.state.current_node = "covered_mid"
+            # Иначе остаётся на junction (deliberation продолжается)
         
         # =====================================================================
-        # Path mid → Goal (детерминировано после commit)
+        # Path mid → Goal (один шаг)
         # =====================================================================
-        elif current in ["open_mid", "covered_mid"]:
-            self.state.previous_node = current
+        elif current == "open_mid":
+            self.state.current_node = self.goal_node
+        
+        elif current == "covered_mid":
             self.state.current_node = self.goal_node
         
         # =====================================================================
         # Goal node (триал завершён)
         # =====================================================================
         elif current == self.goal_node:
-            pass  # Триал завершён
+            pass  # Триал завершён, не двигаемся
+        
+        # =====================================================================
+        # Safety check: node_id должен быть string
+        # =====================================================================
+        if not isinstance(self.state.current_node, str):
+            raise TypeError(
+                f"current_node must be string, got {type(self.state.current_node)}: "
+                f"{self.state.current_node}. This indicates action index was used "
+                f"instead of node ID."
+            )
     
     def _get_observation(self) -> Dict[str, Any]:
         """
@@ -854,6 +880,7 @@ def test_env_creation():
     return True
 
 
+# ИСПРАВЛЕНО: Правильный проход через все ноды
 def test_bernoulli_rewards():
     """
     Test 3: Bernoulli reward stochasticity.
@@ -872,13 +899,16 @@ def test_bernoulli_rewards():
     for trial in range(20):
         env.reset(trial=trial)
         
-        # Проходим весь триал
+        # Проходим весь триал (5 шагов: start→junction→path_mid→goal)
         done = False
-        tick = 0
-        while not done and tick < 20:
-            action = 0 if tick < 5 else 1  # Имитация выбора
-            observation, reward, done, info = env.step(action=action, mode="EXPLOIT")
-            tick += 1
+        step_count = 0
+        while not done and step_count < 20:
+            observation, reward, done, info = env.step(
+                action=0,  # action не важен для Bernoulli test
+                mode="EXPLOIT",
+                action_probs=[0.8, 0.2]  # ← ДОБАВИТЬ: чтобы deliberation завершилась
+            )
+            step_count += 1
         
         if env.state.path_choice:
             rewards.append(env.state.trial_reward)
