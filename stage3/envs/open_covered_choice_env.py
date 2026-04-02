@@ -695,6 +695,9 @@ class OpenCoveredChoiceEnv:
             gate_trigger: Какой порог сработал
         """
         metrics = self.state.deliberation_metrics
+
+        # ← ИСПРАВЛЕНО: используем локальную переменную с fallback
+        path_choice = self.state.path_choice or self.state.committed_path or "unknown"
         
         # Вычисляем junction_deliberation_proxy (z-scored mean)
         vte_metrics = [
@@ -711,7 +714,7 @@ class OpenCoveredChoiceEnv:
         summary = TrialSummary(
             seed=self.seed,
             trial=self.state.trial,
-            path_choice=self.state.path_choice or "unknown",
+            path_choice=path_choice,
             reward_total=self.state.trial_reward,
             junction_pause_duration=metrics.pause_duration,
             reorientation_count=metrics.reorientation_count,
@@ -882,6 +885,7 @@ def test_env_creation():
 
 # ИСПРАВЛЕНО: Правильный проход через все ноды
 # ИСПРАВЛЕНО еще раз:
+# ИСПРАВЛЕНО: Теперь с правильным action_probs для commit и увеличенным лимитом шагов
 def test_bernoulli_rewards():
     """
     Test 3: Bernoulli reward stochasticity.
@@ -897,32 +901,38 @@ def test_bernoulli_rewards():
     
     # Запускаем несколько триалов
     rewards = []
+    completed_trials = 0
+    
     for trial in range(20):
         env.reset(trial=trial)
         
         # Проходим весь триал (минимум 4 шага: start→junction→path_mid→goal)
         done = False
         step_count = 0
-        while not done and step_count < 50:  # ← Увеличили лимит
+        while not done and step_count < 50:
             observation, reward, done, info = env.step(
                 action=0,
                 mode="EXPLOIT",
-                action_probs=[0.8, 0.2]  # ← Высокая confidence для commit
+                action_probs=[0.8, 0.2]  # Высокая confidence для commit
             )
             step_count += 1
         
         # Проверяем что триал завершён
-        if done and env.state.path_choice:
+        if done:
+            completed_trials += 1
             rewards.append(env.state.trial_reward)
         else:
-            # Если триал не завершён, всё равно добавляем reward для проверки
+            # Если не завершён, всё равно добавляем reward для отладки
             rewards.append(env.state.trial_reward)
     
-    # Проверяем что rewards варьируются (не всегда 1.0)
-    unique_rewards = set(rewards)
-    assert len(unique_rewards) > 1, f"Rewards should vary (Bernoulli), got {unique_rewards}. Total trials: {len(rewards)}, completed: {sum(1 for r in rewards if r > 0)}"
+    # Проверяем что хотя бы некоторые триалы завершены
+    assert completed_trials > 0, f"No trials completed. Total: {len(rewards)}, Completed: {completed_trials}"
     
-    print(f"✓ PASS: Bernoulli rewards (unique values: {unique_rewards})")
+    # Проверяем что rewards варьируются (Bernoulli: 0.0 или 1.0)
+    unique_rewards = set(rewards)
+    assert len(unique_rewards) > 1, f"Rewards should vary (Bernoulli), got {unique_rewards}. Total trials: {len(rewards)}, completed: {completed_trials}"
+    
+    print(f"✓ PASS: Bernoulli rewards (unique values: {unique_rewards}, completed: {completed_trials}/20)")
     return True
 
 
