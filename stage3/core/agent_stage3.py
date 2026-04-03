@@ -318,7 +318,7 @@ class AgentStage3:
                 selected_mode=selected_mode,
                 action=action,
                 reward=reward or 0.0,
-                gate_constraint=gate_metadata['gate_constraint'],
+                gate_constraint=gate_metadata.get('winning_constraint', 'default'),  # ← ИСПРАВЛЕНО
                 action_metadata=action_metadata
             )
             self.log_buffer.append(log_entry)
@@ -562,6 +562,15 @@ class AgentStage3:
             'log_buffer_size': len(self.log_buffer)
         }
     
+    def get_logs(self) -> List[AgentLog]:
+        """
+        Возвращает все логи с начала эпизода.
+        
+        Returns:
+            List of AgentLog entries
+        """
+        return self.log_buffer
+
 # =============================================================================
 # CONVENIENCE FUNCTIONS (для тестирования)
 # =============================================================================

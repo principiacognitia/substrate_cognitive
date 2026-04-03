@@ -86,7 +86,6 @@ def test_full_integration_single_trial():
     assert len(agent.log_buffer) > 0
     
     print("✓ PASS: Full integration single trial")
-    return True
 
 
 # =============================================================================
@@ -121,8 +120,6 @@ def test_exposure_aggregates_flow():
     assert abs(agent_exposure['D_est'] - env_exposure['D_est']) < 0.01
     
     print("✓ PASS: Exposure aggregates flow correctly")
-    return True
-
 
 # =============================================================================
 # TEST 3: Temporal state updates correctly
@@ -160,8 +157,6 @@ def test_temporal_state_updates():
     assert current_state['temporal_state']['h_time'] >= 0
     
     print("✓ PASS: Temporal state updates correctly")
-    return True
-
 
 # =============================================================================
 # TEST 4: Gate mode selection in spatial context
@@ -197,8 +192,6 @@ def test_gate_mode_selection_spatial():
     assert 'exploit' in modes_seen or 'explore' in modes_seen
     
     print("✓ PASS: Gate mode selection in spatial context")
-    return True
-
 
 # =============================================================================
 # TEST 5: VTE proxies logged at junction
@@ -244,8 +237,6 @@ def test_vte_proxies_logged():
     assert summary.reorientation_count >= 0
     
     print("✓ PASS: VTE proxies logged at junction")
-    return True
-
 
 # =============================================================================
 # TEST 6: Backward compatibility mode
@@ -278,8 +269,6 @@ def test_backward_compatibility_integration():
     assert modes_seen.issubset({'exploit', 'explore'}), f"Unexpected modes: {modes_seen}"
     
     print("✓ PASS: Backward compatibility integration")
-    return True
-
 
 # =============================================================================
 # TEST 7: Multiple trials — logging consistency
@@ -321,8 +310,6 @@ def test_multiple_trials_logging():
     assert len(agent.log_buffer) >= n_trials
     
     print("✓ PASS: Multiple trials logging consistency")
-    return True
-
 
 # =============================================================================
 # TEST 8: Path choice under exposure difference
@@ -368,8 +355,6 @@ def test_path_choice_under_exposure():
     assert open_choices + covered_choices == n_trials
     
     print(f"✓ PASS: Path choice under exposure (open={open_choices}, covered={covered_choices})")
-    return True
-
 
 # =============================================================================
 # TEST 9: Save logs functionality
@@ -410,8 +395,6 @@ def test_save_logs():
         assert log_file.stat().st_size > 0, "Log file is empty"
     
     print("✓ PASS: Save logs functionality")
-    return True
-
 
 # =============================================================================
 # TEST 10: Full session — 30 seeds
@@ -449,8 +432,6 @@ def test_full_session_30_seeds():
     assert len(seeds_seen) == n_seeds, f"Expected {n_seeds} seeds, got {len(seeds_seen)}"
     
     print(f"✓ PASS: Full session 30 seeds ({len(all_summaries)} trials)")
-    return True
-
 
 # =============================================================================
 # MAIN

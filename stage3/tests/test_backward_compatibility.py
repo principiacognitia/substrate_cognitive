@@ -211,7 +211,6 @@ def test_agent_reset_clears_state():
     assert len(agent.log_buffer) == 0, "Logs should be cleared after reset"
     
     print("✓ PASS: Agent reset clears state")
-    return True
 
 # =============================================================================
 # MAIN

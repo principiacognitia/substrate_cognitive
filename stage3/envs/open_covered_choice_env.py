@@ -103,7 +103,7 @@ class DeliberationMetrics:
         self.junction_exit_tick = 0
         self.pause_duration = 0
         self.reorientation_count = 0
-        self.retreat_return_count += 1 if len(self.candidate_path_history) > 0 else 0
+        self.retreat_return_count = 0
         self.commit_latency = 0
         self.max_action_prob_history = []
         self.candidate_path_history = []
