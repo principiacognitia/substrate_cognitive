@@ -13,10 +13,11 @@ License: MIT
 """
 
 import pytest
-from stage3.core.agent_stage3 import AgentStage3, AgentStage3Config
+from stage3.core.agent_stage3 import AgentStage3, AgentStage3Config, create_test_agent
 from stage3.core.compatibility import Stage2CompatShim, Stage2CompatConfig, verify_backward_compatibility
 from stage3.core.gate_modes import GateMode
 from stage3.core.gate_inputs import GateInput, InstantDiagnostics, ExposureAggregates, TemporalState
+from stage3.tests.test_integration import create_test_env
 
 
 # =============================================================================
@@ -186,18 +187,15 @@ def test_agent_reset_clears_state():
     """
     Test: agent.reset() очищает всё состояние.
     """
-    agent = AgentStage3(AgentStage3Config(log_level=2))
+    agent = create_test_agent(log_level=2)  # ← ИСПОЛЬЗУЕМ НОВЫЙ ХЕЛПЕР
+    env = create_test_env(seed=42)
     
-    observation = {
-        'prediction_error': 0.5,
-        'policy_entropy': 0.3,
-        'q_values': [0.6, 0.4],
-        'expected_reward': 0.5
-    }
+    observation = env.reset(trial=1)
     
     # Несколько шагов
     for _ in range(5):
-        agent.step(observation, reward=0.8)
+        action, metadata = agent.step(observation=observation, reward=0.0, action=0)
+        observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
     
     # Проверяем что state не нулевой
     state = agent.get_current_state()
@@ -210,10 +208,10 @@ def test_agent_reset_clears_state():
     # Проверяем что state нулевой
     state = agent.get_current_state()
     assert state['trial'] == 0, f"Trial should be 0 after reset, got {state['trial']}"
-    assert len(agent.get_logs()) == 0, "Logs should be cleared after reset"
+    assert len(agent.log_buffer) == 0, "Logs should be cleared after reset"
     
     print("✓ PASS: Agent reset clears state")
-
+    return True
 
 # =============================================================================
 # MAIN
