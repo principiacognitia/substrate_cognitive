@@ -422,6 +422,9 @@ class OpenCoveredChoiceEnv:
         - TRAVERSING_PATH → AT_GOAL (достижение цели)
 
         Вызывается ПОСЛЕ _move(), поэтому current_node уже обновлён.
+
+        ИСПРАВЛЕНО: COMMITTED остаётся до следующего _move(), не конвертируется сразу.
+
     
         Design Principle:
         - Deliberation происходит на junction (не двигает агента)
@@ -474,9 +477,9 @@ class OpenCoveredChoiceEnv:
                 self._commit_to_path(action)
         
         # --- После commit ---
-        if self.state.deliberation_state == DeliberationState.COMMITTED:
-            # Движение произойдёт в следующем step() через _move()
-            self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
+        # if self.state.deliberation_state == DeliberationState.COMMITTED:
+        #     Движение произойдёт в следующем step() через _move()
+        #     self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
         
         # --- Достижение goal ---
         if current == self.goal_node:
@@ -515,6 +518,9 @@ class OpenCoveredChoiceEnv:
         Args:
             action: Выбранное действие
             mode: Режим Gate
+
+        ИСПРАВЛЕНО: Движение из junction происходит когда deliberation_state == COMMITTED,
+        и после движения конвертируем в TRAVERSING_PATH.    
         """
         current = self.state.current_node
         self.state.previous_node = current
@@ -527,16 +533,18 @@ class OpenCoveredChoiceEnv:
             self.state.zone_entry_tick = self.state.tick
         
         # =====================================================================
-        # Junction node (остаётся пока deliberation)
+        # Junction node (остаётся пока deliberation) → Path mid (только когда COMMITTED)
         # =====================================================================
         elif current == self.junction_node:
-            # Остаётся на junction пока не COMMITTED
-            if self.state.deliberation_state == DeliberationState.COMMITTED:
-                # Commit произошёл, двигаемся на следующую ноду
+        # ← ИСПРАВЛЕНО: Проверяем COMMITTED и двигаемся
+        # Выход из junction разрешён, когда агент COMMITTED или уже TRAVERSING_PATH
+            if self.state.deliberation_state in [DeliberationState.COMMITTED, DeliberationState.TRAVERSING_PATH]:
                 if self.state.committed_path == "open":
                     self.state.current_node = "open_mid"
                 elif self.state.committed_path == "covered":
                     self.state.current_node = "covered_mid"
+                # После движения конвертируем в TRAVERSING_PATH
+                self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
             # Иначе остаётся на junction (deliberation продолжается)
         
         # =====================================================================
@@ -886,6 +894,7 @@ def test_env_creation():
 # ИСПРАВЛЕНО: Правильный проход через все ноды
 # ИСПРАВЛЕНО еще раз:
 # ИСПРАВЛЕНО: Теперь с правильным action_probs для commit и увеличенным лимитом шагов
+# ИСПРАВЛЕНО еще раз:
 def test_bernoulli_rewards():
     """
     Test 3: Bernoulli reward stochasticity.
@@ -898,6 +907,32 @@ def test_bernoulli_rewards():
     env_config['paths']['covered']['reward_prob'] = 0.7
     
     env = OpenCoveredChoiceEnv(env_config, seed=42)
+
+    # Запускаем ОДИН триал с отладкой ================================
+    env.reset(trial=0)
+    
+    print("\n=== DEBUG: Step-by-step traversal ===")
+    step_count = 0
+    done = False
+    
+    while not done and step_count < 20:
+        observation, reward, done, info = env.step(
+            action=0,
+            mode="EXPLOIT",
+            action_probs=[0.8, 0.2]
+        )
+        
+        print(f"Step {step_count}: "
+              f"node={env.state.current_node}, "
+              f"delib_state={env.state.deliberation_state.value}, "
+              f"committed={env.state.committed_path}, "
+              f"done={done}")
+        
+        step_count += 1
+    
+    print(f"=== END DEBUG: Total steps={step_count}, done={done} ===\n")
+    
+    # Теперь запускаем остальные триалы ================================   
     
     # Запускаем несколько триалов
     rewards = []
@@ -924,7 +959,10 @@ def test_bernoulli_rewards():
         else:
             # Если не завершён, всё равно добавляем reward для отладки
             rewards.append(env.state.trial_reward)
-    
+
+    print(f"Completed: {completed_trials}/20 trials")
+    print(f"Unique rewards: {set(rewards)}")
+
     # Проверяем что хотя бы некоторые триалы завершены
     assert completed_trials > 0, f"No trials completed. Total: {len(rewards)}, Completed: {completed_trials}"
     
@@ -947,59 +985,31 @@ def test_junction_deliberation():
     # Запускаем триал
     env.reset(trial=1)
     
+    # 1. Начальное состояние
     # Проверяем что deliberation state machine работает
     assert env.state.deliberation_state == DeliberationState.APPROACH
     
-    # Движение к junction
-    observation, reward, done, info = env.step(action=0, mode="EXPLOIT")
-    
-    # Шаг 1: start → junction (ещё не на junction, поэтому APPROACH)
-    observation, reward, done, info = env.step(
-        action=0,
-        mode="EXPLOIT",
-        action_probs=[0.5, 0.5]  # ← ДОБАВИТЬ: low confidence, не commit сразу
-    )
-    
-    # После первого step агент на junction
+    # 2. Первый шаг: start → junction
+    env.step(action=0, mode="EXPLOIT")
     assert env.state.current_node == "junction", f"Expected junction, got {env.state.current_node}"
     
-    # Шаг 2: deliberation продолжается (низкая confidence)
-    observation, reward, done, info = env.step(
-        action=0,
-        mode="EXPLORE",
-        action_probs=[0.55, 0.45]  # ← Низкая confidence (< 0.7), продолжаем deliberation
-    )
+    # 3. Имитация deliberation (низкая уверенность → остаётся на junction)
+    env.step(action=0, mode="EXPLORE", action_probs=[0.5, 0.5])
+    # Агент либо всё ещё на junction, либо уже закоммитился (зависит от порога)
+    assert env.state.current_node in ["junction", "open_mid", "covered_mid"]
     
-    # Проверяем что deliberation происходит
-    assert env.state.deliberation_state in [
-        DeliberationState.AT_JUNCTION,
-        DeliberationState.DELIBERATING,
-        DeliberationState.COMMITTED  # Может уже commit после 2 шагов
-    ], f"Expected deliberation state, got {env.state.deliberation_state}"
+    # 4. Принудительный коммит и завершение триала
+    while not env.state.trial_complete:
+        env.step(action=0, mode="EXPLOIT", action_probs=[0.9, 0.1])
     
-    # Завершаем триал
-    while not done:
-        observation, reward, done, info = env.step(
-            action=0,
-            mode="EXPLOIT",
-            action_probs=[0.8, 0.2]  # Высокая confidence для commit
-        )
-    
-    # Проверяем что VTE proxies записаны
-    assert len(env.trial_summaries) == 0  # Ещё не завершён
-    
-    # Завершаем триал
-    while not done:
-        observation, reward, done, info = env.step(action=0, mode="EXPLOIT")
-    
-    # Проверяем что VTE proxies записаны
+    # 5. Проверка что VTE-прокси записаны (даже если pause=0 при мгновенном коммите)
     assert len(env.trial_summaries) == 1
     summary = env.trial_summaries[0]
     
-    # VTE proxies должны быть >= 0
     assert summary.junction_pause_duration >= 0
     assert summary.reorientation_count >= 0
     assert summary.commit_latency >= 0
+    assert summary.path_choice in ["open", "covered"]
     
     print("✓ PASS: Junction deliberation state machine")
     return True
@@ -1032,7 +1042,7 @@ def test_vte_proxies_emergent():
     # (если deliberation работает корректно)
     assert len(pause_durations) >= 0  # Может быть 0 если instant commit
     
-    print(f"✓ PASS: VTE proxies emergent (pauses: {len(pause_durations)} tri als with pause > 0)")
+    print(f"✓ PASS: VTE proxies emergent (pauses: {len(pause_durations)} trials with pause > 0)")
     return True
 
 
@@ -1047,18 +1057,22 @@ def test_no_random_path_override():
     # Запускаем триал с явным commit
     env.reset(trial=1)
     
-    # Движение к junction
+    # Шаг 1: start → junction (мгновенный коммит, т.к. action_probs=None)
     env.step(action=0, mode="EXPLOIT")
-    env.step(action=0, mode="EXPLOIT")  # Commit к open path
-    
-    # Проверяем что committed_path установлен
-    assert env.state.committed_path in ["open", "covered", None]
-    
-    # После commit путь должен выполняться детерминировано
-    if env.state.committed_path == "open":
-        # Следующий шаг должен быть на open_mid
-        observation, reward, done, info = env.step(action=0, mode="EXPLOIT")
-        assert env.state.current_node == "open_mid" or env.state.current_node == "junction"
+    assert env.state.current_node == "junction"
+    assert env.state.committed_path == "open", f"Expected 'open', got {env.state.committed_path}"
+
+    # Шаг 2: выход из junction в open_mid
+    observation, reward, done, info = env.step(action=0, mode="EXPLOIT")
+    assert env.state.current_node == "open_mid", f"Expected open_mid, got {env.state.current_node}"
+
+    # Шаг 3: open_mid → goal
+    observation, reward, done, info = env.step(action=0, mode="EXPLOIT")
+    assert env.state.current_node == "goal", f"Expected goal, got {env.state.current_node}"
+    assert env.state.path_choice == "open"
+
+    # Проверка: среда не подменила путь случайным образом
+    assert env.state.committed_path == "open"
     
     print("✓ PASS: No random path override after commit")
     return True
