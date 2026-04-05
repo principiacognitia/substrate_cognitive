@@ -112,8 +112,13 @@ ENV_CONFIG: Dict[str, Any] = {
     'observability_noise_std': 0.0,      # Optional exposure noise (default: none)
     
     # === Task 4: Deliberation Parameters ===
-    'commit_confidence': 0.7,            # Threshold for confidence-based commit
-    'max_deliberation_ticks': 10,        # Max ticks in DELIBERATING state
+    'debug': True,                   # ← Включить трассировку (выключить перед прогоном 30 seeds)
+    'deliberation': {
+        'commit_confidence': 0.6,   # Порог уверенности для коммита
+        'max_deliberation_ticks': 8, # Fallback по таймауту
+        'junction_q_values': [0.5, 0.5], # Базовая неопределённость на развилке
+        'exposure_q_bias': 0.12,      # Дельта-поправка к covered path (пока 0)
+    },    
 }
 
 

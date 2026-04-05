@@ -80,20 +80,41 @@ def run_experiment(seed: int, n_trials: int, output_dir: str, ablation: str = 'f
     for trial in range(n_trials):
         observation = env.reset(trial=trial)
         done = False
+        step_count = 0  # ← Защитный лимит для отладки
         
-        while not done:
+        while not done and step_count < 100:
+            # === PRE ===
+            if env.debug:
+                print(f"[PRE]  t={env.state.tick} node={env.state.current_node} "
+                      f"state={env.state.deliberation_state.value} "
+                      f"q={observation.get('q_values', [0.0])}")
+
             action, metadata = agent.step(
                 observation=observation,
                 reward=0.0,
                 action=0,
                 salience=None
             )
-            
+
+            # === AGENT ===
+            if env.debug:
+                print(f"[AGENT] a={action} mode={metadata['mode']} "
+                      f"probs={metadata.get('action_probs', [])}")
+
             observation, reward, done, info = env.step(
                 action=action,
                 mode=metadata['mode'],
-                gate_trigger=metadata['gate_constraint']
+                gate_trigger=metadata.get('gate_constraint', 'default'),  # ← Безопасный fallback
+                action_probs=metadata.get('action_probs', [0.5, 0.5])
             )
+
+            # === POST ===
+            if env.debug:
+                print(f"[POST] node={env.state.current_node} "
+                      f"state={env.state.deliberation_state.value} "
+                      f"committed={env.state.committed_path}\n")
+
+            step_count += 1
     
     # Сохраняем логи в ОБЩУЮ папку (все seeds в одной директории)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

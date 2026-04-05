@@ -281,6 +281,12 @@ class OpenCoveredChoiceEnv:
         # Temporal parameters
         self.junction_pause_min = self.config.get('temporal', {}).get('junction_pause_min', 1)
         self.junction_pause_max = self.config.get('temporal', {}).get('junction_pause_max', 10)
+
+        # Deliberation & debug (Task 4)
+        self.debug = self.config.get('debug', False)
+        self.delib_config = self.config.get('deliberation', {})
+        self.commit_confidence = self.delib_config.get('commit_confidence', 0.75)
+        self.max_delib_ticks = self.delib_config.get('max_deliberation_ticks', 8)
         
     def _build_maze(self) -> MazeGraph:
         """
@@ -433,60 +439,57 @@ class OpenCoveredChoiceEnv:
         """
         current = self.state.current_node # ← Должно быть string ("junction", "open_mid", etc.)
         metrics = self.state.deliberation_metrics
+
+        if self.debug:
+            print(f"[ENV] tick={self.state.tick} node={current} state={self.state.deliberation_state.value} "
+                  f"probs={action_probs} action={action}")
         
-        # --- Переход в junction zone ---
+        # 1. ЯВНЫЙ БАРЬЕР ВХОДА: запрещаем коммит на тике прибытия
         if current == self.junction_node and self.state.deliberation_state == DeliberationState.APPROACH:
             self.state.deliberation_state = DeliberationState.AT_JUNCTION
             metrics.junction_entry_tick = self.state.tick
             self.state.zone_entry_tick = self.state.tick
+            return  # ← КРИТИЧНО: выходим, не коммитим
 
-            # ← ДОБАВИТЬ: Минимальная пауза в 1 тик перед deliberation
-            # metrics.pause_duration = 1        
-        
-        # --- Начало deliberation ---
+        # 2. Переход в DELIBERATING
         if self.state.deliberation_state == DeliberationState.AT_JUNCTION:
             self.state.deliberation_state = DeliberationState.DELIBERATING
-        
-        # --- Deliberation loop с confidence-based commit ---
+
+        # 3. Deliberation loop
         if self.state.deliberation_state == DeliberationState.DELIBERATING:
-            # Записываем candidate path для reorientation detection
-            if action == 0:
-                candidate = "open"
-            elif action == 1:
-                candidate = "covered"
-            else:
-                candidate = None
+            # ЖИВОЙ ТАЙМЕР
+            metrics.pause_duration = self.state.tick - metrics.junction_entry_tick
+            
+            # ЗАЩИТА ОТ STALE ACTION SPACE
+            if action_probs is None or len(action_probs) != 2:
+                if self.debug: print(f"[ENV] ⚠ Ignoring stale action_probs (len={len(action_probs) if action_probs else 0})")
+                return
+
+            if action == 0: candidate = "open"
+            elif action == 1: candidate = "covered"
+            else: candidate = None
             
             if candidate:
                 metrics.record_candidate_path(candidate, self.state.tick)
             
-            # Confidence-based commit (Task 4)
-            if action_probs is not None and len(action_probs) > 0:
-                max_prob = max(action_probs)
-                metrics.max_action_prob_history.append(max_prob)
-                
-                # Commit если confidence > threshold
-                if max_prob > self.commit_confidence:
-                    self._commit_to_path(action)
-                
-                # Fallback: max deliberation ticks reached
-                elif metrics.pause_duration >= self.max_deliberation_ticks:
-                    self._commit_to_path(action)
-            else:
-                # Нет action_probs — commit immediately (fallback)
+            max_prob = max(action_probs)
+            metrics.max_action_prob_history.append(max_prob)
+            
+            # Commit по уверенности или таймауту
+            if max_prob > self.commit_confidence or metrics.pause_duration >= self.max_delib_ticks:
                 self._commit_to_path(action)
+                if self.debug: print(f"[ENV] ✅ COMMITTED to {self.state.committed_path} (max_prob={max_prob:.3f}, ticks={metrics.pause_duration})")
+
+        # 4. После commit → подготовка к движению в следующем step
+        if self.state.deliberation_state == DeliberationState.COMMITTED:
+            self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
         
-        # --- После commit ---
-        # if self.state.deliberation_state == DeliberationState.COMMITTED:
-        #     Движение произойдёт в следующем step() через _move()
-        #     self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
-        
-        # --- Достижение goal ---
+        # 5. Достижение goal
         if current == self.goal_node:
             self.state.deliberation_state = DeliberationState.AT_GOAL
             self.state.zone_exit_tick = self.state.tick
             metrics.finalize(self.state.tick)
-    
+        
     def _commit_to_path(self, action: int) -> None:
         """
         Commits to a path based on action.
@@ -541,7 +544,7 @@ class OpenCoveredChoiceEnv:
             if self.state.deliberation_state in [DeliberationState.COMMITTED, DeliberationState.TRAVERSING_PATH]:
                 if self.state.committed_path == "open":
                     self.state.current_node = "open_mid"
-                elif self.state.committed_path == "covered":
+                else:
                     self.state.current_node = "covered_mid"
                 # После движения конвертируем в TRAVERSING_PATH
                 self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
@@ -798,12 +801,12 @@ class OpenCoveredChoiceEnv:
         Returns:
             q_values: List[float]
         """
-        # Упрощённая реализация для Stage 3.1A
-        if self.state.current_node == self.junction_node:
-            # На junction два выбора: open или covered
-            return [0.5, 0.5]
-        else:
-            return [1.0]
+        current = self.state.current_node
+        if current == self.junction_node:
+            base_q = self.delib_config.get('junction_q_values', [0.5, 0.5])
+            bias = self.delib_config.get('exposure_q_bias', 0.0)
+            return [base_q[0], base_q[1] + bias]
+        return [1.0]
     
     def _get_expected_reward(self) -> float:
         """
