@@ -695,6 +695,11 @@ class OpenCoveredChoiceEnv:
         entropy = -np.sum(q_normalized * np.log(q_normalized + 1e-10))
         return float(entropy)
     
+    def _compute_volatility(self) -> float:
+        """Вычисляет volatility estimate (u_volatility)."""
+        # Упрощённая реализация для Stage 3.1A
+        return 0.1 if self.state.deliberation_state == DeliberationState.DELIBERATING else 0.05
+    
     def _compute_bernoulli_reward(self) -> float:
         """
         Bernoulli reward sampled exactly once per step at goal.
