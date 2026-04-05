@@ -90,6 +90,7 @@ class DeliberationMetrics:
     # New fields
     evidence_balance: float = 0.0   # <0 -> open, >0 -> covered
     commit_tick: int = 0
+    commit_reason: str = ""   # "bound" | "timeout" | ""
     mode_at_junction: str = ""
     
     def record_candidate_path(self, path: str, tick: int) -> None:
@@ -114,6 +115,7 @@ class DeliberationMetrics:
 
         self.evidence_balance = 0.0
         self.commit_tick = 0
+        self.commit_reason = ""
         self.mode_at_junction = ""
 
 # =============================================================================
@@ -183,6 +185,7 @@ class TrialSummary:
     reorientation_count: int = 0
     retreat_return_count: int = 0
     commit_latency: int = 0
+    commit_reason: str = ""
     junction_deliberation_proxy: float = 0.0
     mode_at_junction: str = ""
     final_mode: str = ""
@@ -201,6 +204,7 @@ class TrialSummary:
             'reorientation_count': self.reorientation_count,
             'retreat_return_count': self.retreat_return_count,
             'commit_latency': self.commit_latency,
+            'commit_reason': self.commit_reason,
             'junction_deliberation_proxy': self.junction_deliberation_proxy,
             'mode_at_junction': self.mode_at_junction,
             'final_mode': self.final_mode,
@@ -497,6 +501,7 @@ class OpenCoveredChoiceEnv:
             # commit by bound crossing
             if abs(metrics.evidence_balance) >= bound:
                 chosen_action = 1 if metrics.evidence_balance > 0 else 0
+                metrics.commit_reason = "bound"
                 self._commit_to_path(chosen_action)
                 if self.debug:
                     print(
@@ -507,6 +512,7 @@ class OpenCoveredChoiceEnv:
             # fallback commit by timeout
             elif metrics.pause_duration >= self.max_delib_ticks:
                 chosen_action = 1 if metrics.evidence_balance > 0 else 0
+                metrics.commit_reason = "timeout"
                 self._commit_to_path(chosen_action)
                 if self.debug:
                     print(
@@ -759,6 +765,7 @@ class OpenCoveredChoiceEnv:
             reorientation_count=metrics.reorientation_count,
             retreat_return_count=metrics.retreat_return_count,
             commit_latency=metrics.commit_latency,
+            commit_reason=metrics.commit_reason,
             junction_deliberation_proxy=deliberation_proxy,
             mode_at_junction=mode_at_junction,
             final_mode=mode,

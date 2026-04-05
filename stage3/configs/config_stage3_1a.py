@@ -112,16 +112,16 @@ ENV_CONFIG: Dict[str, Any] = {
     'observability_noise_std': 0.0,      # Optional exposure noise (default: none)
     
     # === Task 4: Deliberation Parameters ===
-    'debug': True,                   # ← Включить трассировку (выключить перед прогоном 30 seeds)
+    'debug': False,                   # ← Включить трассировку (выключить перед прогоном 30 seeds)
     'deliberation': {
         'max_deliberation_ticks': 6,
         'junction_q_values': [0.5, 0.5],
-        'exposure_q_bias': 0.05,
+        'exposure_q_bias': 0.5,
 
         # Evidence accumulation
-        'evidence_bound_base': 0.45,
-        'evidence_bound_min': 0.25,
-        'urgency_slope': 0.05,
+        'evidence_bound_base': 0.35,
+        'evidence_bound_min': 0.20,
+        'urgency_slope': 0.04,
         'min_evidence_step': 0.10,
     },   
 }

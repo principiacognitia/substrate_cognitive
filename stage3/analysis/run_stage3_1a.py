@@ -13,6 +13,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 import numpy as np
+import pandas as pd
 import sys
 
 # Добавляем корень проекта в path
@@ -124,6 +125,87 @@ def run_experiment(seed: int, n_trials: int, output_dir: str, ablation: str = 'f
     
     return len(env.trial_summaries)
 
+def summarize_run(output_dir: str) -> None:
+    """
+    Собирает все seed CSV из output_dir и сохраняет:
+    - all_trials_combined.csv
+    - seed_summary.csv
+    - run_summary.json
+    """
+    output_path = Path(output_dir)
+    csv_files = sorted(output_path.glob("stage3_1a_seed*_trials.csv"))
+
+    if not csv_files:
+        print("  ⚠ No trial CSV files found for summary.")
+        return
+
+    dfs = []
+    for f in csv_files:
+        df = pd.read_csv(f)
+        df["source_file"] = f.name
+        dfs.append(df)
+
+    all_trials = pd.concat(dfs, ignore_index=True)
+    all_trials.to_csv(output_path / "all_trials_combined.csv", index=False)
+
+    # --- Per-seed summary ---
+    def _count_value(series, value):
+        return int((series == value).sum())
+
+    seed_summary = (
+        all_trials
+        .groupby("seed", dropna=False)
+        .apply(lambda g: pd.Series({
+            "n_trials": len(g),
+            "n_open": _count_value(g["path_choice"], "open"),
+            "n_covered": _count_value(g["path_choice"], "covered"),
+            "p_open": float((g["path_choice"] == "open").mean()),
+            "p_covered": float((g["path_choice"] == "covered").mean()),
+            "mean_reward_total": float(g["reward_total"].mean()),
+            "mean_commit_latency": float(g["commit_latency"].mean()),
+            "mean_junction_pause_duration": float(g["junction_pause_duration"].mean()),
+            "mean_reorientation_count": float(g["reorientation_count"].mean()),
+            "p_explore_at_junction": float((g["mode_at_junction"] == "explore").mean()),
+            "n_commit_bound": _count_value(g["commit_reason"], "bound"),
+            "n_commit_timeout": _count_value(g["commit_reason"], "timeout"),
+            "p_commit_bound": float((g["commit_reason"] == "bound").mean()),
+            "p_commit_timeout": float((g["commit_reason"] == "timeout").mean()),
+        }))
+        .reset_index()
+        .sort_values("seed")
+    )
+
+    seed_summary.to_csv(output_path / "seed_summary.csv", index=False)
+
+    # --- Overall run summary ---
+    run_summary = {
+        "n_seeds": int(seed_summary["seed"].nunique()),
+        "n_trials_total": int(len(all_trials)),
+        "n_open_total": int((all_trials["path_choice"] == "open").sum()),
+        "n_covered_total": int((all_trials["path_choice"] == "covered").sum()),
+        "p_open_total": float((all_trials["path_choice"] == "open").mean()),
+        "p_covered_total": float((all_trials["path_choice"] == "covered").mean()),
+        "mean_reward_total": float(all_trials["reward_total"].mean()),
+        "mean_commit_latency": float(all_trials["commit_latency"].mean()),
+        "mean_junction_pause_duration": float(all_trials["junction_pause_duration"].mean()),
+        "mean_reorientation_count": float(all_trials["reorientation_count"].mean()),
+        "p_explore_at_junction": float((all_trials["mode_at_junction"] == "explore").mean()),
+        "n_commit_bound_total": int((all_trials["commit_reason"] == "bound").sum()),
+        "n_commit_timeout_total": int((all_trials["commit_reason"] == "timeout").sum()),
+        "p_commit_bound_total": float((all_trials["commit_reason"] == "bound").mean()),
+        "p_commit_timeout_total": float((all_trials["commit_reason"] == "timeout").mean()),
+        "covered_rate_mean_across_seeds": float(seed_summary["p_covered"].mean()),
+        "covered_rate_std_across_seeds": float(seed_summary["p_covered"].std(ddof=0)),
+        "commit_latency_mean_across_seeds": float(seed_summary["mean_commit_latency"].mean()),
+    }
+
+    with open(output_path / "run_summary.json", "w", encoding="utf-8") as f:
+        json.dump(run_summary, f, indent=2, ensure_ascii=False)
+
+    print("  Summary saved:")
+    print(f"    - {output_path / 'all_trials_combined.csv'}")
+    print(f"    - {output_path / 'seed_summary.csv'}")
+    print(f"    - {output_path / 'run_summary.json'}")
 
 def main():
     parser = argparse.ArgumentParser(description='Run Stage 3.1A Experiments')
@@ -190,6 +272,8 @@ def main():
     
     with open(output_path / 'metadata.json', 'w', encoding='utf-8') as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
+    
+    summarize_run(str(output_path))
     
     print("=" * 70)
     print(f"✓ Stage 3.1A completed: {args.n_seeds} seeds, {total_trials} total trials")
