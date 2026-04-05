@@ -170,7 +170,7 @@ def summarize_run(output_dir: str) -> None:
             "n_commit_timeout": _count_value(g["commit_reason"], "timeout"),
             "p_commit_bound": float((g["commit_reason"] == "bound").mean()),
             "p_commit_timeout": float((g["commit_reason"] == "timeout").mean()),
-        }))
+        }), include_groups=False)
         .reset_index()
         .sort_values("seed")
     )
@@ -274,7 +274,7 @@ def main():
         json.dump(metadata, f, indent=2, ensure_ascii=False)
     
     summarize_run(str(output_path))
-    
+
     print("=" * 70)
     print(f"✓ Stage 3.1A completed: {args.n_seeds} seeds, {total_trials} total trials")
     print(f"Logs saved to: {output_path}")
