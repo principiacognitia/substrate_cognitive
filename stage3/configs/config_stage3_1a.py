@@ -114,11 +114,16 @@ ENV_CONFIG: Dict[str, Any] = {
     # === Task 4: Deliberation Parameters ===
     'debug': True,                   # ← Включить трассировку (выключить перед прогоном 30 seeds)
     'deliberation': {
-        'commit_confidence': 0.6,   # Порог уверенности для коммита
-        'max_deliberation_ticks': 8, # Fallback по таймауту
-        'junction_q_values': [0.5, 0.5], # Базовая неопределённость на развилке
-        'exposure_q_bias': 0.12,      # Дельта-поправка к covered path (пока 0)
-    },    
+        'max_deliberation_ticks': 6,
+        'junction_q_values': [0.5, 0.5],
+        'exposure_q_bias': 0.05,
+
+        # Evidence accumulation
+        'evidence_bound_base': 0.45,
+        'evidence_bound_min': 0.25,
+        'urgency_slope': 0.05,
+        'min_evidence_step': 0.10,
+    },   
 }
 
 

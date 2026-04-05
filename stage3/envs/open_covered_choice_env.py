@@ -71,7 +71,6 @@ class DeliberationState(Enum):
 class DeliberationMetrics:
     """
     Метрики deliberation process (для VTE proxies).
-    
     Все поля вычисляются из actual microdynamics, не генерируются случайно.
     """
     junction_entry_tick: int = 0
@@ -80,14 +79,18 @@ class DeliberationMetrics:
     reorientation_count: int = 0      # Смен candidate_path во время deliberation
     retreat_return_count: int = 0     # Возвратов в start после junction
     commit_latency: int = 0           # Тиков до COMMITTED state
+
     max_action_prob_history: List[float] = field(default_factory=list)  # Для confidence tracking
     candidate_path_history: List[str] = field(default_factory=list)  # Для reorientation detection
-    
-    def finalize(self, current_tick: int) -> None:
-        """Финализирует метрики при выходе из junction."""
-        self.junction_exit_tick = current_tick
-        self.pause_duration = self.junction_exit_tick - self.junction_entry_tick
-        self.commit_latency = self.pause_duration
+
+    """
+    Метрики deliberation process (within-trial only).
+    Межтриальная память остаётся только в temporal_state агента.
+    """
+    # New fields
+    evidence_balance: float = 0.0   # <0 -> open, >0 -> covered
+    commit_tick: int = 0
+    mode_at_junction: str = ""
     
     def record_candidate_path(self, path: str, tick: int) -> None:
         """Записывает candidate path для detection reorientations."""
@@ -105,9 +108,13 @@ class DeliberationMetrics:
         self.reorientation_count = 0
         self.retreat_return_count = 0
         self.commit_latency = 0
+
         self.max_action_prob_history = []
         self.candidate_path_history = []
 
+        self.evidence_balance = 0.0
+        self.commit_tick = 0
+        self.mode_at_junction = ""
 
 # =============================================================================
 # ENVIRONMENT STATE
@@ -130,6 +137,7 @@ class EnvState:
     path_choice: Optional[str] = None
     deliberation_metrics: DeliberationMetrics = field(default_factory=DeliberationMetrics)
     trial_reward: float = 0.0
+    last_reward_sampled: float = 0.0
     trial_complete: bool = False
     
     # Pseudo-kinematic state (для future IdPhi wrapper)
@@ -151,6 +159,7 @@ class EnvState:
         self.path_choice = None
         self.deliberation_metrics.reset()
         self.trial_reward = 0.0
+        self.last_reward_sampled = 0.0
         self.trial_complete = False
         self.heading_state = 0.0
         self.heading_change = 0.0
@@ -266,10 +275,6 @@ class OpenCoveredChoiceEnv:
         self.goal_node = self.config['topology']['goal_node']
         self.start_node = self.config['topology']['start_node']
         
-        # Deliberation parameters (Task 4)
-        self.commit_confidence = self.config.get('commit_confidence', 0.7)
-        self.max_deliberation_ticks = self.config.get('max_deliberation_ticks', 10)
-        
         # Reward stochasticity (Task 3)
         paths = self.config.get('paths', {})
         self.open_reward_prob = paths.get('open', {}).get('reward_prob', 1.0)
@@ -285,7 +290,6 @@ class OpenCoveredChoiceEnv:
         # Deliberation & debug (Task 4)
         self.debug = self.config.get('debug', False)
         self.delib_config = self.config.get('deliberation', {})
-        self.commit_confidence = self.delib_config.get('commit_confidence', 0.75)
         self.max_delib_ticks = self.delib_config.get('max_deliberation_ticks', 8)
         
     def _build_maze(self) -> MazeGraph:
@@ -368,15 +372,19 @@ class OpenCoveredChoiceEnv:
         self._update_deliberation_state(action, mode, action_probs)
         
         # =====================================================================
-        # Вычисление observation
+        #  Bernoulli reward computation
         # =====================================================================
-        observation = self._get_observation()
+        # Reward must be sampled exactly once per step
+        reward = self._compute_bernoulli_reward()
+        self.state.last_reward_sampled = reward
+        self.state.trial_reward += reward
         
         # =====================================================================
-        # Task 3: Bernoulli reward computation
+        # Task 3: Вычисление observation
         # =====================================================================
-        reward = self._compute_bernoulli_reward()
-        self.state.trial_reward += reward
+        # Observation comes after reward sampling so prediction_error
+        # can use cached last_reward_sampled without re-sampling
+        observation = self._get_observation()
         
         # =====================================================================
         # Проверка завершения триала
@@ -418,94 +426,116 @@ class OpenCoveredChoiceEnv:
         action_probs: Optional[List[float]]
     ) -> None:
         """
-        Task 4: Обновляет deliberation state machine.
-        
-        State transitions:
-        - APPROACH → AT_JUNCTION (при входе в junction)
-        - AT_JUNCTION → DELIBERATING (начало оценки)
-        - DELIBERATING → COMMITTED (при confidence > threshold или max ticks)
-        - COMMITTED → TRAVERSING_PATH (движение по пути)
-        - TRAVERSING_PATH → AT_GOAL (достижение цели)
+        Junction deliberation with signed evidence accumulation.
 
-        Вызывается ПОСЛЕ _move(), поэтому current_node уже обновлён.
-
-        ИСПРАВЛЕНО: COMMITTED остаётся до следующего _move(), не конвертируется сразу.
-
-    
-        Design Principle:
-        - Deliberation происходит на junction (не двигает агента)
-        - Commit происходит когда confidence > threshold
-        - После commit движение происходит в следующем step
+        Key rules:
+        - no commit on arrival tick
+        - evidence accumulates from sampled actions, not summed probabilities
+        - commit happens by bound crossing or timeout fallback
+        - COMMITTED is not converted to TRAVERSING_PATH here
         """
-        current = self.state.current_node # ← Должно быть string ("junction", "open_mid", etc.)
+        current = self.state.current_node
         metrics = self.state.deliberation_metrics
 
         if self.debug:
-            print(f"[ENV] tick={self.state.tick} node={current} state={self.state.deliberation_state.value} "
-                  f"probs={action_probs} action={action}")
-        
-        # 1. ЯВНЫЙ БАРЬЕР ВХОДА: запрещаем коммит на тике прибытия
+            print(
+                f"[ENV] tick={self.state.tick} node={current} "
+                f"state={self.state.deliberation_state.value} "
+                f"probs={action_probs} action={action} "
+                f"evidence={metrics.evidence_balance:.3f}"
+            )
+
+        # 1. Arrival barrier: enter junction but do not commit on same tick
         if current == self.junction_node and self.state.deliberation_state == DeliberationState.APPROACH:
             self.state.deliberation_state = DeliberationState.AT_JUNCTION
             metrics.junction_entry_tick = self.state.tick
             self.state.zone_entry_tick = self.state.tick
-            return  # ← КРИТИЧНО: выходим, не коммитим
+            return
 
-        # 2. Переход в DELIBERATING
+        # 2. Latch mode_at_junction exactly once
         if self.state.deliberation_state == DeliberationState.AT_JUNCTION:
             self.state.deliberation_state = DeliberationState.DELIBERATING
+            if not metrics.mode_at_junction:
+                metrics.mode_at_junction = mode
 
         # 3. Deliberation loop
         if self.state.deliberation_state == DeliberationState.DELIBERATING:
-            # ЖИВОЙ ТАЙМЕР
             metrics.pause_duration = self.state.tick - metrics.junction_entry_tick
-            
-            # ЗАЩИТА ОТ STALE ACTION SPACE
+
+            # stale action space guard
             if action_probs is None or len(action_probs) != 2:
-                if self.debug: print(f"[ENV] ⚠ Ignoring stale action_probs (len={len(action_probs) if action_probs else 0})")
+                if self.debug:
+                    bad_len = 0 if action_probs is None else len(action_probs)
+                    print(f"[ENV] ⚠ ignoring stale action_probs (len={bad_len})")
                 return
 
-            if action == 0: candidate = "open"
-            elif action == 1: candidate = "covered"
-            else: candidate = None
-            
-            if candidate:
-                metrics.record_candidate_path(candidate, self.state.tick)
-            
-            max_prob = max(action_probs)
+            p_open, p_covered = action_probs
+            max_prob = max(p_open, p_covered)
             metrics.max_action_prob_history.append(max_prob)
-            
-            # Commit по уверенности или таймауту
-            if max_prob > self.commit_confidence or metrics.pause_duration >= self.max_delib_ticks:
-                self._commit_to_path(action)
-                if self.debug: print(f"[ENV] ✅ COMMITTED to {self.state.committed_path} (max_prob={max_prob:.3f}, ticks={metrics.pause_duration})")
 
-        # 4. После commit → подготовка к движению в следующем step
-        if self.state.deliberation_state == DeliberationState.COMMITTED:
-            self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
-        
-        # 5. Достижение goal
+            # signed evidence update from sampled action
+            margin = abs(p_covered - p_open)
+            step = max(margin, self.delib_config.get('min_evidence_step', 0.10))
+
+            if action == 0:
+                metrics.evidence_balance -= step
+                candidate = "open"
+            elif action == 1:
+                metrics.evidence_balance += step
+                candidate = "covered"
+            else:
+                return
+
+            metrics.record_candidate_path(candidate, self.state.tick)
+
+            # collapsing bound
+            bound_base = self.delib_config.get('evidence_bound_base', 0.45)
+            bound_min = self.delib_config.get('evidence_bound_min', 0.25)
+            urgency_slope = self.delib_config.get('urgency_slope', 0.05)
+            bound = max(bound_min, bound_base - urgency_slope * metrics.pause_duration)
+
+            # commit by bound crossing
+            if abs(metrics.evidence_balance) >= bound:
+                chosen_action = 1 if metrics.evidence_balance > 0 else 0
+                self._commit_to_path(chosen_action)
+                if self.debug:
+                    print(
+                        f"[ENV] ✅ COMMIT by bound "
+                        f"(balance={metrics.evidence_balance:.3f}, bound={bound:.3f})"
+                    )
+
+            # fallback commit by timeout
+            elif metrics.pause_duration >= self.max_delib_ticks:
+                chosen_action = 1 if metrics.evidence_balance > 0 else 0
+                self._commit_to_path(chosen_action)
+                if self.debug:
+                    print(
+                        f"[ENV] ✅ COMMIT by timeout "
+                        f"(balance={metrics.evidence_balance:.3f})"
+                    )
+
+        # 4. Goal state only marks completion state; no finalize() here
         if current == self.goal_node:
             self.state.deliberation_state = DeliberationState.AT_GOAL
             self.state.zone_exit_tick = self.state.tick
-            metrics.finalize(self.state.tick)
-        
+
     def _commit_to_path(self, action: int) -> None:
         """
-        Commits to a path based on action.
-        
-        Args:
-            action: 0 = open, 1 = covered
+        Commit to a path and record precise commit timing.
         """
+        metrics = self.state.deliberation_metrics
+
         if action == 0:
             self.state.committed_path = "open"
         elif action == 1:
             self.state.committed_path = "covered"
-        
-        self.state.deliberation_state = DeliberationState.COMMITTED
-        self.state.deliberation_metrics.commit_latency = (
-            self.state.tick - self.state.deliberation_metrics.junction_entry_tick
-        )
+        else:
+            raise ValueError(f"Unsupported commit action: {action}")
+
+        metrics.commit_tick = self.state.tick
+        metrics.commit_latency = metrics.commit_tick - metrics.junction_entry_tick
+
+        self.state.deliberation_state = DeliberationState.COMMITTED        
     
     def _move(self, action: int, mode: str) -> None:
         """
@@ -539,16 +569,18 @@ class OpenCoveredChoiceEnv:
         # Junction node (остаётся пока deliberation) → Path mid (только когда COMMITTED)
         # =====================================================================
         elif current == self.junction_node:
-        # ← ИСПРАВЛЕНО: Проверяем COMMITTED и двигаемся
-        # Выход из junction разрешён, когда агент COMMITTED или уже TRAVERSING_PATH
             if self.state.deliberation_state in [DeliberationState.COMMITTED, DeliberationState.TRAVERSING_PATH]:
+                metrics = self.state.deliberation_metrics
+                metrics.junction_exit_tick = self.state.tick
+                metrics.pause_duration = metrics.junction_exit_tick - metrics.junction_entry_tick
+
                 if self.state.committed_path == "open":
                     self.state.current_node = "open_mid"
                 else:
                     self.state.current_node = "covered_mid"
-                # После движения конвертируем в TRAVERSING_PATH
+
                 self.state.deliberation_state = DeliberationState.TRAVERSING_PATH
-            # Иначе остаётся на junction (deliberation продолжается)
+            # иначе остаётся на junction
         
         # =====================================================================
         # Path mid → Goal (один шаг)
@@ -643,9 +675,17 @@ class OpenCoveredChoiceEnv:
         return observation
     
     def _compute_prediction_error(self) -> float:
-        """Вычисляет prediction error (u_delta)."""
+        """
+        Compute prediction error without re-sampling reward.
+        Uses cached last_reward_sampled from current step.
+        """
         expected = self._get_expected_reward()
-        actual = self._compute_bernoulli_reward() if self.state.current_node == self.goal_node else 0.0
+
+        if self.state.current_node == self.goal_node:
+            actual = self.state.last_reward_sampled
+        else:
+            actual = 0.0
+
         return abs(actual - expected)
     
     def _compute_policy_entropy(self) -> float:
@@ -655,32 +695,25 @@ class OpenCoveredChoiceEnv:
         entropy = -np.sum(q_normalized * np.log(q_normalized + 1e-10))
         return float(entropy)
     
-    def _compute_volatility(self) -> float:
-        """Вычисляет volatility estimate (u_volatility)."""
-        # Упрощённая реализация для Stage 3.1A
-        return 0.1 if self.state.deliberation_state == DeliberationState.DELIBERATING else 0.05
-    
     def _compute_bernoulli_reward(self) -> float:
         """
-        Task 3: Bernoulli reward at goal.
-        
-        Returns:
-            reward: 1.0 с вероятностью open_reward_prob или covered_reward_prob
+        Bernoulli reward sampled exactly once per step at goal.
+        Uses committed_path first because path_choice may not yet be set
+        on the first goal tick.
         """
         if self.state.current_node != self.goal_node:
             return 0.0
-        
-        # Определяем вероятность награды по выбранному пути
-        if self.state.path_choice == "open":
+
+        path = self.state.committed_path or self.state.path_choice
+
+        if path == "open":
             reward_prob = self.open_reward_prob
-        elif self.state.path_choice == "covered":
+        elif path == "covered":
             reward_prob = self.covered_reward_prob
         else:
-            reward_prob = 0.5  # Fallback
-        
-        # Bernoulli sampling
+            reward_prob = 0.5
+
         reward = 1.0 if self.rng.random() < reward_prob else 0.0
-        
         return float(reward)
     
     def _check_trial_complete(self) -> bool:
@@ -698,30 +731,20 @@ class OpenCoveredChoiceEnv:
         return False
     
     def _finalize_trial(self, mode: str, gate_trigger: str) -> None:
-        """
-        Финализирует триал (создаёт TrialSummary).
-        
-        Args:
-            mode: Финальный режим Gate
-            gate_trigger: Какой порог сработал
-        """
         metrics = self.state.deliberation_metrics
-
-        # ← ИСПРАВЛЕНО: используем локальную переменную с fallback
         path_choice = self.state.path_choice or self.state.committed_path or "unknown"
-        
-        # Вычисляем junction_deliberation_proxy (z-scored mean)
+
+        mode_at_junction = metrics.mode_at_junction if metrics.mode_at_junction else mode
+
+        # Temporary simple proxy; tests can be refined later
         vte_metrics = [
             np.log1p(metrics.pause_duration),
             metrics.reorientation_count,
             metrics.retreat_return_count,
-            np.log1p(metrics.commit_latency)
+            np.log1p(metrics.commit_latency),
         ]
-        
-        # Z-score (упрощённо)
-        z_metrics = [(x - np.mean(vte_metrics)) / (np.std(vte_metrics) + 1e-10) for x in vte_metrics]
-        deliberation_proxy = float(np.mean(z_metrics))
-        
+        deliberation_proxy = float(np.sum(vte_metrics))
+
         summary = TrialSummary(
             seed=self.seed,
             trial=self.state.trial,
@@ -732,13 +755,13 @@ class OpenCoveredChoiceEnv:
             retreat_return_count=metrics.retreat_return_count,
             commit_latency=metrics.commit_latency,
             junction_deliberation_proxy=deliberation_proxy,
-            mode_at_junction=mode,
+            mode_at_junction=mode_at_junction,
             final_mode=mode,
             one_shot_fired=False,
             config_name="stage3_1a",
             ablation_name="full"
         )
-        
+
         self.trial_summaries.append(summary)
     
     def _encode_node_id(self, node_id: str) -> float:
