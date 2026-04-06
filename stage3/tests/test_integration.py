@@ -21,6 +21,8 @@ Author: Alex Snow (Aleksey L. Snigirov)
 License: MIT
 """
 
+from turtle import done
+
 import pytest
 import numpy as np
 from pathlib import Path
@@ -46,6 +48,48 @@ def create_test_agent(seed=42, log_level=2, compat_mode=False):
     agent_config['log_level'] = log_level
     agent_config['compatibility_mode'] = compat_mode
     return AgentStage3(agent_config, seed=seed)
+
+def run_trial(env, agent, trial: int, max_steps: int = 50):
+    """
+    Унифицированный прогон одного триала для integration tests.
+
+    ВАЖНО:
+    - всегда берём observation из env.reset(...)
+    - всегда передаём в env.step() mode, gate_trigger и action_probs
+    - есть защитный лимит max_steps, чтобы тесты не зависали бесконечно
+    """
+    observation = env.reset(trial=trial)
+    done = False
+    step_count = 0
+    last_info = None
+    last_reward = 0.0
+    last_metadata = None
+
+    while not done and step_count < max_steps:
+        action, metadata = agent.step(
+            observation=observation,
+            reward=0.0
+        )
+
+        observation, reward, done, info = env.step(
+            action=action,
+            mode=metadata['mode'],
+            gate_trigger=metadata.get('gate_constraint', 'default'),
+            action_probs=metadata.get('action_probs', [0.5, 0.5])
+        )
+
+        last_info = info
+        last_reward = reward
+        last_metadata = metadata
+        step_count += 1
+
+    assert done, (
+        f"Trial did not terminate within {max_steps} steps. "
+        f"trial={trial}, node={env.state.current_node}, "
+        f"state={env.state.deliberation_state.value}"
+    )
+
+    return observation, last_reward, done, last_info, last_metadata
 
 # =============================================================================
 # TEST 1: Full integration — single trial
@@ -144,7 +188,12 @@ def test_temporal_state_updates():
     # Несколько шагов
     for _ in range(5):
         action, metadata = agent.step(observation=observation, reward=0.5)
-        observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
+        observation, reward, done, info = env.step(
+            action=action,
+            mode=metadata['mode'],
+            gate_trigger=metadata.get('gate_constraint', 'default'),
+            action_probs=metadata.get('action_probs', [0.5, 0.5])
+        )
     
     # Temporal state должен обновиться
     current_state = agent.get_current_state()
@@ -166,31 +215,37 @@ def test_gate_mode_selection_spatial():
     """
     Test: Gate выбирает режимы корректно в пространственной задаче.
     """
-    env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
-    agent = AgentStage3(CONFIG_3_1A['agent'])
-    
-    # Reset
-    observation = env.reset(trial=1)
-    
+    env = create_test_env(seed=42)
+    agent = create_test_agent(seed=42, log_level=1)
+
     modes_seen = set()
-    
-    # Запускаем несколько триалов
+
     for trial in range(10):
-        env.reset(trial=trial)
+        observation = env.reset(trial=trial)
         done = False
-        
-        while not done:
+        step_count = 0
+
+        while not done and step_count < 50:
             action, metadata = agent.step(observation=observation, reward=0.0)
-            observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
-            
+
+            observation, reward, done, info = env.step(
+                action=action,
+                mode=metadata['mode'],
+                gate_trigger=metadata.get('gate_constraint', 'default'),
+                action_probs=metadata.get('action_probs', [0.5, 0.5])
+            )
+
             modes_seen.add(metadata['mode'])
-    
-    # Проверяем что режимы выбираются
+            step_count += 1
+
+        assert done, (
+            f"Trial {trial} did not terminate. "
+            f"node={env.state.current_node}, state={env.state.deliberation_state.value}"
+        )
+
     assert len(modes_seen) > 0
-    
-    # В Stage 3.1A должны быть как минимум EXPLOIT и EXPLORE
-    assert 'exploit' in modes_seen or 'explore' in modes_seen
-    
+    assert ('exploit' in modes_seen) or ('explore' in modes_seen)
+
     print("✓ PASS: Gate mode selection in spatial context")
 
 # =============================================================================
@@ -214,9 +269,18 @@ def test_vte_proxies_logged():
     done = False
     junction_logs = []
     
-    while not done:
+    step_count = 0
+    while not done and step_count < 50:
         action, metadata = agent.step(observation=observation, reward=0.0)
-        observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
+        observation, reward, done, info = env.step(
+            action=action,
+            mode=metadata['mode'],
+            gate_trigger=metadata.get('gate_constraint', 'default'),
+            action_probs=metadata.get('action_probs', [0.5, 0.5])
+        )
+        step_count += 1
+
+        assert done, f"Trial did not terminate in test_vte_proxies_logged"
         
         # ИСПРАВЛЕНИЕ: Проверяем что VTE proxies в info (от env.step())
         if 'vte_proxies' in info:
@@ -260,10 +324,19 @@ def test_backward_compatibility_integration():
     done = False
     modes_seen = set()
     
-    while not done:
+    step_count = 0
+    while not done and step_count < 50:
         action, metadata = agent.step(observation=observation, reward=0.0)
-        observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
+        observation, reward, done, info = env.step(
+            action=action,
+            mode=metadata['mode'],
+            gate_trigger=metadata.get('gate_constraint', 'default'),
+            action_probs=metadata.get('action_probs', [0.5, 0.5])
+        )
         modes_seen.add(metadata['mode'])
+        step_count += 1
+
+    assert done, "Backward compatibility trial did not terminate"
     
     # В compatibility mode должны быть только EXPLOIT/EXPLORE
     assert modes_seen.issubset({'exploit', 'explore'}), f"Unexpected modes: {modes_seen}"
@@ -291,10 +364,19 @@ def test_multiple_trials_logging():
     for trial in range(n_trials):
         observation = env.reset(trial=trial)
         done = False
-        
-        while not done:
+        step_count = 0
+
+        while not done and step_count < 50:
             action, metadata = agent.step(observation=observation, reward=0.0)
-            observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
+            observation, reward, done, info = env.step(
+                action=action,
+                mode=metadata['mode'],
+                gate_trigger=metadata.get('gate_constraint', 'default'),
+                action_probs=metadata.get('action_probs', [0.5, 0.5])
+            )
+            step_count += 1
+
+        assert done, f"Trial {trial} did not terminate in test_multiple_trials_logging"
     
     # Проверяем что все trial summaries записаны
     summaries = env.get_trial_summaries()
@@ -336,9 +418,18 @@ def test_path_choice_under_exposure():
         observation = env.reset(trial=trial)
         done = False
         
-        while not done:
+        step_count = 0
+        while not done and step_count < 50:
             action, metadata = agent.step(observation=observation, reward=0.0)
-            observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
+            observation, reward, done, info = env.step(
+                action=action,
+                mode=metadata['mode'],
+                gate_trigger=metadata.get('gate_constraint', 'default'),
+                action_probs=metadata.get('action_probs', [0.5, 0.5])
+            )
+            step_count += 1
+
+        assert done, f"Trial {trial} did not terminate in test_path_choice_under_exposure"
         
         # Считаем выборы
         if env.state.path_choice == 'open':
@@ -377,9 +468,18 @@ def test_save_logs():
     observation = env.reset(trial=1)
     done = False
     
-    while not done:
+    step_count = 0
+    while not done and step_count < 50:
         action, metadata = agent.step(observation=observation, reward=0.0)
-        observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
+        observation, reward, done, info = env.step(
+            action=action,
+            mode=metadata['mode'],
+            gate_trigger=metadata.get('gate_constraint', 'default'),
+            action_probs=metadata.get('action_probs', [0.5, 0.5])
+        )
+        step_count += 1
+
+    assert done, "Trial did not terminate in test_save_logs"
     
     # Сохраняем логи во временную директорию
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -411,15 +511,27 @@ def test_full_session_30_seeds():
     
     for seed in range(42, 42 + n_seeds):
         env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=seed)
-        agent = AgentStage3(CONFIG_3_1A['agent'])
-        
+        agent = AgentStage3(CONFIG_3_1A['agent'], seed=seed)
+
         for trial in range(n_trials_per_seed):
             observation = env.reset(trial=trial)
             done = False
-            
-            while not done:
+            step_count = 0
+
+            while not done and step_count < 50:
                 action, metadata = agent.step(observation=observation, reward=0.0)
-                observation, reward, done, info = env.step(action=action, mode=metadata['mode'])
+                observation, reward, done, info = env.step(
+                    action=action,
+                    mode=metadata['mode'],
+                    gate_trigger=metadata.get('gate_constraint', 'default'),
+                    action_probs=metadata.get('action_probs', [0.5, 0.5])
+                )
+                step_count += 1
+
+            assert done, (
+                f"Seed {seed}, trial {trial} did not terminate. "
+                f"node={env.state.current_node}, state={env.state.deliberation_state.value}"
+            )
         
         all_summaries.extend(env.get_trial_summaries())
     
