@@ -117,6 +117,7 @@ ENV_CONFIG: Dict[str, Any] = {
         'max_deliberation_ticks': 6,
         'junction_q_values': [0.5, 0.5],
         'exposure_q_bias': 0.35,
+        'eps': 0.05,
 
         # Evidence accumulation
         'evidence_bound_base': 0.35,
