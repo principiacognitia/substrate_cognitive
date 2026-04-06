@@ -260,6 +260,13 @@ def plot_block_dynamics(block_table: pd.DataFrame, output_dir: Path):
 # REPORT
 # =============================================================================
 
+import importlib.util
+
+def df_to_report_table(df: pd.DataFrame) -> str:
+    if importlib.util.find_spec("tabulate") is not None:
+        return df.to_markdown(index=False)
+    return "```\\n" + df.to_string(index=False) + "\\n```"
+
 def write_markdown_report(
     metadata: dict,
     run_summary: dict,
@@ -310,17 +317,17 @@ def write_markdown_report(
 
     lines.append("## Commit reason × path choice")
     lines.append("")
-    lines.append(commit_reason_table.to_markdown(index=False))
+    lines.append(df_to_report_table(commit_reason_table))
     lines.append("")
 
     lines.append("## Path choice × deliberation metrics")
     lines.append("")
-    lines.append(path_metrics_table.to_markdown(index=False))
+    lines.append(df_to_report_table(path_metrics_table))
     lines.append("")
 
     lines.append("## Block dynamics")
     lines.append("")
-    lines.append(block_table.to_markdown(index=False))
+    lines.append(df_to_report_table(block_table))
     lines.append("")
 
     with open(report_path, "w", encoding="utf-8") as f:

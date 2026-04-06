@@ -511,7 +511,14 @@ class OpenCoveredChoiceEnv:
 
             # fallback commit by timeout
             elif metrics.pause_duration >= self.max_delib_ticks:
-                chosen_action = 1 if metrics.evidence_balance > 0 else 0
+                if metrics.evidence_balance > 0:
+                    chosen_action = 1
+                elif metrics.evidence_balance < 0:
+                    chosen_action = 0
+                else:
+                    # симметричный tie-break: по текущим probs, а не всегда в open
+                    p_open, p_covered = action_probs
+                    chosen_action = 1 if p_covered > p_open else 0
                 metrics.commit_reason = "timeout"
                 self._commit_to_path(chosen_action)
                 if self.debug:
