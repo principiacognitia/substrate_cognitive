@@ -279,15 +279,15 @@ def test_vte_proxies_logged():
             action_probs=metadata.get('action_probs', [0.5, 0.5])
         )
         step_count += 1
-
-        assert done, f"Trial did not terminate in test_vte_proxies_logged"
-        
+ 
         # ИСПРАВЛЕНИЕ: Проверяем что VTE proxies в info (от env.step())
         if 'vte_proxies' in info:
             vte = info['vte_proxies']
             assert 'junction_pause_duration' in vte
             assert 'reorientation_count' in vte
             junction_logs.append(vte)
+
+    assert done, f"Trial did not terminate in test_vte_proxies_logged"
     
     # Проверяем что логи VTE записаны
     assert len(junction_logs) > 0, f"No VTE proxies logged. junction_logs={junction_logs}"
