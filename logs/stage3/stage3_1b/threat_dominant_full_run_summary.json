@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-04-07T12:34:42.060674",
+  "config": {
+    "n_seeds": 2,
+    "n_trials": 5,
+    "ablation": "full"
+  },
+  "condition_summary": {
+    "condition_id": "R0_T3",
+    "ablation": "full",
+    "n_seeds": 2,
+    "n_trials_per_seed": 5,
+    "p_open_mean": 0.3,
+    "p_open_std": 0.3,
+    "mean_junction_pause_duration": 3.5999999999999996,
+    "mean_commit_latency": 2.5999999999999996,
+    "mean_reorientation_count": 0.6000000000000001,
+    "mean_junction_deliberation_proxy": 3.3597938693502467
+  }
+}

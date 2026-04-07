@@ -1,0 +1,16 @@
+{
+  "experiment_name": "twostep_sanity_20260310_195429",
+  "description": "Two-Step Task Sanity Check (MB/MF Signatures)",
+  "start_time": "2026-03-10T19:54:29.906467",
+  "end_time": "2026-03-10T19:54:46.319379",
+  "duration_seconds": 16.412912,
+  "git_commit": "5a3180c5bdbcbd115ad70cf97301b488f51a0c21",
+  "config_hash": "c8e2751c",
+  "config": {
+    "n_seeds": 30,
+    "n_trials": 2000,
+    "alpha": 0.35,
+    "beta": 4.0
+  },
+  "status": "completed"
+}

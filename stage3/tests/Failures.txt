@@ -1,0 +1,1616 @@
+PS E:\CRS-1\substrate_cognitive> pytest stage3/tests/ -v
+================================================= test session starts =================================================
+platform win32 -- Python 3.10.7, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Alex660\AppData\Local\Programs\Python\Python310\python.exe
+cachedir: .pytest_cache
+rootdir: E:\CRS-1\substrate_cognitive
+plugins: anyio-4.9.0
+collected 44 items
+
+stage3/tests/test_action_basin_equivalence.py::test_perceptually_different_similar_exposure PASSED               [  2%]
+stage3/tests/test_action_basin_equivalence.py::test_similar_exposure_similar_mode PASSED                         [  4%]
+stage3/tests/test_action_basin_equivalence.py::test_different_exposure_different_mode PASSED                     [  6%]
+stage3/tests/test_action_basin_equivalence.py::test_action_basin_through_aggregation PASSED                      [  9%]
+stage3/tests/test_action_basin_equivalence.py::test_no_semantic_labels_in_basin PASSED                           [ 11%]
+stage3/tests/test_action_basin_equivalence.py::test_exposure_field_tolerance PASSED                              [ 13%]
+stage3/tests/test_backward_compatibility.py::test_zero_exposure_input PASSED                                     [ 15%]
+stage3/tests/test_backward_compatibility.py::test_compat_mode_restricts_modes PASSED                             [ 18%]
+stage3/tests/test_backward_compatibility.py::test_agent_compat_mode_behavior PASSED                              [ 20%]
+stage3/tests/test_backward_compatibility.py::test_backward_compatibility_verification PASSED                     [ 22%]
+stage3/tests/test_backward_compatibility.py::test_temporal_state_zero_with_zero_exposure PASSED                  [ 25%]
+stage3/tests/test_backward_compatibility.py::test_agent_reset_clears_state FAILED                                [ 27%]
+stage3/tests/test_gate_stage3.py::test_default_exploit_mode PASSED                                               [ 29%]
+stage3/tests/test_gate_stage3.py::test_explore_mode_high_uncertainty PASSED                                      [ 31%]
+stage3/tests/test_gate_stage3.py::test_exploit_safe_threat_override PASSED                                       [ 34%]
+stage3/tests/test_gate_stage3.py::test_absence_check_trigger PASSED                                              [ 36%]
+stage3/tests/test_gate_stage3.py::test_no_argmax_arbitration PASSED                                              [ 38%]
+stage3/tests/test_gate_stage3.py::test_threshold_cascade_priority PASSED                                         [ 40%]
+stage3/tests/test_integration.py::test_full_integration_single_trial FAILED                                      [ 43%]
+stage3/tests/test_integration.py::test_exposure_aggregates_flow FAILED                                           [ 45%]
+stage3/tests/test_integration.py::test_temporal_state_updates FAILED                                             [ 47%]
+stage3/tests/test_integration.py::test_gate_mode_selection_spatial FAILED                                        [ 50%]
+stage3/tests/test_integration.py::test_vte_proxies_logged FAILED                                                 [ 52%]
+stage3/tests/test_integration.py::test_backward_compatibility_integration FAILED                                 [ 54%]
+stage3/tests/test_integration.py::test_multiple_trials_logging FAILED                                            [ 56%]
+stage3/tests/test_integration.py::test_path_choice_under_exposure FAILED                                         [ 59%]
+stage3/tests/test_integration.py::test_save_logs FAILED                                                          [ 61%]
+stage3/tests/test_integration.py::test_full_session_30_seeds FAILED                                              [ 63%]
+stage3/tests/test_no_ready_semions.py::test_instant_diagnostics_rejects_strings PASSED                           [ 65%]
+stage3/tests/test_no_ready_semions.py::test_instant_diagnostics_accepts_numeric PASSED                           [ 68%]
+stage3/tests/test_no_ready_semions.py::test_exposure_aggregates_rejects_strings PASSED                           [ 70%]
+stage3/tests/test_no_ready_semions.py::test_exposure_aggregates_accepts_numeric PASSED                           [ 72%]
+stage3/tests/test_no_ready_semions.py::test_exposure_field_rejects_string_labels PASSED                          [ 75%]
+stage3/tests/test_no_ready_semions.py::test_exposure_field_accepts_numeric_observation PASSED                    [ 77%]
+stage3/tests/test_no_ready_semions.py::test_gate_input_validates_all_layers PASSED                               [ 79%]
+stage3/tests/test_no_ready_semions.py::test_gate_input_catches_semions PASSED                                    [ 81%]
+stage3/tests/test_no_ready_semions.py::test_action_basin_equivalence_semantic_free PASSED                        [ 84%]
+stage3/tests/test_temporal_state.py::test_h_risk_exponential_smoothing PASSED                                    [ 86%]
+stage3/tests/test_temporal_state.py::test_h_opp_exponential_smoothing PASSED                                     [ 88%]
+stage3/tests/test_temporal_state.py::test_h_time_reset_on_salient_event PASSED                                   [ 90%]
+stage3/tests/test_temporal_state.py::test_one_shot_amplitude_dependent PASSED                                    [ 93%]
+stage3/tests/test_temporal_state.py::test_backward_compatibility_zero_exposure PASSED                            [ 95%]
+stage3/tests/test_temporal_state.py::test_trace_dynamics_simulation PASSED                                       [ 97%]
+stage3/tests/test_temporal_state.py::test_config_validation PASSED                                               [100%]
+
+====================================================== FAILURES =======================================================
+____________________________________________ test_agent_reset_clears_state ____________________________________________
+
+    def test_agent_reset_clears_state():
+        """
+        Test: agent.reset() очищает всё состояние.
+        """
+        agent = create_test_agent(log_level=2)  # ← ИСПОЛЬЗУЕМ НОВЫЙ ХЕЛПЕР
+        env = create_test_env(seed=42)
+
+        observation = env.reset(trial=1)
+
+        # Несколько шагов
+        for _ in range(5):
+>           action, metadata = agent.step(observation=observation, reward=0.0, action=0)
+
+stage3\tests\test_backward_compatibility.py:197:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1A02650>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+_________________________________________ test_full_integration_single_trial __________________________________________
+
+    def test_full_integration_single_trial():
+        """
+        Test: Полный цикл agent-environment для одного триала.
+        """
+        # Создаём среду
+        env = create_test_env(seed=42)
+
+        # Создаём агента
+        agent = create_test_agent(seed=42, log_level=2)
+
+        # Reset среды
+        observation = env.reset(trial=1)
+
+        # Запускаем полный триал
+        done = False
+        actions = []
+
+        while not done:
+>           action, metadata = agent.step(observation=observation, reward=0.0, action=0)
+
+stage3\tests\test_integration.py:72:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1B026B0>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+____________________________________________ test_exposure_aggregates_flow ____________________________________________
+
+    def test_exposure_aggregates_flow():
+        """
+        Test: Exposure aggregates корректно передаются env → agent.
+        """
+        env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
+        agent = AgentStage3(CONFIG_3_1A['agent'])
+
+        # Reset
+        observation = env.reset(trial=1)
+
+        # Сохраняем exposure из среды
+        env_exposure = {
+            'X_risk': observation['X_risk'],
+            'X_opp': observation['X_opp'],
+            'D_est': observation['D_est']
+        }
+
+        # Agent step
+>       action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:114:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1B68070>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+_____________________________________________ test_temporal_state_updates _____________________________________________
+
+    def test_temporal_state_updates():
+        """
+        Test: Temporal state обновляется корректно.
+        """
+        env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
+        agent = AgentStage3(CONFIG_3_1A['agent'])
+
+        # Reset
+        observation = env.reset(trial=1)
+
+        # Initial temporal state должен быть нулевым
+        initial_state = agent.get_current_state()
+        assert initial_state['temporal_state']['h_risk'] == 0.0
+        assert initial_state['temporal_state']['h_opp'] == 0.0
+        assert initial_state['temporal_state']['h_time'] == 0
+
+        # Несколько шагов
+        for _ in range(5):
+>           action, metadata = agent.step(observation=observation, reward=0.5)
+
+stage3\tests\test_integration.py:149:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1B65750>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.5, action = 0
+salience = 0.5
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+__________________________________________ test_gate_mode_selection_spatial ___________________________________________
+
+    def test_gate_mode_selection_spatial():
+        """
+        Test: Gate выбирает режимы корректно в пространственной задаче.
+        """
+        env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
+        agent = AgentStage3(CONFIG_3_1A['agent'])
+
+        # Reset
+        observation = env.reset(trial=1)
+
+        modes_seen = set()
+
+        # Запускаем несколько триалов
+        for trial in range(10):
+            env.reset(trial=trial)
+            done = False
+
+            while not done:
+>               action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:188:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1BC2770>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+_______________________________________________ test_vte_proxies_logged _______________________________________________
+
+    def test_vte_proxies_logged():
+        """
+        Test: VTE proxies логируются на junction.
+
+        Note: VTE proxies возвращаются в info от env.step(), не в metadata от agent.step().
+        """
+        env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
+        agent = AgentStage3({**CONFIG_3_1A['agent'], 'log_level': 2})
+
+        # Reset
+        observation = env.reset(trial=1)
+
+        # Запускаем триал
+        done = False
+        junction_logs = []
+
+        while not done:
+>           action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:225:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1B014B0>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+_______________________________________ test_backward_compatibility_integration _______________________________________
+
+    def test_backward_compatibility_integration():
+        """
+        Test: Backward compatibility mode работает в интеграции.
+        """
+        # Config с compatibility mode
+        compat_config = CONFIG_3_1A.copy()
+        compat_config['agent']['compatibility_mode'] = True
+
+        env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
+        agent = AgentStage3(compat_config['agent'])
+
+        # Reset
+        observation = env.reset(trial=1)
+
+        # Запускаем триал
+        done = False
+        modes_seen = set()
+
+        while not done:
+>           action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:273:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1B64B20>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+____________________________________________ test_multiple_trials_logging _____________________________________________
+
+    def test_multiple_trials_logging():
+        """
+        Test: Логирование консистентно для нескольких триалов.
+        """
+        env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
+        # Создаём config с log_level=2
+        agent_config = CONFIG_3_1A['agent'].copy()
+        agent_config['log_level'] = 2
+
+        agent = AgentStage3(agent_config)  # ← Правильно: log_level внутри config
+
+        n_trials = 5
+
+        # Запускаем несколько триалов
+        for trial in range(n_trials):
+            observation = env.reset(trial=trial)
+            done = False
+
+            while not done:
+>               action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:307:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1C0D090>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+___________________________________________ test_path_choice_under_exposure ___________________________________________
+
+    def test_path_choice_under_exposure():
+        """
+        Test: Агент выбирает path с учётом exposure difference.
+        """
+        # Среда с высоким contrast exposure
+        high_contrast_config = CONFIG_3_1A['env'].copy()
+        high_contrast_config['paths']['open']['exposure_profile']['X_risk'] = 0.9
+        high_contrast_config['paths']['covered']['exposure_profile']['X_risk'] = 0.1
+
+        env = OpenCoveredChoiceEnv(high_contrast_config, seed=42)
+        agent = AgentStage3(CONFIG_3_1A['agent'])
+
+        n_trials = 20
+        open_choices = 0
+        covered_choices = 0
+
+        # Запускаем несколько триалов
+        for trial in range(n_trials):
+            observation = env.reset(trial=trial)
+            done = False
+
+            while not done:
+>               action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:353:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1B60820>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+___________________________________________________ test_save_logs ____________________________________________________
+
+    def test_save_logs():
+        """
+        Test: Сохранение логов работает корректно.
+        """
+        import tempfile
+        from pathlib import Path
+
+        env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=42)
+
+        # Создаём агент с log_level=2 через dict
+        agent_config = {**CONFIG_3_1A['agent'], 'log_level': 2}
+        agent = AgentStage3(agent_config, seed=42)
+
+        # Запускаем триал
+        observation = env.reset(trial=1)
+        done = False
+
+        while not done:
+>           action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:396:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1C6D4B0>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+_____________________________________________ test_full_session_30_seeds ______________________________________________
+
+    def test_full_session_30_seeds():
+        """
+        Test: Полная сессия — 30 seeds (как в Stage 2).
+        """
+        n_seeds = 30
+        n_trials_per_seed = 10
+
+        all_summaries = []
+
+        for seed in range(42, 42 + n_seeds):
+            env = OpenCoveredChoiceEnv(CONFIG_3_1A['env'], seed=seed)
+            agent = AgentStage3(CONFIG_3_1A['agent'])
+
+            for trial in range(n_trials_per_seed):
+                observation = env.reset(trial=trial)
+                done = False
+
+                while not done:
+>                   action, metadata = agent.step(observation=observation, reward=0.0)
+
+stage3\tests\test_integration.py:438:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <stage3.core.agent_stage3.AgentStage3 object at 0x000001B6C1B01BA0>
+observation = {'D_est': 0.5, 'X_opp': 0.0, 'X_risk': 0.1, 'at_junction': 0.0, ...}, reward = 0.0, action = 0
+salience = 1.0
+
+    def step(
+        self,
+        observation: Dict,
+        reward: Optional[float] = None,
+        action: Optional[int] = None,
+        salience: Optional[float] = None
+    ) -> Tuple[int, Dict]:
+        """
+        Один шаг агента с mode-specific stochastic policy.
+
+        Args:
+            observation: Raw observation из среды
+            reward: Reward signal
+            action: Previous action
+            salience: Salience estimate
+
+        Returns:
+            (action, metadata_dict)
+            metadata_dict содержит:
+                - mode: selected Gate mode
+                - exposure: ExposureAggregates
+                - temporal_state: TemporalState
+                - action_probs: probabilities for all actions
+                - q_values: Q-values for all actions
+                - gate_constraint: which threshold triggered
+        """
+        # =====================================================================
+        # 1. Вычисление Instant Diagnostics (u_t)
+        # =====================================================================
+        instant_diagnostics = self._compute_instant_diagnostics(
+            observation, reward, action
+        )
+
+        # =====================================================================
+        # 2. Вычисление Exposure Aggregates
+        # =====================================================================
+        # Если observation уже содержит exposure aggregates (из spatial env),
+        # используем их напрямую
+        if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
+            exposure_aggregates = ExposureAggregates(
+                X_risk=observation['X_risk'],
+                X_opp=observation['X_opp'],
+                D_est=observation['D_est']
+            )
+        else:
+            exposure_aggregates = self.exposure_field.compute_exposure(
+                observation=observation,
+                action=action,
+                reward=reward,
+                trial=self.trial_count
+            )
+
+        # =====================================================================
+        # 3. Обновление Temporal State
+        # =====================================================================
+        if salience is None:
+            salience = instant_diagnostics.u_delta
+
+        self.current_temporal_state = self.temporal_updater.update(
+            state=self.current_temporal_state,
+            X_risk=exposure_aggregates.X_risk,
+            X_opp=exposure_aggregates.X_opp,
+            salience=salience,
+            stakes=1.0
+        )
+
+        # =====================================================================
+        # 4. Backward Compatibility
+        # =====================================================================
+        if self.config.compatibility_mode:
+            gate_input = self.compat_shim.create_compat_input(instant_diagnostics)
+        else:
+            gate_input = GateInput(
+                instant=instant_diagnostics,
+                exposure=exposure_aggregates,
+                temporal=self.current_temporal_state
+            )
+
+        # =====================================================================
+        # 5. Gate Mode Selection (threshold cascade)
+        # =====================================================================
+        selected_mode, gate_metadata = self.gate.select_mode(gate_input)
+
+        # =====================================================================
+        # 6. Action Selection с mode-specific stochastic policy (Task 2)
+        # =====================================================================
+        action, action_metadata = self._select_action_for_mode_stochastic(
+            mode=selected_mode,
+            observation=observation,
+            instant_diagnostics=instant_diagnostics,
+            exposure=exposure_aggregates
+        )
+
+        # =====================================================================
+        # 7. Логирование (расширенное для Stage 3.1)
+        # =====================================================================
+        if self.config.log_level > 0:
+            log_entry = self._create_log_entry(
+                observation=observation,
+                exposure=exposure_aggregates,
+                temporal_state=self.current_temporal_state,
+                instant_diagnostics=instant_diagnostics,
+                mode_scores=gate_metadata['mode_scores'],
+                selected_mode=selected_mode,
+                action=action,
+                reward=reward or 0.0,
+>               gate_constraint=gate_metadata['gate_constraint'],
+                action_metadata=action_metadata
+            )
+E           KeyError: 'gate_constraint'
+
+stage3\core\agent_stage3.py:321: KeyError
+=============================================== short test summary info ===============================================
+FAILED stage3/tests/test_backward_compatibility.py::test_agent_reset_clears_state - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_full_integration_single_trial - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_exposure_aggregates_flow - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_temporal_state_updates - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_gate_mode_selection_spatial - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_vte_proxies_logged - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_backward_compatibility_integration - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_multiple_trials_logging - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_path_choice_under_exposure - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_save_logs - KeyError: 'gate_constraint'
+FAILED stage3/tests/test_integration.py::test_full_session_30_seeds - KeyError: 'gate_constraint'
+============================================ 11 failed, 33 passed in 0.74s ============================================

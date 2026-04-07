@@ -1,0 +1,5 @@
+commit_reason,path_choice,n_trials
+bound,covered,2820
+bound,open,1577
+timeout,covered,361
+timeout,open,242

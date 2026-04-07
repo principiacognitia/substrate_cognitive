@@ -1,0 +1,20 @@
+{
+  "n_seeds": 10,
+  "n_trials_total": 300,
+  "n_open_total": 129,
+  "n_covered_total": 171,
+  "p_open_total": 0.43,
+  "p_covered_total": 0.57,
+  "mean_reward_total": 0.6566666666666666,
+  "mean_commit_latency": 3.3333333333333335,
+  "mean_junction_pause_duration": 4.333333333333333,
+  "mean_reorientation_count": 1.1266666666666667,
+  "p_explore_at_junction": 1.0,
+  "n_commit_bound_total": 269,
+  "n_commit_timeout_total": 31,
+  "p_commit_bound_total": 0.8966666666666666,
+  "p_commit_timeout_total": 0.10333333333333333,
+  "covered_rate_mean_across_seeds": 0.57,
+  "covered_rate_std_across_seeds": 0.062271805640898,
+  "commit_latency_mean_across_seeds": 3.3333333333333335
+}

@@ -1,0 +1,16 @@
+{
+  "stage": "3.1A",
+  "n_seeds": 3,
+  "n_trials": 10,
+  "ablation": "full",
+  "config": "config_stage3_1a",
+  "start_time": "2026-03-31T20:11:10.915518",
+  "seed_range": [
+    42,
+    44
+  ],
+  "output_structure": "One folder per run, all seeds inside",
+  "end_time": "2026-03-31T20:11:10.938517",
+  "total_trials": 30,
+  "files_created": 3
+}

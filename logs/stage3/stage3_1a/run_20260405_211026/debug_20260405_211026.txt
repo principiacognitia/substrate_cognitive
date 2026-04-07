@@ -1,0 +1,415 @@
+Starting Stage 3.1A: 1 seeds × 10 trials
+Output: logs\stage3\stage3_1a\run_20260405_211026
+Ablation: full
+======================================================================
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=4 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=5 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=6 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=6 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=7 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.100
+[ENV] ✅ COMMIT by timeout (balance=0.200)
+[POST] node=junction state=committed committed=covered
+
+[PRE]  t=7 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=8 node=covered_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.200
+[POST] node=covered_mid state=traversing committed=covered
+
+[PRE]  t=8 node=covered_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=9 node=goal state=traversing probs=[1.0] action=0 evidence=0.200
+[POST] node=goal state=at_goal committed=covered
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=4 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=5 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=6 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.200
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=6 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=7 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.100
+[ENV] ✅ COMMIT by timeout (balance=0.000)
+[POST] node=junction state=committed committed=open
+
+[PRE]  t=7 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=8 node=open_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=open_mid state=traversing committed=open
+
+[PRE]  t=8 node=open_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=9 node=goal state=traversing probs=[1.0] action=0 evidence=0.000
+[POST] node=goal state=at_goal committed=open
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.200
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=4 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=5 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=6 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.200
+[ENV] ✅ COMMIT by bound (balance=0.300, bound=0.250)
+[POST] node=junction state=committed committed=covered
+
+[PRE]  t=6 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=7 node=covered_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.300
+[POST] node=covered_mid state=traversing committed=covered
+
+[PRE]  t=7 node=covered_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=8 node=goal state=traversing probs=[1.0] action=0 evidence=0.300
+[POST] node=goal state=at_goal committed=covered
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.200
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=4 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=5 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=6 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=6 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=7 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.100
+[ENV] ✅ COMMIT by timeout (balance=0.000)
+[POST] node=junction state=committed committed=open
+
+[PRE]  t=7 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=8 node=open_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=open_mid state=traversing committed=open
+
+[PRE]  t=8 node=open_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=9 node=goal state=traversing probs=[1.0] action=0 evidence=0.000
+[POST] node=goal state=at_goal committed=open
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.200
+[ENV] ✅ COMMIT by bound (balance=-0.300, bound=0.300)
+[POST] node=junction state=committed committed=open
+
+[PRE]  t=4 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=open_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.300
+[POST] node=open_mid state=traversing committed=open
+
+[PRE]  t=5 node=open_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=6 node=goal state=traversing probs=[1.0] action=0 evidence=-0.300
+[POST] node=goal state=at_goal committed=open
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=4 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=5 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=6 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.200
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=6 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=7 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.100
+[ENV] ✅ COMMIT by timeout (balance=0.000)
+[POST] node=junction state=committed committed=open
+
+[PRE]  t=7 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=8 node=open_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=open_mid state=traversing committed=open
+
+[PRE]  t=8 node=open_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=9 node=goal state=traversing probs=[1.0] action=0 evidence=0.000
+[POST] node=goal state=at_goal committed=open
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=4 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=5 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=6 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.200
+[ENV] ✅ COMMIT by bound (balance=0.300, bound=0.250)
+[POST] node=junction state=committed committed=covered
+
+[PRE]  t=6 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=7 node=covered_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.300
+[POST] node=covered_mid state=traversing committed=covered
+
+[PRE]  t=7 node=covered_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=8 node=goal state=traversing probs=[1.0] action=0 evidence=0.300
+[POST] node=goal state=at_goal committed=covered
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=4 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=5 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=6 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=6 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=7 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.100
+[ENV] ✅ COMMIT by timeout (balance=0.200)
+[POST] node=junction state=committed committed=covered
+
+[PRE]  t=7 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=8 node=covered_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=0.200
+[POST] node=covered_mid state=traversing committed=covered
+
+[PRE]  t=8 node=covered_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=9 node=goal state=traversing probs=[1.0] action=0 evidence=0.200
+[POST] node=goal state=at_goal committed=covered
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.200
+[ENV] ✅ COMMIT by bound (balance=-0.300, bound=0.300)
+[POST] node=junction state=committed committed=open
+
+[PRE]  t=4 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=open_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.300
+[POST] node=open_mid state=traversing committed=open
+
+[PRE]  t=5 node=open_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=6 node=goal state=traversing probs=[1.0] action=0 evidence=-0.300
+[POST] node=goal state=at_goal committed=open
+
+[PRE]  t=0 node=start state=approach q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=1 node=junction state=approach probs=[1.0] action=0 evidence=0.000
+[POST] node=junction state=at_junction committed=None
+
+[PRE]  t=1 node=junction state=at_junction q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=2 node=junction state=at_junction probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=0.000
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=2 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=3 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.100
+[POST] node=junction state=deliberating committed=None
+
+[PRE]  t=3 node=junction state=deliberating q=[0.5, 0.55]
+[AGENT] a=0 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=4 node=junction state=deliberating probs=[0.48750260351578967, 0.5124973964842103] action=0 evidence=-0.200
+[ENV] ✅ COMMIT by bound (balance=-0.300, bound=0.300)
+[POST] node=junction state=committed committed=open
+
+[PRE]  t=4 node=junction state=committed q=[0.5, 0.55]
+[AGENT] a=1 mode=explore probs=[0.48750260351578967, 0.5124973964842103]
+[ENV] tick=5 node=open_mid state=traversing probs=[0.48750260351578967, 0.5124973964842103] action=1 evidence=-0.300
+[POST] node=open_mid state=traversing committed=open
+
+[PRE]  t=5 node=open_mid state=traversing q=[1.0]
+[AGENT] a=0 mode=exploit probs=[1.0]
+[ENV] tick=6 node=goal state=traversing probs=[1.0] action=0 evidence=-0.300
+[POST] node=goal state=at_goal committed=open
+
+  Logs saved: stage3_1a_seed42_trials.csv (10 trials)
+  Seed 42: 10 trials completed
+======================================================================
+✓ Stage 3.1A completed: 1 seeds, 10 total trials
+Logs saved to: logs\stage3\stage3_1a\run_20260405_211026
+Files created: 1

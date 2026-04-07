@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "stats": {
+    "mf": {
+      "passed": 1,
+      "coef_reward": 0.9976727136993173,
+      "coef_interaction": 0.0279940868664687,
+      "p_interaction": 0.4550670341800694
+    },
+    "mb": {
+      "passed": 1,
+      "coef_reward": 0.001512734507670905,
+      "coef_interaction": 0.3659153859804673,
+      "p_interaction": 0.0006335180162167054
+    }
+  }
+}

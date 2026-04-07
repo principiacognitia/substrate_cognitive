@@ -1,0 +1,17 @@
+{
+  "experiment_name": "reversal_20260318_220634",
+  "description": "Reversal Learning Task — Double Dissociation Study",
+  "start_time": "2026-03-18T22:06:34.818989",
+  "git_commit": "04f205aaba43aeddcf768b630fc5fcb02bac4b56",
+  "config_hash": "d665f88b",
+  "config": {
+    "n_seeds": 30,
+    "n_trials": 2000,
+    "reversal_trial": 1000,
+    "theta_mb": 0.3,
+    "theta_u": 1.5,
+    "alpha": 0.35,
+    "beta": 4.0,
+    "volatility_threshold": 0.5
+  }
+}

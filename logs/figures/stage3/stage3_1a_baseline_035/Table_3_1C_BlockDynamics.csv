@@ -1,0 +1,5 @@
+trial_block_label,n_trials,p_covered,mean_commit_latency,mean_junction_pause_duration,mean_reorientation_count,p_commit_bound,p_commit_timeout
+1-25,1250,0.66,3.4096,4.4096,1.1784,0.8904,0.1096
+26-50,1250,0.6728,3.4256,4.4256,1.2248,0.8688,0.1312
+51-75,1250,0.6672,3.4656,4.4656,1.224,0.8768,0.1232
+76-100,1250,0.6384,3.392,4.392,1.1536,0.88,0.12

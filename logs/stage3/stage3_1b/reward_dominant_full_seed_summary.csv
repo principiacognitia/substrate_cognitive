@@ -1,0 +1,3 @@
+seed,condition_id,ablation,n_trials,p_open,mean_junction_pause_duration,mean_commit_latency,mean_reorientation_count,mean_junction_deliberation_proxy
+42,R2_T1,full,5,0.0,3.4,2.4,0.4,3.068164796162831
+43,R2_T1,full,5,0.6,3.8,2.8,0.8,3.651422942537662

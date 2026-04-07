@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "stats": {
+    "latency": {
+      "U": 240.0,
+      "p": 2.0924606800348657e-07,
+      "effect_size": -1.0
+    },
+    "perseveration": {
+      "U": 709.5,
+      "p": 5.8480314274740884e-05,
+      "effect_size": -0.5766666666666667
+    },
+    "full_vs_novp_latency": {
+      "U": 10.0,
+      "p": 0.7111111111111111,
+      "effect_size": -0.25
+    }
+  }
+}

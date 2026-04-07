@@ -1,0 +1,11 @@
+seed,trial,path_choice,reward_total,junction_pause_duration,reorientation_count,retreat_return_count,commit_latency,junction_deliberation_proxy,mode_at_junction,final_mode,one_shot_fired,config_name,ablation_name
+42,0,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,1,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,2,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,3,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,4,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,5,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,6,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,7,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,8,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full
+42,9,covered,1.0,0,0,0,1,-5.551115123125783e-17,exploit,exploit,False,stage3_1a,full

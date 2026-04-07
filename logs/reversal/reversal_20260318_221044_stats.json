@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "stats": {
+    "latency": {
+      "U": 240.0,
+      "p": 2.0924606800348657e-07,
+      "effect_size": 1.0
+    },
+    "perseveration": {
+      "U": 709.5,
+      "p": 5.8480314274740884e-05,
+      "effect_size": 0.5766666666666667
+    },
+    "full_vs_novp_latency": {
+      "U": 10.0,
+      "p": 0.7111111111111111,
+      "effect_size": 0.25
+    },
+    "latency_logrank_full_vs_novg": {
+      "chi2": 68.92179245930542,
+      "p": 1.0244650524728036e-16
+    },
+    "latency_logrank_full_vs_novp": {
+      "chi2": 4.142539280540459,
+      "p": 0.04181839410309372
+    }
+  }
+}

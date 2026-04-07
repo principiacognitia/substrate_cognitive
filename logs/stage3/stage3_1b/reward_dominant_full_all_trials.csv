@@ -1,0 +1,11 @@
+seed,trial,path_choice,reward_total,junction_pause_duration,reorientation_count,retreat_return_count,commit_latency,commit_reason,junction_deliberation_proxy,mode_at_junction,final_mode,one_shot_fired,config_name,ablation_name,condition_id,reward_level,threat_level,reward_gap,risk_gap,threat_gap,conflict_condition,one_shot_active,one_shot_trial,path_choice_preferred_by_reward,path_choice_preferred_by_threat
+42,1,covered,0.0,3,0,0,2,bound,2.4849066497880004,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+42,2,covered,1.0,3,0,0,2,bound,2.4849066497880004,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+42,3,covered,0.0,3,0,0,2,bound,2.4849066497880004,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+42,4,covered,1.0,5,2,0,4,bound,5.401197381662155,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+42,5,covered,1.0,3,0,0,2,bound,2.4849066497880004,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+43,1,open,1.0,3,0,0,2,bound,2.4849066497880004,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+43,2,covered,1.0,5,2,0,4,bound,5.401197381662155,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+43,3,open,1.0,5,2,0,4,bound,5.401197381662155,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+43,4,covered,0.0,3,0,0,2,bound,2.4849066497880004,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered
+43,5,open,1.0,3,0,0,2,bound,2.4849066497880004,explore,exploit,False,stage3_1b_R2_T1,full,R2_T1,R2,T1,0.56,0.25,0.0,reward_dominant,False,30,open,covered

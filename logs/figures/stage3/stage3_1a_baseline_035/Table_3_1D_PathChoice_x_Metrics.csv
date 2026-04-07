@@ -1,0 +1,3 @@
+path_choice,n_trials,mean_commit_latency,median_commit_latency,mean_junction_pause_duration,median_junction_pause_duration,mean_reorientation_count,p_commit_bound,p_commit_timeout
+covered,3298,3.3856882959369314,2.0,4.385688295936932,3.0,1.154335961188599,0.8893268647665251,0.11067313523347483
+open,1702,3.4958871915393654,2.0,4.4958871915393654,3.0,1.2743830787309047,0.8589894242068156,0.1410105757931845

@@ -1,0 +1,15 @@
+{
+  "full_vs_novg": {
+    "chi_squared": 42.14285714285713,
+    "p_value": 8.48432750905728e-11
+  },
+  "full_vs_novp": {
+    "chi_squared": 0.20258300707782587,
+    "p_value": 0.6526439459035129
+  },
+  "medians": {
+    "Full": 35.0,
+    "NoVG": 1.0,
+    "NoVp": 27.0
+  }
+}
