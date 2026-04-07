@@ -74,3 +74,7 @@ temp/
 *.key
 *.pem
 stage3/tests/Failures.txt
+logs/stage3/stage3_1b/balanced_conflict_full_run_summary.json
+ - Copy.gitignore
+logs/stage3/stage3_1b/balanced_conflict_full_run_summary.json
+/logs/stage3
