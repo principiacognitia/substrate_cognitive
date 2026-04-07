@@ -176,7 +176,6 @@ class TrialSummary:
     Сводка триала (для trial log).
     
     Соответствует LOGGING_CONFIG['trial_log_fields'] из config_stage3_1a.py.
-    Stage 3.1B extension: добавлены conflict variables и one-shot metadata.
     """
     seed: int = 0
     trial: int = 0
@@ -193,19 +192,6 @@ class TrialSummary:
     one_shot_fired: bool = False
     config_name: str = "stage3_1a"
     ablation_name: str = "full"
-    
-    # Stage 3.1B: Conflict variables
-    condition_id: str = ""
-    reward_level: str = ""
-    threat_level: str = ""
-    reward_gap: float = 0.0
-    risk_gap: float = 0.0
-    threat_gap: float = 0.0
-    conflict_condition: str = ""
-    one_shot_active: bool = False
-    one_shot_trial: int = -1
-    path_choice_preferred_by_reward: str = ""
-    path_choice_preferred_by_threat: str = ""
     
     def to_dict(self) -> Dict[str, Any]:
         """Конвертирует в dict для CSV logging."""
@@ -224,19 +210,7 @@ class TrialSummary:
             'final_mode': self.final_mode,
             'one_shot_fired': self.one_shot_fired,
             'config_name': self.config_name,
-            'ablation_name': self.ablation_name,
-            # Stage 3.1B fields
-            'condition_id': self.condition_id,
-            'reward_level': self.reward_level,
-            'threat_level': self.threat_level,
-            'reward_gap': self.reward_gap,
-            'risk_gap': self.risk_gap,
-            'threat_gap': self.threat_gap,
-            'conflict_condition': self.conflict_condition,
-            'one_shot_active': self.one_shot_active,
-            'one_shot_trial': self.one_shot_trial,
-            'path_choice_preferred_by_reward': self.path_choice_preferred_by_reward,
-            'path_choice_preferred_by_threat': self.path_choice_preferred_by_threat,
+            'ablation_name': self.ablation_name
         }
 
 
@@ -284,7 +258,7 @@ class OpenCoveredChoiceEnv:
         Инициализирует среду.
         
         Args:
-            config: Конфигурация из CONFIG_3_1A['env'] или CONFIG_3_1B['env']
+            config: Конфигурация из CONFIG_3_1A['env']
             seed: Random seed для воспроизводимости
         """
         self.config = config
@@ -305,14 +279,10 @@ class OpenCoveredChoiceEnv:
         self.goal_node = self.config['topology']['goal_node']
         self.start_node = self.config['topology']['start_node']
         
-        # Reward stochasticity (Task 3) + Stage 3.1B extensions
+        # Reward stochasticity (Task 3)
         paths = self.config.get('paths', {})
         self.open_reward_prob = paths.get('open', {}).get('reward_prob', 1.0)
         self.covered_reward_prob = paths.get('covered', {}).get('reward_prob', 1.0)
-        self.open_threat_penalty = paths.get('open', {}).get('threat_penalty', 0.0)
-        self.covered_threat_penalty = paths.get('covered', {}).get('threat_penalty', 0.0)
-        self.open_threat_prob = paths.get('open', {}).get('threat_prob', 0.0)
-        self.covered_threat_prob = paths.get('covered', {}).get('threat_prob', 0.0)
         
         # Exposure noise (Task 3)
         self.observability_noise_std = self.config.get('observability_noise_std', 0.0)
@@ -325,20 +295,6 @@ class OpenCoveredChoiceEnv:
         self.debug = self.config.get('debug', False)
         self.delib_config = self.config.get('deliberation', {})
         self.max_delib_ticks = self.delib_config.get('max_deliberation_ticks', 8)
-        
-        # Stage 3.1B: Condition metadata
-        self.condition_id = config.get('condition_id', 'stage3_1a')
-        self.reward_level = config.get('reward_level', '')
-        self.threat_level = config.get('threat_level', '')
-        
-        # Stage 3.1B: One-shot protocol
-        self.one_shot_config = config.get('one_shot', {})
-        self.one_shot_enabled = self.one_shot_config.get('one_shot_enabled', False)
-        self.one_shot_trial = self.one_shot_config.get('one_shot_trial', -1)
-        self.one_shot_path = self.one_shot_config.get('one_shot_path', 'open')
-        self.one_shot_reward = self.one_shot_config.get('one_shot_reward', -5.0)
-        self.one_shot_salience = self.one_shot_config.get('one_shot_salience', 0.9)
-        self.one_shot_stakes = self.one_shot_config.get('one_shot_stakes', 10.0)
         
     def _build_maze(self) -> MazeGraph:
         """
@@ -763,41 +719,20 @@ class OpenCoveredChoiceEnv:
         Bernoulli reward sampled exactly once per step at goal.
         Uses committed_path first because path_choice may not yet be set
         on the first goal tick.
-        
-        Stage 3.1B extension: includes threat penalty when applicable.
         """
         if self.state.current_node != self.goal_node:
             return 0.0
 
         path = self.state.committed_path or self.state.path_choice
 
-        # Determine reward probability and threat parameters based on path
         if path == "open":
             reward_prob = self.open_reward_prob
-            threat_penalty = self.open_threat_penalty
-            threat_prob = self.open_threat_prob
         elif path == "covered":
             reward_prob = self.covered_reward_prob
-            threat_penalty = self.covered_threat_penalty
-            threat_prob = self.covered_threat_prob
         else:
             reward_prob = 0.5
-            threat_penalty = 0.0
-            threat_prob = 0.0
 
-        # Sample Bernoulli reward
         reward = 1.0 if self.rng.random() < reward_prob else 0.0
-        
-        # Stage 3.1B: Apply threat penalty with probability
-        if threat_prob > 0 and self.rng.random() < threat_prob:
-            reward -= threat_penalty
-        
-        # Stage 3.1B: One-shot aversive event override
-        if (self.one_shot_enabled and 
-            self.state.trial == self.one_shot_trial and 
-            path == self.one_shot_path):
-            reward = self.one_shot_reward
-        
         return float(reward)
     
     def _check_trial_complete(self) -> bool:
@@ -815,11 +750,6 @@ class OpenCoveredChoiceEnv:
         return False
     
     def _finalize_trial(self, mode: str, gate_trigger: str) -> None:
-        """
-        Финализирует триал и создаёт TrialSummary.
-        
-        Stage 3.1B extension: добавлены conflict variables и one-shot metadata.
-        """
         metrics = self.state.deliberation_metrics
         path_choice = self.state.path_choice or self.state.committed_path or "unknown"
 
@@ -833,47 +763,6 @@ class OpenCoveredChoiceEnv:
             np.log1p(metrics.commit_latency),
         ]
         deliberation_proxy = float(np.sum(vte_metrics))
-        
-        # Stage 3.1B: Compute conflict variables
-        paths = self.config.get('paths', {})
-        open_path = paths.get('open', {})
-        covered_path = paths.get('covered', {})
-        
-        # Expected rewards
-        E_R_open = (open_path.get('base_reward', 1.0) + open_path.get('reward_bonus', 0.0)) * open_path.get('reward_prob', 1.0)
-        E_R_covered = (covered_path.get('base_reward', 1.0) + covered_path.get('reward_bonus', 0.0)) * covered_path.get('reward_prob', 1.0)
-        
-        # Expected threats
-        E_T_open = open_path.get('threat_penalty', 0.0) * open_path.get('threat_prob', 0.0)
-        E_T_covered = covered_path.get('threat_penalty', 0.0) * covered_path.get('threat_prob', 0.0)
-        
-        # Risk gaps
-        X_risk_open = open_path.get('exposure_profile', {}).get('X_risk', 0.0)
-        X_risk_covered = covered_path.get('exposure_profile', {}).get('X_risk', 0.0)
-        
-        reward_gap = E_R_open - E_R_covered
-        risk_gap = X_risk_open - X_risk_covered
-        threat_gap = E_T_open - E_T_covered
-        
-        # Conflict condition classification
-        if abs(reward_gap) > abs(threat_gap) * 1.5:
-            conflict_condition = 'reward_dominant'
-        elif abs(threat_gap) > abs(reward_gap) * 1.5:
-            conflict_condition = 'threat_dominant'
-        else:
-            conflict_condition = 'balanced_conflict'
-        
-        # Path preferences
-        preferred_by_reward = 'open' if reward_gap > 0 else 'covered'
-        preferred_by_threat = 'covered' if risk_gap > 0 else 'open'
-        
-        # One-shot detection
-        one_shot_active = (self.one_shot_enabled and 
-                          self.state.trial == self.one_shot_trial and
-                          path_choice == self.one_shot_path)
-        one_shot_fired = one_shot_active and (self.state.trial_reward < 0)
-
-        config_name = f"stage3_1b_{self.condition_id}" if self.condition_id != 'stage3_1a' else "stage3_1a"
 
         summary = TrialSummary(
             seed=self.seed,
@@ -888,21 +777,9 @@ class OpenCoveredChoiceEnv:
             junction_deliberation_proxy=deliberation_proxy,
             mode_at_junction=mode_at_junction,
             final_mode=mode,
-            one_shot_fired=one_shot_fired,
-            config_name=config_name,
-            ablation_name="full",
-            # Stage 3.1B fields
-            condition_id=self.condition_id,
-            reward_level=self.reward_level,
-            threat_level=self.threat_level,
-            reward_gap=reward_gap,
-            risk_gap=risk_gap,
-            threat_gap=threat_gap,
-            conflict_condition=conflict_condition,
-            one_shot_active=one_shot_active,
-            one_shot_trial=self.one_shot_trial,
-            path_choice_preferred_by_reward=preferred_by_reward,
-            path_choice_preferred_by_threat=preferred_by_threat,
+            one_shot_fired=False,
+            config_name="stage3_1a",
+            ablation_name="full"
         )
 
         self.trial_summaries.append(summary)

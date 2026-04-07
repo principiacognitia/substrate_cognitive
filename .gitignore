@@ -73,8 +73,13 @@ temp/
 .env
 *.key
 *.pem
+<<<<<<< HEAD
 stage3/tests/Failures.txt
 logs/stage3/stage3_1b/balanced_conflict_full_run_summary.json
  - Copy.gitignore
 logs/stage3/stage3_1b/balanced_conflict_full_run_summary.json
 /logs/stage3
+=======
+stage2/reversal/run_reversal.patch
+stage3/tests/Failures.txt
+>>>>>>> parent of a92e52e (Merge pull request #1 from principiacognitia/stage-3.1a-debug-completion)
