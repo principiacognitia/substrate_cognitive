@@ -190,6 +190,7 @@ def run_condition(
     agent = AgentStage3(agent_config, seed=seed)
 
     trial_summaries = []
+    step_rows = []
 
     # IMPORTANT: reward feedback from previous step
     prev_reward = 0.0
@@ -223,6 +224,52 @@ def run_condition(
                 action_probs=action_probs
             )
 
+            temporal_state = metadata.get('temporal_state', {})
+            exposure = metadata.get('exposure', {})
+
+            step_rows.append({
+                'seed': seed,
+                'condition_id': condition_id,
+                'ablation': ablation,
+                'trial': trial,
+                'tick': info.get('tick', tick),
+
+                'node_id': info.get('node_id', ''),
+                'at_junction': info.get('at_junction', False),
+                'deliberation_state': info.get('deliberation_state', ''),
+                'candidate_path': info.get('candidate_path', ''),
+                'committed_path': info.get('committed_path', ''),
+
+                'mode': mode,
+                'gate_trigger': gate_trigger,
+                'action': action,
+                'reward': reward,
+
+                'X_risk': exposure.get('X_risk', np.nan),
+                'X_opp': exposure.get('X_opp', np.nan),
+                'D_est': exposure.get('D_est', np.nan),
+
+                'h_risk': temporal_state.get('h_risk', np.nan),
+                'h_opp': temporal_state.get('h_opp', np.nan),
+                'h_time': temporal_state.get('h_time', np.nan),
+
+                'one_shot_fired': temporal_state.get('one_shot_pending', False),
+                'one_shot_amplitude': temporal_state.get('one_shot_amplitude', 0.0),
+
+                'open_reward_prob': info.get('open_reward_prob', np.nan),
+                'covered_reward_prob': info.get('covered_reward_prob', np.nan),
+                'open_X_risk': info.get('open_X_risk', np.nan),
+                'covered_X_risk': info.get('covered_X_risk', np.nan),
+                'reward_gap': info.get('reward_gap', np.nan),
+                'risk_gap': info.get('risk_gap', np.nan),
+                'threat_gap': info.get('threat_gap', np.nan),
+                'conflict_condition': info.get('conflict_condition', ''),
+
+                'one_shot_active': info.get('one_shot_active', False),
+                'one_shot_trial': info.get('one_shot_trial', -1),
+                'one_shot_path': info.get('one_shot_path', ''),
+            })
+
             prev_reward = reward
 
         if not done:
@@ -248,6 +295,7 @@ def run_condition(
         'ablation': ablation,
         'n_trials': n_trials,
         'trial_summaries': trial_dicts,
+        'step_rows': step_rows,
         'p_open': p_open,
         'p_covered': p_covered,
         'mean_junction_pause_duration': np.mean([t['junction_pause_duration'] for t in trial_dicts]) if trial_dicts else 0.0,
@@ -400,6 +448,7 @@ def aggregate_and_save(
     output_path.mkdir(parents=True, exist_ok=True)
 
     all_trials = []
+    all_steps = []
     seed_summaries = []
 
     for result in results:
@@ -420,6 +469,8 @@ def aggregate_and_save(
 
         for trial in result['trial_summaries']:
             all_trials.append(trial)
+        for step in result.get('step_rows', []):
+            all_steps.append(step)
 
     if not all_trials:
         raise RuntimeError("No trials collected in aggregate_and_save()")
@@ -428,11 +479,16 @@ def aggregate_and_save(
     df_seeds = pd.DataFrame(seed_summaries)
 
     trials_file = output_path / f"{prefix}_all_trials.csv"
+    steps_file = output_path / f"{prefix}_all_steps.csv"
     seeds_file = output_path / f"{prefix}_seed_summary.csv"
     condition_file = output_path / f"{prefix}_condition_summary.csv"
     summary_file = output_path / f"{prefix}_run_summary.json"
 
     df_trials.to_csv(trials_file, index=False)
+    if all_steps:
+        df_steps = pd.DataFrame(all_steps)
+        df_steps.to_csv(steps_file, index=False)
+        print(f"Saved {len(df_steps)} steps to {steps_file}")
     df_seeds.to_csv(seeds_file, index=False)
 
     mode_counts = (
@@ -504,6 +560,7 @@ def aggregate_grid_and_save(
     output_path.mkdir(parents=True, exist_ok=True)
 
     all_trials = []
+    all_steps = []
     seed_summaries = []
     condition_summaries = []
 
@@ -528,6 +585,9 @@ def aggregate_grid_and_save(
             for trial in result['trial_summaries']:
                 all_trials.append(trial)
                 condition_trials.append(trial)
+
+            for step in result.get('step_rows', []):
+                all_steps.append(step)
 
         df_condition = pd.DataFrame(condition_trials)
 
@@ -556,11 +616,16 @@ def aggregate_grid_and_save(
     df_conditions = pd.DataFrame(condition_summaries)
 
     trials_file = output_path / f"{prefix}_all_trials.csv"
+    steps_file = output_path / f"{prefix}_all_steps.csv"
     seeds_file = output_path / f"{prefix}_seed_summary.csv"
     conditions_file = output_path / f"{prefix}_condition_summary.csv"
     summary_file = output_path / f"{prefix}_run_summary.json"
 
     df_trials.to_csv(trials_file, index=False)
+    if all_steps:
+        df_steps = pd.DataFrame(all_steps)
+        df_steps.to_csv(steps_file, index=False)
+        print(f"Saved {len(df_steps)} steps to {steps_file}")
     df_seeds.to_csv(seeds_file, index=False)
     df_conditions.to_csv(conditions_file, index=False)
 
