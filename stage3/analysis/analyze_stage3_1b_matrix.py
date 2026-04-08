@@ -253,7 +253,10 @@ def draw_mode_label_heatmap(df: pd.DataFrame, output_path: Path):
         "absence_check": 3,
         "": -1,
     }
-    num = pivot.replace(mode_to_num).values.astype(float)
+    num = (
+        pivot.apply(lambda col: col.map(lambda x: mode_to_num.get(x, -1)))
+             .to_numpy(dtype=float)
+    )
 
     fig, ax = plt.subplots(figsize=(6.8, 5.6))
     im = ax.imshow(num, cmap="Pastel1", aspect="auto")
