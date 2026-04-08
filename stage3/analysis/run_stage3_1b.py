@@ -64,8 +64,11 @@ def parse_args():
                        help='Number of seeds (default: 50)')
     parser.add_argument('--n-trials', type=int, default=100,
                        help='Number of trials per seed (default: 100)')
-    parser.add_argument('--output-dir', type=str, default='logs/stage3/stage3_1b/',
-                       help='Output directory')
+    
+    # Output directory
+    parser.add_argument('--output-dir', type=str, default='logs/stage3/stage3_1b',
+        help='Base output directory; run-specific timestamped subdir will be created inside it')
+    
     parser.add_argument('--ablation', type=str, default='full',
                        choices=['full', 'novg', 'novp', 'nox', 'one_shot_off'],
                        help='Ablation condition (default: full)')
@@ -89,6 +92,19 @@ def normalize_condition_name(condition_name: str) -> str:
         raise ValueError(f"Unknown condition name: {condition_name}")
 
     return aliases[condition_name]
+
+def build_timestamped_output_dir(base_output_dir: str, run_label: str) -> str:
+    """
+    Creates timestamped output directory inside base_output_dir.
+
+    Example:
+        base_output_dir = logs/stage3/stage3_1b
+        run_label = balanced_conflict_full
+        -> logs/stage3/stage3_1b/balanced_conflict_full_20260408_123456
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = Path(base_output_dir) / f"{run_label}_{timestamp}"
+    return str(output_dir)
 
 def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str, Any]:
     """Applies ablation modifications to agent config."""
@@ -583,31 +599,47 @@ def main():
     args = parse_args()
     
     if args.condition:
+        condition_name = normalize_condition_name(args.condition)
+        run_label = f"{condition_name}_{args.ablation}"
+        output_dir = build_timestamped_output_dir(args.output_dir, run_label)
+
+        print(f"\nOutput directory: {output_dir}")
+
         run_single_condition(
-            condition_name=normalize_condition_name(args.condition),
+            condition_name=condition_name,
             n_seeds=args.n_seeds,
             n_trials=args.n_trials,
             ablation=args.ablation,
-            output_dir=args.output_dir,
+            output_dir=output_dir,
             verbose=args.verbose
         )
-    
+
     elif args.grid:
+        run_label = f"grid_{args.grid}_{args.ablation}"
+        output_dir = build_timestamped_output_dir(args.output_dir, run_label)
+
+        print(f"\nOutput directory: {output_dir}")
+
         run_grid(
             grid_type=args.grid,
             n_seeds=args.n_seeds,
             n_trials=args.n_trials,
             ablation=args.ablation,
-            output_dir=args.output_dir,
+            output_dir=output_dir,
             verbose=args.verbose
         )
-    
+
     elif args.one_shot:
+        run_label = f"one_shot_{args.ablation}"
+        output_dir = build_timestamped_output_dir(args.output_dir, run_label)
+
+        print(f"\nOutput directory: {output_dir}")
+
         run_one_shot_protocol(
             n_seeds=args.n_seeds,
             n_trials=args.n_trials,
             ablation=args.ablation,
-            output_dir=args.output_dir,
+            output_dir=output_dir,
             verbose=args.verbose
         )
 
