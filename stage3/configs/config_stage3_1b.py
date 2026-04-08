@@ -95,9 +95,13 @@ ENV_CONFIG_BASELINE: Dict[str, Any] = {
         'evidence_bound_min': 0.20,
         'urgency_slope': 0.04,
         'min_evidence_step': 0.10,
+
+        # Stage 3.1B reward/threat-conditioned Q shaping
+        'reward_q_scale': 1.50,
+        'threat_q_scale': 0.50,
+        'risk_q_scale': 0.25,
     },
 }
-
 
 # =============================================================================
 # PATH PARAMETERS: COVERED (FIXED BASELINE)
