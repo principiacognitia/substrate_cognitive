@@ -1,0 +1,560 @@
+"""
+Stage 3.1B: One-Shot Graphical Analysis
+
+Строит графический анализ one-shot protocol из уже сохранённых логов.
+
+Ожидаемые файлы в run directory:
+- one_shot_full_run_summary.json
+- one_shot_full_all_trials.csv
+- one_shot_full_all_steps.csv
+- optionally: one_shot_full_seed_summary.csv
+
+Поддерживает два режима входа:
+1. --input-dir указывает на конкретную папку one_shot_* run
+2. --input-dir указывает на logs/stage3/stage3_1b,
+   тогда скрипт сам находит последний one_shot_* run
+
+Default paths:
+- input-dir  = logs/stage3/stage3_1b
+- output-dir = logs/figures/stage3/stage3_1b_one_shot_analysis
+
+Usage:
+    python -m stage3.analysis.analyze_stage3_1b_one_shot
+
+    python -m stage3.analysis.analyze_stage3_1b_one_shot ^
+        --input-dir logs/stage3/stage3_1b\one_shot_full_20260408_194951 ^
+        --output-dir logs/figures/stage3/stage3_1b_one_shot_analysis
+"""
+
+import argparse
+import json
+from pathlib import Path
+from typing import Optional, List, Tuple
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Analyze Stage 3.1B one-shot run")
+    parser.add_argument(
+        "--input-dir",
+        type=str,
+        default="logs/stage3/stage3_1b",
+        help="One-shot run directory or base logs directory containing one_shot_* runs"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="logs/figures/stage3/stage3_1b_one_shot_analysis",
+        help="Directory for figures and summary tables"
+    )
+    parser.add_argument(
+        "--ablation",
+        type=str,
+        default="full",
+        help="Ablation suffix (default: full)"
+    )
+    parser.add_argument(
+        "--rolling-window",
+        type=int,
+        default=5,
+        help="Rolling window for P(open) by trial smoothing"
+    )
+    return parser.parse_args()
+
+
+def is_one_shot_run_dir(path: Path) -> bool:
+    return path.is_dir() and path.name.startswith("one_shot_")
+
+
+def find_latest_one_shot_run(input_dir: Path) -> Path:
+    """
+    Если input_dir уже run-dir, используем его.
+    Иначе ищем последний one_shot_* run внутри input_dir.
+    """
+    if input_dir.is_dir():
+        if any(input_dir.glob("*_run_summary.json")) and any(input_dir.glob("*_all_trials.csv")):
+            return input_dir
+
+        candidates = [p for p in input_dir.iterdir() if is_one_shot_run_dir(p)]
+        if candidates:
+            candidates = sorted(candidates, key=lambda p: p.name)
+            return candidates[-1]
+
+    raise FileNotFoundError(f"Could not locate one-shot run directory in {input_dir}")
+
+
+def find_single_file(run_dir: Path, pattern: str) -> Path:
+    matches = sorted(run_dir.glob(pattern))
+    if not matches:
+        raise FileNotFoundError(f"No files matching {pattern} in {run_dir}")
+    return matches[-1]
+
+
+def try_find_optional_file(run_dir: Path, pattern: str) -> Optional[Path]:
+    matches = sorted(run_dir.glob(pattern))
+    if not matches:
+        return None
+    return matches[-1]
+
+
+def load_run_data(run_dir: Path, ablation: str):
+    run_summary_path = find_single_file(run_dir, f"*_{ablation}_run_summary.json")
+    all_trials_path = find_single_file(run_dir, f"*_{ablation}_all_trials.csv")
+    all_steps_path = find_single_file(run_dir, f"*_{ablation}_all_steps.csv")
+    seed_summary_path = try_find_optional_file(run_dir, f"*_{ablation}_seed_summary.csv")
+
+    with open(run_summary_path, "r", encoding="utf-8") as f:
+        run_summary = json.load(f)
+
+    all_trials = pd.read_csv(all_trials_path)
+    all_steps = pd.read_csv(all_steps_path)
+    seed_summary = pd.read_csv(seed_summary_path) if seed_summary_path is not None else None
+
+    return run_summary, all_trials, all_steps, seed_summary
+
+
+def infer_shock_trial(all_trials: pd.DataFrame) -> int:
+    if "one_shot_trial" in all_trials.columns:
+        vals = [int(v) for v in all_trials["one_shot_trial"].dropna().unique().tolist() if int(v) >= 0]
+        if vals:
+            return vals[0]
+    return 30
+
+
+def split_pre_shock_post(all_trials: pd.DataFrame, shock_trial: int):
+    pre_df = all_trials[all_trials["trial"] < shock_trial].copy()
+    shock_df = all_trials[all_trials["trial"] == shock_trial].copy()
+    post_df = all_trials[all_trials["trial"] > shock_trial].copy()
+    return pre_df, shock_df, post_df
+
+
+def block_summary(df: pd.DataFrame, label: str) -> dict:
+    if len(df) == 0:
+        return {
+            "block": label,
+            "n_trials": 0,
+            "p_open": 0.0,
+            "p_covered": 0.0,
+            "mean_commit_latency": 0.0,
+            "mean_junction_pause_duration": 0.0,
+            "mean_reorientation_count": 0.0,
+            "mean_junction_deliberation_proxy": 0.0,
+            "mode_at_junction_top": "",
+            "mode_at_junction_top_p": 0.0,
+        }
+
+    mode_dist = (
+        df["mode_at_junction"].value_counts(normalize=True).to_dict()
+        if "mode_at_junction" in df.columns else {}
+    )
+    mode_top = max(mode_dist, key=mode_dist.get) if mode_dist else ""
+    mode_top_p = float(mode_dist.get(mode_top, 0.0)) if mode_top else 0.0
+
+    return {
+        "block": label,
+        "n_trials": int(len(df)),
+        "p_open": float((df["path_choice"] == "open").mean()),
+        "p_covered": float((df["path_choice"] == "covered").mean()),
+        "mean_commit_latency": float(df["commit_latency"].mean()) if "commit_latency" in df.columns else 0.0,
+        "mean_junction_pause_duration": float(df["junction_pause_duration"].mean()) if "junction_pause_duration" in df.columns else 0.0,
+        "mean_reorientation_count": float(df["reorientation_count"].mean()) if "reorientation_count" in df.columns else 0.0,
+        "mean_junction_deliberation_proxy": float(df["junction_deliberation_proxy"].mean()) if "junction_deliberation_proxy" in df.columns else 0.0,
+        "mode_at_junction_top": mode_top,
+        "mode_at_junction_top_p": mode_top_p,
+    }
+
+
+def compute_trial_level_choice(all_trials: pd.DataFrame) -> pd.DataFrame:
+    trial_df = (
+        all_trials
+        .groupby("trial", dropna=False)
+        .agg(
+            n_trials=("trial", "size"),
+            p_open=("path_choice", lambda s: (s == "open").mean()),
+            p_covered=("path_choice", lambda s: (s == "covered").mean()),
+            mean_commit_latency=("commit_latency", "mean"),
+            mean_junction_pause_duration=("junction_pause_duration", "mean"),
+            mean_reorientation_count=("reorientation_count", "mean"),
+            mean_junction_deliberation_proxy=("junction_deliberation_proxy", "mean"),
+        )
+        .reset_index()
+        .sort_values("trial")
+    )
+    return trial_df
+
+
+def compute_hrisk_by_trial(all_steps: pd.DataFrame) -> pd.DataFrame:
+    required = {"trial", "h_risk"}
+    if not required.issubset(set(all_steps.columns)):
+        raise ValueError(f"Missing required step-level columns: {sorted(required)}")
+
+    hrisk_df = (
+        all_steps
+        .groupby("trial", dropna=False)
+        .agg(
+            mean_h_risk=("h_risk", "mean"),
+            mean_h_opp=("h_opp", "mean") if "h_opp" in all_steps.columns else ("h_risk", "size"),
+            mean_h_time=("h_time", "mean") if "h_time" in all_steps.columns else ("h_risk", "size"),
+        )
+        .reset_index()
+        .sort_values("trial")
+    )
+
+    if "h_opp" not in all_steps.columns:
+        hrisk_df["mean_h_opp"] = np.nan
+    if "h_time" not in all_steps.columns:
+        hrisk_df["mean_h_time"] = np.nan
+
+    return hrisk_df
+
+
+def compute_mode_pre_post(pre_df: pd.DataFrame, post_df: pd.DataFrame) -> pd.DataFrame:
+    modes = sorted(
+        set(pre_df.get("mode_at_junction", pd.Series(dtype=str)).dropna().tolist()) |
+        set(post_df.get("mode_at_junction", pd.Series(dtype=str)).dropna().tolist())
+    )
+
+    rows = []
+    for mode in modes:
+        pre_p = float((pre_df["mode_at_junction"] == mode).mean()) if len(pre_df) else 0.0
+        post_p = float((post_df["mode_at_junction"] == mode).mean()) if len(post_df) else 0.0
+        rows.append({
+            "mode_at_junction": mode,
+            "pre_p": pre_p,
+            "post_p": post_p,
+            "delta_post_minus_pre": post_p - pre_p,
+        })
+    return pd.DataFrame(rows)
+
+
+def compute_latency_pre_post(pre_df: pd.DataFrame, post_df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+
+    metrics = [
+        "commit_latency",
+        "junction_pause_duration",
+        "reorientation_count",
+        "junction_deliberation_proxy",
+    ]
+
+    for metric in metrics:
+        if metric not in pre_df.columns or metric not in post_df.columns:
+            continue
+        pre_val = float(pre_df[metric].mean()) if len(pre_df) else 0.0
+        post_val = float(post_df[metric].mean()) if len(post_df) else 0.0
+        rows.append({
+            "metric": f"mean_{metric}",
+            "pre": pre_val,
+            "post": post_val,
+            "delta_post_minus_pre": post_val - pre_val,
+        })
+
+    return pd.DataFrame(rows)
+
+
+def compute_seed_effect(all_trials: pd.DataFrame, shock_trial: int) -> pd.DataFrame:
+    rows = []
+
+    for seed, seed_df in all_trials.groupby("seed", dropna=False):
+        pre = seed_df[seed_df["trial"] < shock_trial]
+        shock = seed_df[seed_df["trial"] == shock_trial]
+        post = seed_df[seed_df["trial"] > shock_trial]
+
+        shock_choice = shock["path_choice"].iloc[0] if len(shock) else ""
+        one_shot_fired = bool(shock["one_shot_fired"].astype(bool).any()) if "one_shot_fired" in shock.columns else False
+
+        pre_p = float((pre["path_choice"] == "open").mean()) if len(pre) else np.nan
+        post_p = float((post["path_choice"] == "open").mean()) if len(post) else np.nan
+
+        rows.append({
+            "seed": seed,
+            "shock_choice": shock_choice,
+            "one_shot_fired": one_shot_fired,
+            "pre_p_open": pre_p,
+            "post_p_open": post_p,
+            "delta_post_minus_pre": post_p - pre_p if pd.notna(pre_p) and pd.notna(post_p) else np.nan,
+        })
+
+    return pd.DataFrame(rows).sort_values("seed")
+
+
+def compute_acceptance_checks(pre_df: pd.DataFrame, shock_df: pd.DataFrame, post_df: pd.DataFrame, hrisk_df: pd.DataFrame, shock_trial: int) -> dict:
+    pre_p_open = float((pre_df["path_choice"] == "open").mean()) if len(pre_df) else 0.0
+    post_p_open = float((post_df["path_choice"] == "open").mean()) if len(post_df) else 0.0
+
+    one_shot_logged = False
+    if "one_shot_fired" in shock_df.columns:
+        one_shot_logged = bool(shock_df["one_shot_fired"].astype(bool).any())
+
+    pre_hrisk = hrisk_df[hrisk_df["trial"] < shock_trial]["mean_h_risk"].mean()
+    post_hrisk = hrisk_df[hrisk_df["trial"] > shock_trial]["mean_h_risk"].mean()
+
+    return {
+        "shock_trial": shock_trial,
+        "pre_p_open": pre_p_open,
+        "post_p_open": post_p_open,
+        "post_shock_p_open_lt_pre": bool(post_p_open < pre_p_open),
+        "one_shot_logged": bool(one_shot_logged),
+        "hrisk_post_gt_pre": bool(post_hrisk > pre_hrisk) if pd.notna(pre_hrisk) and pd.notna(post_hrisk) else None,
+    }
+
+
+def save_table(df: pd.DataFrame, path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path, index=False)
+
+
+def plot_pre_post(pre_post_df: pd.DataFrame, output_path: Path):
+    """
+    Figure 3.1E: blockwise P(open) and P(covered)
+    """
+    x = np.arange(len(pre_post_df))
+    width = 0.36
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(x - width / 2, pre_post_df["p_open"], width=width, label="p_open")
+    ax.bar(x + width / 2, pre_post_df["p_covered"], width=width, label="p_covered")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(pre_post_df["block"].tolist())
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Probability")
+    ax.set_title("Stage 3.1B: One-shot pre / shock / post")
+
+    for i, row in enumerate(pre_post_df.itertuples(index=False)):
+        ax.text(i - width / 2, row.p_open + 0.02, f"{row.p_open:.3f}", ha="center", va="bottom")
+        ax.text(i + width / 2, row.p_covered + 0.02, f"{row.p_covered:.3f}", ha="center", va="bottom")
+
+    ax.legend()
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_hrisk_by_trial(hrisk_df: pd.DataFrame, shock_trial: int, output_path: Path):
+    """
+    Figure 3.1F: h_risk trajectory around shock
+    """
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.plot(hrisk_df["trial"], hrisk_df["mean_h_risk"], marker="o")
+    ax.axvline(shock_trial, linestyle="--")
+    ax.set_xlabel("Trial")
+    ax.set_ylabel("Mean h_risk")
+    ax.set_title("Stage 3.1B: h_risk around shock")
+    ax.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_popen_by_trial(trial_df: pd.DataFrame, shock_trial: int, rolling_window: int, output_path: Path):
+    """
+    Figure 3.1G: P(open) by trial + rolling average
+    """
+    plot_df = trial_df.copy()
+    plot_df["p_open_roll"] = plot_df["p_open"].rolling(window=rolling_window, min_periods=1).mean()
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.plot(plot_df["trial"], plot_df["p_open"], marker="o", label="p_open")
+    ax.plot(plot_df["trial"], plot_df["p_open_roll"], label=f"rolling_mean_{rolling_window}")
+    ax.axvline(shock_trial, linestyle="--")
+    ax.set_xlabel("Trial")
+    ax.set_ylabel("P(open)")
+    ax.set_ylim(0, 1)
+    ax.set_title("Stage 3.1B: P(open) by trial")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_mode_pre_post(mode_df: pd.DataFrame, output_path: Path):
+    """
+    Figure 3.1H: mode_at_junction pre vs post
+    """
+    if len(mode_df) == 0:
+        return
+
+    x = np.arange(len(mode_df))
+    width = 0.36
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(x - width / 2, mode_df["pre_p"], width=width, label="pre")
+    ax.bar(x + width / 2, mode_df["post_p"], width=width, label="post")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(mode_df["mode_at_junction"].tolist(), rotation=20)
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Probability")
+    ax.set_title("Stage 3.1B: mode_at_junction pre vs post")
+
+    for i, row in enumerate(mode_df.itertuples(index=False)):
+        ax.text(i - width / 2, row.pre_p + 0.02, f"{row.pre_p:.3f}", ha="center", va="bottom")
+        ax.text(i + width / 2, row.post_p + 0.02, f"{row.post_p:.3f}", ha="center", va="bottom")
+
+    ax.legend()
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_latency_pre_post(latency_df: pd.DataFrame, output_path: Path):
+    """
+    Figure 3.1I: pre vs post latency / pause / reorientation / proxy
+    """
+    if len(latency_df) == 0:
+        return
+
+    x = np.arange(len(latency_df))
+    width = 0.36
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.bar(x - width / 2, latency_df["pre"], width=width, label="pre")
+    ax.bar(x + width / 2, latency_df["post"], width=width, label="post")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(latency_df["metric"].tolist(), rotation=25, ha="right")
+    ax.set_ylabel("Value")
+    ax.set_title("Stage 3.1B: pre vs post metrics")
+
+    for i, row in enumerate(latency_df.itertuples(index=False)):
+        ax.text(i - width / 2, row.pre + 0.02, f"{row.pre:.3f}", ha="center", va="bottom")
+        ax.text(i + width / 2, row.post + 0.02, f"{row.post:.3f}", ha="center", va="bottom")
+
+    ax.legend()
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def write_report(
+    output_dir: Path,
+    run_summary: dict,
+    pre_post_df: pd.DataFrame,
+    mode_df: pd.DataFrame,
+    latency_df: pd.DataFrame,
+    seed_effect_df: pd.DataFrame,
+    checks: dict,
+):
+    out_path = output_dir / "Stage3_1B_OneShot_Report.md"
+
+    lines = []
+    lines.append("# Stage 3.1B One-Shot Report")
+    lines.append("")
+    lines.append("## Run summary")
+    lines.append("")
+    lines.append("```")
+    lines.append(json.dumps(run_summary, indent=2, ensure_ascii=False))
+    lines.append("```")
+    lines.append("")
+    lines.append("## Pre / Shock / Post")
+    lines.append("")
+    lines.append("```")
+    lines.append(pre_post_df.to_string(index=False))
+    lines.append("```")
+    lines.append("")
+    lines.append("## Mode at junction: pre vs post")
+    lines.append("")
+    lines.append("```")
+    lines.append(mode_df.to_string(index=False))
+    lines.append("```")
+    lines.append("")
+    lines.append("## Latency / pause / reorientation: pre vs post")
+    lines.append("")
+    lines.append("```")
+    lines.append(latency_df.to_string(index=False))
+    lines.append("```")
+    lines.append("")
+    lines.append("## Seed-level effect")
+    lines.append("")
+    lines.append("```")
+    lines.append(seed_effect_df.head(20).to_string(index=False))
+    lines.append("```")
+    lines.append("")
+    lines.append("## Acceptance checks")
+    lines.append("")
+    lines.append("```")
+    lines.append(json.dumps(checks, indent=2, ensure_ascii=False))
+    lines.append("```")
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+
+def main():
+    args = parse_args()
+
+    input_dir = Path(args.input_dir)
+    output_dir = Path(args.output_dir)
+
+    run_dir = find_latest_one_shot_run(input_dir)
+    print(f"Using one-shot run directory: {run_dir}")
+
+    run_summary, all_trials, all_steps, seed_summary = load_run_data(run_dir, args.ablation)
+
+    shock_trial = infer_shock_trial(all_trials)
+    pre_df, shock_df, post_df = split_pre_shock_post(all_trials, shock_trial)
+
+    pre_post_df = pd.DataFrame([
+        block_summary(pre_df, "pre"),
+        block_summary(shock_df, "shock"),
+        block_summary(post_df, "post"),
+    ])
+
+    trial_df = compute_trial_level_choice(all_trials)
+    hrisk_df = compute_hrisk_by_trial(all_steps)
+    mode_df = compute_mode_pre_post(pre_df, post_df)
+    latency_df = compute_latency_pre_post(pre_df, post_df)
+    seed_effect_df = compute_seed_effect(all_trials, shock_trial)
+    checks = compute_acceptance_checks(pre_df, shock_df, post_df, hrisk_df, shock_trial)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save tables
+    save_table(pre_post_df, output_dir / "one_shot_pre_post.csv")
+    save_table(trial_df, output_dir / "one_shot_trial_summary_by_trial.csv")
+    save_table(hrisk_df, output_dir / "one_shot_hrisk_by_trial.csv")
+    save_table(mode_df, output_dir / "one_shot_mode_pre_post.csv")
+    save_table(latency_df, output_dir / "one_shot_latency_pre_post.csv")
+    save_table(seed_effect_df, output_dir / "one_shot_seed_effect.csv")
+    if seed_summary is not None:
+        save_table(seed_summary, output_dir / "one_shot_seed_summary_copy.csv")
+
+    with open(output_dir / "one_shot_acceptance_check.json", "w", encoding="utf-8") as f:
+        json.dump(checks, f, indent=2, ensure_ascii=False)
+
+    # Plots
+    plot_pre_post(pre_post_df, output_dir / "Figure_3_1E_OneShot_PrePost.png")
+    plot_hrisk_by_trial(hrisk_df, shock_trial, output_dir / "Figure_3_1F_hRisk_AroundShock.png")
+    plot_popen_by_trial(trial_df, shock_trial, args.rolling_window, output_dir / "Figure_3_1G_POpen_ByTrial.png")
+    plot_mode_pre_post(mode_df, output_dir / "Figure_3_1H_ModeAtJunction_PrePost.png")
+    plot_latency_pre_post(latency_df, output_dir / "Figure_3_1I_Latency_PrePost.png")
+
+    write_report(
+        output_dir=output_dir,
+        run_summary=run_summary,
+        pre_post_df=pre_post_df,
+        mode_df=mode_df,
+        latency_df=latency_df,
+        seed_effect_df=seed_effect_df,
+        checks=checks,
+    )
+
+    print("\n=== One-shot acceptance checks ===")
+    print(json.dumps(checks, indent=2, ensure_ascii=False))
+    print(f"\nSaved outputs to: {output_dir}")
+
+
+if __name__ == "__main__":
+    main()
