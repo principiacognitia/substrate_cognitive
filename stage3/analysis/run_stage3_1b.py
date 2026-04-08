@@ -208,9 +208,18 @@ def run_condition(
         while not done and tick < max_ticks:
             tick += 1
 
+            step_salience = None
+            step_stakes = None
+
+            if float(obs.get('one_shot_fired', 0.0)) > 0.0:
+                step_salience = float(obs.get('one_shot_salience', 0.0))
+                step_stakes = float(obs.get('one_shot_stakes', 1.0))
+
             action, metadata = agent.step(
                 observation=obs,
-                reward=prev_reward
+                reward=prev_reward,
+                salience=step_salience,
+                stakes=step_stakes
             )
 
             mode = metadata.get('mode', 'EXPLOIT')
@@ -264,6 +273,15 @@ def run_condition(
                 'risk_gap': info.get('risk_gap', np.nan),
                 'threat_gap': info.get('threat_gap', np.nan),
                 'conflict_condition': info.get('conflict_condition', ''),
+
+                'salience': metadata.get('salience_used', np.nan),
+                'stakes': metadata.get('stakes_used', np.nan),
+                'one_shot_amplitude': metadata.get('one_shot_amplitude', np.nan),
+                'one_shot_pending': metadata.get('one_shot_pending', False),
+
+                'u_delta': metadata.get('instant_diagnostics', {}).get('u_delta', np.nan),
+                'u_entropy': metadata.get('instant_diagnostics', {}).get('u_entropy', np.nan),
+                'u_volatility': metadata.get('instant_diagnostics', {}).get('u_volatility', np.nan),
 
                 'one_shot_active': info.get('one_shot_active', False),
                 'one_shot_trial': info.get('one_shot_trial', -1),

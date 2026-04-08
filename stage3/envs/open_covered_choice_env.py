@@ -148,6 +148,11 @@ class EnvState:
     candidate_heading_switches: int = 0
     zone_entry_tick: int = 0
     zone_exit_tick: int = 0
+
+    last_one_shot_fired: bool = False
+    last_one_shot_salience: float = 0.0
+    last_one_shot_stakes: float = 1.0
+    last_one_shot_reward: float = 0.0
     
     def reset_trial(self, trial: int) -> None:
         """Сбрасывает состояние для нового триала."""
@@ -168,7 +173,10 @@ class EnvState:
         self.candidate_heading_switches = 0
         self.zone_entry_tick = 0
         self.zone_exit_tick = 0
-
+        self.last_one_shot_fired = False
+        self.last_one_shot_salience = 0.0
+        self.last_one_shot_stakes = 1.0
+        self.last_one_shot_reward = 0.0
 
 @dataclass
 class TrialSummary:
@@ -348,6 +356,15 @@ class OpenCoveredChoiceEnv:
         self.conflict_condition = self.conflict_vars.get('conflict_condition', '')
         self.preferred_by_reward = self.conflict_vars.get('preferred_by_reward', '')
         self.preferred_by_threat = self.conflict_vars.get('preferred_by_threat', '')
+
+        # Stage 3.1B: one-shot config
+        self.one_shot_config = self.config.get('one_shot', {})
+        self.one_shot_enabled = bool(self.one_shot_config.get('one_shot_enabled', False))
+        self.one_shot_trial = int(self.one_shot_config.get('one_shot_trial', -1))
+        self.one_shot_path = self.one_shot_config.get('one_shot_path', '')
+        self.one_shot_reward = float(self.one_shot_config.get('one_shot_reward', 0.0))
+        self.one_shot_salience = float(self.one_shot_config.get('one_shot_salience', 0.0))
+        self.one_shot_stakes = float(self.one_shot_config.get('one_shot_stakes', 1.0))
         
         # Stage 3.1B: One-shot protocol
         self.one_shot_config = config.get('one_shot', {})
@@ -498,6 +515,16 @@ class OpenCoveredChoiceEnv:
             'one_shot_active': self.one_shot_enabled,
             'one_shot_trial': self.one_shot_trial,
             'one_shot_path': self.one_shot_path,
+
+            'reward': reward,
+            'salience': self.state.last_one_shot_salience if self.state.last_one_shot_fired else observation.get('prediction_error', 0.0),
+            'stakes': self.state.last_one_shot_stakes if self.state.last_one_shot_fired else 1.0,
+
+            'one_shot_active': self.one_shot_enabled,
+            'one_shot_trial': self.one_shot_trial,
+            'one_shot_path': self.one_shot_path,
+            'one_shot_fired': self.state.last_one_shot_fired,
+            'one_shot_reward': self.state.last_one_shot_reward,
 
             'vte_proxies': {
                 'junction_pause_duration': self.state.deliberation_metrics.pause_duration,
@@ -774,6 +801,14 @@ class OpenCoveredChoiceEnv:
             # === Pseudo-kinematic (для IdPhi wrapper) ===
             'heading_state': self.state.heading_state,
             'heading_change': self.state.heading_change,
+
+            # Stage 3.1B: one-shot tags for agent-side temporal update
+            'one_shot_active': 1.0 if self.one_shot_enabled else 0.0,
+            'one_shot_trial': float(self.one_shot_trial),
+            'one_shot_fired': 1.0 if self.state.last_one_shot_fired else 0.0,
+            'one_shot_salience': self.state.last_one_shot_salience,
+            'one_shot_stakes': self.state.last_one_shot_stakes,
+            'one_shot_reward': self.state.last_one_shot_reward,
             
             # === State machine ===
             'state': self.state.deliberation_state.value
@@ -807,47 +842,68 @@ class OpenCoveredChoiceEnv:
         # Упрощённая реализация для Stage 3.1A
         return 0.1 if self.state.deliberation_state == DeliberationState.DELIBERATING else 0.05
     
+    def _should_fire_one_shot(self, path: Optional[str]) -> bool:
+        """
+        One-shot fires only on configured trial + configured path + goal arrival.
+        """
+        if not self.one_shot_enabled:
+            return False
+        if self.state.trial != self.one_shot_trial:
+            return False
+        if path != self.one_shot_path:
+            return False
+        if self.state.current_node != self.goal_node:
+            return False
+        return True
+    
     def _compute_bernoulli_reward(self) -> float:
         """
-        Bernoulli reward sampled exactly once per step at goal.
-        Uses committed_path first because path_choice may not yet be set
-        on the first goal tick.
-        
-        Stage 3.1B extension: includes threat penalty when applicable.
+        Stage 3.1B reward:
+        1. positive Bernoulli reward at goal
+        2. optional threat penalty
+        3. optional one-shot aversive reward on configured trial/path
         """
+        # reset per-step one-shot flags
+        self.state.last_one_shot_fired = False
+        self.state.last_one_shot_salience = 0.0
+        self.state.last_one_shot_stakes = 1.0
+        self.state.last_one_shot_reward = 0.0
+
         if self.state.current_node != self.goal_node:
             return 0.0
 
         path = self.state.committed_path or self.state.path_choice
 
-        # Determine reward probability and threat parameters based on path
         if path == "open":
-            reward_prob = self.open_reward_prob
-            threat_penalty = self.open_threat_penalty
-            threat_prob = self.open_threat_prob
+            path_cfg = self.config.get('paths', {}).get('open', {})
+            reward_prob = float(path_cfg.get('reward_prob', 1.0))
         elif path == "covered":
-            reward_prob = self.covered_reward_prob
-            threat_penalty = self.covered_threat_penalty
-            threat_prob = self.covered_threat_prob
+            path_cfg = self.config.get('paths', {}).get('covered', {})
+            reward_prob = float(path_cfg.get('reward_prob', 1.0))
         else:
+            path_cfg = {}
             reward_prob = 0.5
-            threat_penalty = 0.0
-            threat_prob = 0.0
 
-        # Sample Bernoulli reward
-        reward = 1.0 if self.rng.random() < reward_prob else 0.0
-        
-        # Stage 3.1B: Apply threat penalty with probability
-        if threat_prob > 0 and self.rng.random() < threat_prob:
-            reward -= threat_penalty
-        
-        # Stage 3.1B: One-shot aversive event override
-        if (self.one_shot_enabled and 
-            self.state.trial == self.one_shot_trial and 
-            path == self.one_shot_path):
-            reward = self.one_shot_reward
-        
-        return float(reward)
+        base_reward = float(path_cfg.get('base_reward', 1.0))
+        reward_bonus = float(path_cfg.get('reward_bonus', 0.0))
+
+        reward_goal = (base_reward + reward_bonus) if (self.rng.random() < reward_prob) else 0.0
+
+        threat_penalty = float(path_cfg.get('threat_penalty', 0.0))
+        threat_prob = float(path_cfg.get('threat_prob', 0.0))
+        threat_cost = threat_penalty if (threat_penalty > 0.0 and self.rng.random() < threat_prob) else 0.0
+
+        total_reward = reward_goal - threat_cost
+
+        # One-shot aversive event
+        if self._should_fire_one_shot(path):
+            total_reward += self.one_shot_reward
+            self.state.last_one_shot_fired = True
+            self.state.last_one_shot_salience = self.one_shot_salience
+            self.state.last_one_shot_stakes = self.one_shot_stakes
+            self.state.last_one_shot_reward = self.one_shot_reward
+
+        return float(total_reward)
     
     def _check_trial_complete(self) -> bool:
         """

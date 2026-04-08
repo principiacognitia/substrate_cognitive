@@ -64,7 +64,8 @@ class AgentLog:
     h_opp: float = 0.0
     h_time: int = 0
     one_shot_fired: bool = False
-
+    stakes: float = 1.0
+    one_shot_amplitude: float = 0.0
 
 @dataclass
 class AgentStage3Config:
@@ -217,7 +218,8 @@ class AgentStage3:
         observation: Dict,
         reward: Optional[float] = None,
         action: Optional[int] = None,
-        salience: Optional[float] = None
+        salience: Optional[float] = None,
+        stakes: Optional[float] = None
     ) -> Tuple[int, Dict]:
         """
         Один шаг агента с mode-specific stochastic policy.
@@ -269,13 +271,31 @@ class AgentStage3:
         # =====================================================================
         if salience is None:
             salience = instant_diagnostics.u_delta
-        
+
+        # ---------------------------------------------------------------------
+        # Stage 3.1B: one-shot integration pathway
+        # observation приходит из env после предыдущего шага, поэтому если
+        # на прошлом шаге произошёл shock event, его salience/stakes уже
+        # должны быть доступны здесь.
+        # ---------------------------------------------------------------------
+        obs_one_shot_fired = bool(observation.get('one_shot_fired', 0.0))
+        obs_one_shot_salience = float(observation.get('one_shot_salience', salience))
+        obs_one_shot_stakes = float(observation.get('one_shot_stakes', 1.0))
+
+        # one_shot_reward влияет на u_delta через reward/expected_reward,
+        # но one_shot_salience может дополнительно форсировать high-amplitude update
+        if obs_one_shot_fired:
+            salience = max(float(salience), obs_one_shot_salience)
+
+        if stakes is None:
+            stakes = obs_one_shot_stakes if obs_one_shot_fired else 1.0
+
         self.current_temporal_state = self.temporal_updater.update(
             state=self.current_temporal_state,
             X_risk=exposure_aggregates.X_risk,
             X_opp=exposure_aggregates.X_opp,
-            salience=salience,
-            stakes=1.0
+            salience=float(salience),
+            stakes=float(stakes)
         )
         
         # =====================================================================
@@ -317,6 +337,7 @@ class AgentStage3:
                 mode_scores=gate_metadata['mode_scores'],
                 selected_mode=selected_mode,
                 action=action,
+                stakes=float(stakes),
                 reward=reward or 0.0,
                 gate_constraint=gate_metadata.get('winning_constraint', 'default'),  # ← ИСПРАВЛЕНО
                 action_metadata=action_metadata
@@ -347,8 +368,14 @@ class AgentStage3:
             },
             'mode_scores': {str(k): v for k, v in gate_metadata['mode_scores'].items()},
             'gate_constraint': gate_metadata['winning_constraint'],
+
+            # Stage 3.1B one-shot plumbing
             'one_shot_pending': self.current_temporal_state.one_shot_pending,
-            # === Новые поля для Stage 3.1 ===
+            'one_shot_amplitude': self.current_temporal_state.one_shot_amplitude,
+            'salience_used': float(salience),
+            'stakes_used': float(stakes),
+
+            # Action policy metadata
             'action_probs': action_metadata.get('action_probs', []),
             'q_values': action_metadata.get('q_values', []),
             'risk_values': action_metadata.get('risk_values', []),
@@ -507,7 +534,8 @@ class AgentStage3:
         action: int,
         reward: float,
         gate_constraint: str,
-        action_metadata: Dict
+        action_metadata: Dict,
+        stakes: float
     ) -> AgentLog:
         """Создаёт расширенный лог entry для Stage 3.1."""
         return AgentLog(
@@ -537,6 +565,8 @@ class AgentStage3:
             h_risk=temporal_state.h_risk,
             h_opp=temporal_state.h_opp,
             h_time=temporal_state.h_time,
+            stakes=stakes,
+            one_shot_amplitude=temporal_state.one_shot_amplitude,
             one_shot_fired=temporal_state.one_shot_pending
         )
     
