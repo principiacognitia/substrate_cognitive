@@ -58,6 +58,16 @@ def parse_args():
                            help='Run full 3x3 matrix')
     mode_group.add_argument('--one-shot', action='store_true',
                            help='Run one-shot protocol')
+    parser.add_argument(
+        '--diagnostic-forced-shock',
+        action="store_true",
+        help="Diagnostic mode: on one-shot trial, force action toward configured one_shot_path at junction"
+    )
+    parser.add_argument(
+        '--forced-shock-path', type=str, default=None,
+        choices=['open', 'covered', None],
+        help="Optional override for forced shock path in diagnostic mode; default uses env.one_shot_path"
+    )
     
     # Common parameters
     parser.add_argument('--n-seeds', type=int, default=50,
@@ -162,7 +172,9 @@ def run_condition(
     n_trials: int,
     ablation: str = 'full',
     one_shot_override: Optional[Dict] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    diagnostic_forced_shock=False,
+    forced_shock_path=None
 ) -> Dict[str, Any]:
     """
     Runs a single condition for one seed.
@@ -195,6 +207,8 @@ def run_condition(
     # IMPORTANT: reward feedback from previous step
     prev_reward = 0.0
 
+    forced_action_applied_count = 0
+
     for trial in range(1, n_trials + 1):
         obs = env.reset(trial=trial)
 
@@ -225,6 +239,34 @@ def run_condition(
             mode = metadata.get('mode', 'EXPLOIT')
             gate_trigger = metadata.get('gate_constraint', 'default')
             action_probs = metadata.get('action_probs', [0.5, 0.5])
+
+            forced_action_applied = False
+
+            # -----------------------------------------------------------------
+            # Diagnostic forced-shock mode
+            # Purpose:
+            #   Guarantee that on shock trial the agent commits to one_shot_path,
+            #   so that we can test causal post-shock effects without dilution.
+            # This is a diagnostic intervention only, not a final experiment.
+            # -----------------------------------------------------------------
+            if diagnostic_forced_shock:
+                shock_trial = getattr(env, "one_shot_trial", -1)
+                configured_shock_path = forced_shock_path or getattr(env, "one_shot_path", "open")
+
+                at_junction = float(obs.get("at_junction", 0.0)) > 0.5
+                already_committed = float(obs.get("committed_path_encoded", 0.0)) != 0.0
+
+                if trial == shock_trial and at_junction and not already_committed:
+                    if configured_shock_path == "open":
+                        action = 0
+                    elif configured_shock_path == "covered":
+                        action = 1
+
+                    forced_action_applied = True
+                    forced_action_applied_count += 1
+
+                    # diagnostic tag in gate trigger
+                    gate_trigger = f"{gate_trigger}|forced_shock"
 
             obs, reward, done, info = env.step(
                 action=action,
@@ -286,6 +328,10 @@ def run_condition(
                 'one_shot_active': info.get('one_shot_active', False),
                 'one_shot_trial': info.get('one_shot_trial', -1),
                 'one_shot_path': info.get('one_shot_path', ''),
+
+                'diagnostic_forced_shock': diagnostic_forced_shock,
+                'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
+                'forced_action_applied': forced_action_applied,
             })
 
             prev_reward = reward
@@ -322,6 +368,9 @@ def run_condition(
         'mean_junction_deliberation_proxy': np.mean([t['junction_deliberation_proxy'] for t in trial_dicts]) if trial_dicts else 0.0,
         'p_commit_bound': np.mean([t['commit_reason'] == 'bound' for t in trial_dicts]) if trial_dicts else 0.0,
         'p_commit_timeout': np.mean([t['commit_reason'] == 'timeout' for t in trial_dicts]) if trial_dicts else 0.0,
+        'diagnostic_forced_shock': diagnostic_forced_shock,
+        'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
+        'forced_action_applied_count': forced_action_applied_count,
     }
 
     if verbose:
@@ -341,7 +390,9 @@ def run_single_condition(
     n_trials: int,
     ablation: str,
     output_dir: str,
-    verbose: bool
+    verbose: bool,
+    diagnostic_forced_shock=False,
+    forced_shock_path=None
 ) -> Dict[str, Any]:
     """Runs a single canonical condition."""
     canonical = get_canonical_conditions()
@@ -366,6 +417,8 @@ def run_single_condition(
             condition_id=condition_id,
             n_trials=n_trials,
             ablation=ablation,
+            diagnostic_forced_shock=diagnostic_forced_shock,
+            forced_shock_path=forced_shock_path,
             verbose=verbose
         )
         all_results.append(result)
@@ -380,7 +433,9 @@ def run_grid(
     n_trials: int,
     ablation: str,
     output_dir: str,
-    verbose: bool
+    verbose: bool,
+    diagnostic_forced_shock=False,
+    forced_shock_path=None
 ) -> Dict[str, Any]:
     """Runs full 3x3 matrix."""
     condition_grid = get_condition_grid()
@@ -403,6 +458,8 @@ def run_grid(
                 condition_id=condition_id,
                 n_trials=n_trials,
                 ablation=ablation,
+                diagnostic_forced_shock=diagnostic_forced_shock,
+                forced_shock_path=forced_shock_path,
                 verbose=verbose
             )
             condition_results.append(result)
@@ -418,7 +475,9 @@ def run_one_shot_protocol(
     n_trials: int,
     ablation: str,
     output_dir: str,
-    verbose: bool
+    verbose: bool,
+    diagnostic_forced_shock=False,
+    forced_shock_path=None
 ) -> Dict[str, Any]:
     """
     Runs one-shot protocol with pre/post blocks.
@@ -447,6 +506,8 @@ def run_one_shot_protocol(
             n_trials=total_trials,
             ablation=ablation,
             one_shot_override=protocol['one_shot'],
+            diagnostic_forced_shock=diagnostic_forced_shock,
+            forced_shock_path=forced_shock_path,
             verbose=verbose
         )
         all_results.append(result)
@@ -683,7 +744,8 @@ def main():
     
     if args.condition:
         condition_name = normalize_condition_name(args.condition)
-        run_label = f"{condition_name}_{args.ablation}"
+        diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
+        run_label = f"{condition_name}_{args.ablation}{diagnostic_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
         print(f"\nOutput directory: {output_dir}")
@@ -694,11 +756,14 @@ def main():
             n_trials=args.n_trials,
             ablation=args.ablation,
             output_dir=output_dir,
-            verbose=args.verbose
+            verbose=args.verbose,
+            diagnostic_forced_shock=args.diagnostic_forced_shock,
+            forced_shock_path=args.forced_shock_path
         )
 
     elif args.grid:
-        run_label = f"grid_{args.grid}_{args.ablation}"
+        diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
+        run_label = f"grid_{args.ablation}{diagnostic_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
         print(f"\nOutput directory: {output_dir}")
@@ -709,11 +774,14 @@ def main():
             n_trials=args.n_trials,
             ablation=args.ablation,
             output_dir=output_dir,
-            verbose=args.verbose
+            verbose=args.verbose,
+            diagnostic_forced_shock=args.diagnostic_forced_shock,
+            forced_shock_path=args.forced_shock_path
         )
 
     elif args.one_shot:
-        run_label = f"one_shot_{args.ablation}"
+        diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
+        run_label = f"one_shot_{args.ablation}{diagnostic_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
         print(f"\nOutput directory: {output_dir}")
@@ -723,7 +791,9 @@ def main():
             n_trials=args.n_trials,
             ablation=args.ablation,
             output_dir=output_dir,
-            verbose=args.verbose
+            verbose=args.verbose,
+            diagnostic_forced_shock=args.diagnostic_forced_shock,
+            forced_shock_path=args.forced_shock_path
         )
 
 
