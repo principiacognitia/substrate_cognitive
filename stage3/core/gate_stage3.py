@@ -401,7 +401,7 @@ def test_threshold_cascade():
     )
     mode, metadata = gate.select_mode(gate_input)
     assert mode == GateMode.EXPLOIT_SAFE, f"Expected EXPLOIT_SAFE, got {mode}"
-    assert metadata['winning_constraint'] == 'threat_override (critical risk exposure)'
+    assert metadata['winning_constraint'] == 'threat_override (safe_drive from current + temporal risk)'
     
     # Test 4: ABSENCE_CHECK (suspicion + poor visibility + safe window)
     gate_input = create_test_gate_input(

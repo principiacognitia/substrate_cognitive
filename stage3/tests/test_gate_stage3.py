@@ -13,7 +13,7 @@ License: MIT
 """
 
 import pytest
-from stage3.core.gate_stage3 import GateStage3, GateThresholds
+from stage3.core.gate_stage3 import GateStage3, GateThresholds, create_test_gate_input
 from stage3.core.gate_modes import GateMode
 from stage3.core.gate_inputs import GateInput, InstantDiagnostics, ExposureAggregates, TemporalState
 
@@ -77,14 +77,20 @@ def test_exploit_safe_threat_override():
     Rationale:
     Threat override должен bypass стандартный explore barrier.
     """
-    gate = GateStage3(GateThresholds(critical_risk_threshold=0.7))
+    gate = GateStage3(
+        GateThresholds(
+            critical_risk_threshold=0.7,
+            safe_drive_weight_current=0.6,
+            safe_drive_weight_temporal=0.4
+        )
+    )
     
     # Высокая неопределённость (normally → EXPLORE)
     # НО также критическая угроза (should → EXPLOIT_SAFE)
     gate_input = GateInput(
         instant=InstantDiagnostics(u_delta=0.8, u_entropy=0.8, u_volatility=0.8),
-        exposure=ExposureAggregates(X_risk=0.8, X_opp=0.1, D_est=0.8),  # Critical threat
-        temporal=TemporalState(h_risk=0.5, h_opp=0.1, h_time=10)
+        exposure=ExposureAggregates(X_risk=0.8, X_opp=0.1, D_est=0.8),
+        temporal=TemporalState(h_risk=0.8, h_opp=0.1, h_time=10)
     )
     
     mode, metadata = gate.select_mode(gate_input)
