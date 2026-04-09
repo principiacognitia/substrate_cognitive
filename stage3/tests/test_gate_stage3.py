@@ -191,6 +191,40 @@ def test_threshold_cascade_priority():
     
     print("✓ PASS: Threshold cascade priority order")
 
+# =============================================================================
+# TEST 7: EXPLOIT_SAFE должен использовать temporal risk
+# =============================================================================    
+
+def test_exploit_safe_uses_temporal_risk():
+    """
+    EXPLOIT_SAFE должен уметь триггериться не только от текущего X_risk,
+    но и от accumulated h_risk.
+    """
+    gate = GateStage3(
+        GateThresholds(
+            critical_risk_threshold=0.42,
+            safe_drive_weight_current=0.6,
+            safe_drive_weight_temporal=0.4
+        )
+    )
+
+    gate_input = create_test_gate_input(
+        u_delta=0.2, u_entropy=0.2, u_volatility=0.2,
+        X_risk=0.20,     # сам по себе ниже порога
+        X_opp=0.1,
+        D_est=0.8,
+        h_risk=0.80,     # accumulated threat должен дотолкнуть
+        h_opp=0.0,
+        h_time=5
+    )
+
+    mode, metadata = gate.select_mode(gate_input)
+
+    assert mode == GateMode.EXPLOIT_SAFE, f"Expected EXPLOIT_SAFE, got {mode}"
+    assert 'threat_override' in metadata['winning_constraint']
+
+    print("✓ PASS: exploit safe uses temporal risk")
+
 
 # =============================================================================
 # MAIN

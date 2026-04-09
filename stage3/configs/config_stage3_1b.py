@@ -340,18 +340,30 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
     
     # === Stage 3 Core: Gate Thresholds ===
     'gate_thresholds': {
-        'critical_risk_threshold': 0.7,
+        'critical_risk_threshold': 0.42,
         'suspicion_threshold': 0.5,
         'visibility_threshold': 0.3,
         'safe_window_threshold': 50,
         'theta_mb': 0.30,
         'theta_u': 1.5,
+
+        # Patch B: current + accumulated threat
+        'safe_drive_weight_current': 0.6,
+        'safe_drive_weight_temporal': 0.4,
     },
     
     # === Stage 3 Core: Temporal State ===
     'temporal_state': {
-        'lambda_risk': 0.9,
-        'lambda_opp': 0.9,
+        'lambda_risk': 0.10,   # legacy / fallback
+        'lambda_opp': 0.90,
+
+        # Patch A: asymmetric risk trace
+        'lambda_risk_in': 0.10,
+        'lambda_risk_out': 0.98,
+        'one_shot_decay_override': 0.995,
+        'one_shot_persistence_window': 10,
+        'one_shot_floor': 0.15,
+
         'salience_threshold': 0.5,
         'one_shot_threshold': 5.0,
         'one_shot_boost': 2.0,
@@ -533,7 +545,9 @@ ABLATION_CONFIG_3_1B: Dict[str, Dict[str, Any]] = {
             'agent': {
                 'temporal_state': {
                     'one_shot_threshold': 999.0,
-                    'one_shot_boost': 0.0
+                    'one_shot_boost': 0.0,
+                    'one_shot_persistence_window': 0,
+                    'one_shot_floor': 0.0
                 }
             }
         }

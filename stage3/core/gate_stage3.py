@@ -40,27 +40,37 @@ class GateThresholds:
         theta_mb: Mode switch threshold (Stage 2 наследие)
         theta_u: Uncertainty baseline (Stage 2 наследие)
     """
-    critical_risk_threshold: float = 0.7
+    critical_risk_threshold: float = 0.42
     suspicion_threshold: float = 0.5
     visibility_threshold: float = 0.3
     safe_window_threshold: int = 50
     theta_mb: float = 0.30
     theta_u: float = 1.5
-    
+
+    # Patch B: safe override uses current + temporal threat
+    safe_drive_weight_current: float = 0.6
+    safe_drive_weight_temporal: float = 0.4
+
     def __post_init__(self):
         """Валидация конфигурации."""
-        if not 0.0 <= self.critical_risk_threshold <= 1.0:
-            raise ValueError(f"critical_risk_threshold must be in [0, 1]: {self.critical_risk_threshold}")
-        if not 0.0 <= self.suspicion_threshold <= 1.0:
-            raise ValueError(f"suspicion_threshold must be in [0, 1]: {self.suspicion_threshold}")
-        if not 0.0 <= self.visibility_threshold <= 1.0:
-            raise ValueError(f"visibility_threshold must be in [0, 1]: {self.visibility_threshold}")
+        for name, value in [
+            ("critical_risk_threshold", self.critical_risk_threshold),
+            ("suspicion_threshold", self.suspicion_threshold),
+            ("visibility_threshold", self.visibility_threshold),
+            ("theta_mb", self.theta_mb),
+            ("safe_drive_weight_current", self.safe_drive_weight_current),
+            ("safe_drive_weight_temporal", self.safe_drive_weight_temporal),
+        ]:
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} must be in [0, 1]: {value}")
+
         if self.safe_window_threshold < 0:
             raise ValueError(f"safe_window_threshold must be >= 0: {self.safe_window_threshold}")
-        if not 0.0 <= self.theta_mb <= 1.0:
-            raise ValueError(f"theta_mb must be in [0, 1]: {self.theta_mb}")
         if self.theta_u < 0:
             raise ValueError(f"theta_u must be >= 0: {self.theta_u}")
+
+        if (self.safe_drive_weight_current + self.safe_drive_weight_temporal) <= 0:
+            raise ValueError("safe drive weights must sum to > 0")
 
 
 class GateStage3:
@@ -141,8 +151,8 @@ class GateStage3:
         exploit_safe_score = self._compute_exploit_safe_score(exposure, temporal)
         metadata['mode_scores'][GateMode.EXPLOIT_SAFE] = exploit_safe_score
         
-        if self._should_trigger_exploit_safe(exposure):
-            metadata['winning_constraint'] = 'threat_override (critical risk exposure)'
+        if self._should_trigger_exploit_safe(exposure, temporal):
+            metadata['winning_constraint'] = 'threat_override (safe_drive from current + temporal risk)'
             return GateMode.EXPLOIT_SAFE, metadata
         
         # --- Priority 3: EXPLORE ---------------------------------------------
@@ -186,19 +196,17 @@ class GateStage3:
     
     def _compute_exploit_safe_score(self, exposure: ExposureAggregates, temporal: TemporalState) -> float:
         """
-        Вычисляет score для EXPLOIT_SAFE.
-        
-        Score высокий когда:
-        - X_risk высокий (текущая угроза)
-        - h_risk высокий (накопленная угроза)
+        Patch B:
+        safe_drive = w_x * X_risk + w_h * h_risk
         """
-        # Комбинация текущей и накопленной угрозы
         current_threat = exposure.X_risk
         accumulated_threat = temporal.h_risk
-        
-        # Score = weighted combination
-        score = 0.6 * current_threat + 0.4 * accumulated_threat
-        
+
+        score = (
+            self.thresholds.safe_drive_weight_current * current_threat +
+            self.thresholds.safe_drive_weight_temporal * accumulated_threat
+        )
+
         return float(score)
     
     def _compute_explore_score(self, instant: InstantDiagnostics, 
@@ -261,14 +269,20 @@ class GateStage3:
         
         return suspicion and poor_visibility and safe_window
     
-    def _should_trigger_exploit_safe(self, exposure: ExposureAggregates) -> bool:
+    def _should_trigger_exploit_safe(
+        self,
+        exposure: ExposureAggregates,
+        temporal: TemporalState
+    ) -> bool:
         """
-        Проверяет условие для EXPLOIT_SAFE (threat override).
-        
-        Condition:
-            X_risk > critical_risk_threshold
+        Patch B:
+        EXPLOIT_SAFE depends on both current and accumulated threat.
+
+        safe_drive = w_x * X_risk + w_h * h_risk
+        trigger if safe_drive > critical_risk_threshold
         """
-        return exposure.X_risk > self.thresholds.critical_risk_threshold
+        safe_drive = self._compute_exploit_safe_score(exposure, temporal)
+        return safe_drive > self.thresholds.critical_risk_threshold
     
 # ИСПРАВЛЕНО:
     def _should_trigger_explore(self, instant: InstantDiagnostics,

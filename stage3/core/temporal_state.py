@@ -44,25 +44,58 @@ class TemporalStateConfig:
         salience_threshold: Порог для сброса h_time (default: 0.5)
         one_shot_threshold: Порог амплитуды для one-shot update (default: 5.0)
         one_shot_boost: Множитель для one-shot update (default: 2.0)
+
+    Конфигурация для temporal state update.
+
+    Backward compatibility:
+    - lambda_risk и lambda_opp оставлены как legacy fields
+    - если lambda_risk_in / lambda_risk_out не заданы, они наследуются из lambda_risk
     """
+
+    # Legacy / shared
     lambda_risk: float = 0.9
     lambda_opp: float = 0.9
+
+    # New risk-trace dynamics
+    lambda_risk_in: Optional[float] = None
+    lambda_risk_out: Optional[float] = None
+    one_shot_decay_override: float = 0.995
+    one_shot_persistence_window: int = 10
+    one_shot_floor: float = 0.15
+
+    # Existing
     salience_threshold: float = 0.5
     one_shot_threshold: float = 5.0
     one_shot_boost: float = 2.0
-    
+
     def __post_init__(self):
         """Валидация конфигурации."""
-        if not 0.0 <= self.lambda_risk <= 1.0:
-            raise ValueError(f"lambda_risk must be in [0, 1]: {self.lambda_risk}")
-        if not 0.0 <= self.lambda_opp <= 1.0:
-            raise ValueError(f"lambda_opp must be in [0, 1]: {self.lambda_opp}")
+        if self.lambda_risk_in is None:
+            self.lambda_risk_in = self.lambda_risk
+        if self.lambda_risk_out is None:
+            self.lambda_risk_out = self.lambda_risk
+
+        for name, value in [
+            ("lambda_risk", self.lambda_risk),
+            ("lambda_opp", self.lambda_opp),
+            ("lambda_risk_in", self.lambda_risk_in),
+            ("lambda_risk_out", self.lambda_risk_out),
+            ("one_shot_decay_override", self.one_shot_decay_override),
+            ("one_shot_floor", self.one_shot_floor),
+        ]:
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} must be in [0, 1]: {value}")
+
         if self.salience_threshold < 0:
             raise ValueError(f"salience_threshold must be >= 0: {self.salience_threshold}")
         if self.one_shot_threshold < 0:
             raise ValueError(f"one_shot_threshold must be >= 0: {self.one_shot_threshold}")
         if self.one_shot_boost < 0:
             raise ValueError(f"one_shot_boost must be >= 0: {self.one_shot_boost}")
+        if self.one_shot_persistence_window < 0:
+            raise ValueError(
+                f"one_shot_persistence_window must be >= 0: {self.one_shot_persistence_window}"
+            )
 
 
 class TemporalStateUpdater:
@@ -86,6 +119,10 @@ class TemporalStateUpdater:
             config: Конфигурация (default: TemporalStateConfig())
         """
         self.config = config or TemporalStateConfig()
+        
+        # Internal persistence state for post-shock slow decay.
+        # Это не отдельный memory module, а режим обновления того же trace.
+        self._one_shot_active_window = 0
     
     def update(
         self,
@@ -97,73 +134,83 @@ class TemporalStateUpdater:
     ) -> TemporalState:
         """
         Обновляет temporal state.
-        
-        Args:
-            state: Текущий TemporalState
-            X_risk: Current risky exposure (из exposure_field.py)
-            X_opp: Current opportunity exposure (из exposure_field.py)
-            salience: Salience of current event (unsigned PE или novelty)
-            stakes: Stakes/modulator для one-shot detection
-        
-        Returns:
-            Обновлённый TemporalState
+
+        Patch A:
+        - normal risk update uses fast input branch (lambda_risk_in)
+        - post-one-shot decay uses slow branch (lambda_risk_out / one_shot_decay_override)
+        - during persistence window h_risk can be clamped by one_shot_floor
         """
-        # Вычисляем surprise amplitude для one-shot detection
         surprise_amplitude = salience * stakes
-        
-        # One-shot regime detection
         is_one_shot = surprise_amplitude > self.config.one_shot_threshold
-        
-        # === Обновление h_risk ===
-        # Базовое обновление (exponential smoothing)
-        h_risk_new = (
-            self.config.lambda_risk * state.h_risk +
-            (1 - self.config.lambda_risk) * X_risk
-        )
-        
-        # One-shot boost (если high-amplitude event)
+
+        # ---------------------------------------------------------------------
+        # One-shot window activation
+        # ---------------------------------------------------------------------
         if is_one_shot:
+            self._one_shot_active_window = self.config.one_shot_persistence_window
+
+        # ---------------------------------------------------------------------
+        # h_risk update
+        # ---------------------------------------------------------------------
+        if is_one_shot:
+            # Fast encoding branch + immediate boost
+            lam = self.config.lambda_risk_in
+            h_risk_new = lam * state.h_risk + (1.0 - lam) * X_risk
             h_risk_new += self.config.one_shot_boost * X_risk
-            h_risk_new = np.clip(h_risk_new, 0.0, 1.0)  # Clip to valid range
-        
-        # === Обновление h_opp ===
-        # Базовое обновление (exponential smoothing)
+            h_risk_new = max(h_risk_new, self.config.one_shot_floor)
+            h_risk_new = np.clip(h_risk_new, 0.0, 1.0)
+
+        elif self._one_shot_active_window > 0:
+            # Slow decay branch during post-shock persistence window
+            lam = max(self.config.lambda_risk_out, self.config.one_shot_decay_override)
+            h_risk_new = lam * state.h_risk + (1.0 - lam) * X_risk
+            h_risk_new = max(h_risk_new, self.config.one_shot_floor)
+            h_risk_new = np.clip(h_risk_new, 0.0, 1.0)
+
+            self._one_shot_active_window -= 1
+
+        else:
+            # Ordinary update branch
+            lam = self.config.lambda_risk_in
+            h_risk_new = lam * state.h_risk + (1.0 - lam) * X_risk
+            h_risk_new = np.clip(h_risk_new, 0.0, 1.0)
+
+        # ---------------------------------------------------------------------
+        # h_opp update
+        # Leave conservative for now: keep existing Stage 3.1B behavior.
+        # ---------------------------------------------------------------------
         h_opp_new = (
             self.config.lambda_opp * state.h_opp +
-            (1 - self.config.lambda_opp) * X_opp
+            (1.0 - self.config.lambda_opp) * X_opp
         )
-        
-        # One-shot boost (если high-amplitude event)
+
         if is_one_shot:
             h_opp_new += self.config.one_shot_boost * X_opp
-            h_opp_new = np.clip(h_opp_new, 0.0, 1.0)  # Clip to valid range
-        
-        # === Обновление h_time ===
-        # Сброс если salient event, иначе инкремент
+            h_opp_new = np.clip(h_opp_new, 0.0, 1.0)
+
+        # ---------------------------------------------------------------------
+        # h_time update
+        # ---------------------------------------------------------------------
         if salience > self.config.salience_threshold:
             h_time_new = 0
         else:
             h_time_new = state.h_time + 1
-        
-        # === Создаём новый state ===
+
         new_state = TemporalState(
             h_risk=float(h_risk_new),
             h_opp=float(h_opp_new),
             h_time=int(h_time_new),
-            # Debug metadata
             one_shot_pending=is_one_shot,
             one_shot_amplitude=float(surprise_amplitude)
         )
-        
+
         return new_state
     
     def reset(self) -> TemporalState:
         """
         Сбрасывает temporal state к нулю.
-        
-        Returns:
-            TemporalState.zeros()
         """
+        self._one_shot_active_window = 0
         return TemporalState.zeros()
     
     def get_trace_dynamics(
