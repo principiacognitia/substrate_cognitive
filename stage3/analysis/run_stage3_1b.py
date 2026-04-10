@@ -542,7 +542,11 @@ def run_single_condition(
             ablation=ablation,
             diagnostic_forced_shock=diagnostic_forced_shock,
             forced_shock_path=forced_shock_path,
-            verbose=verbose
+            verbose=verbose,
+            debug=debug,
+            debug_console=debug_console,
+            debug_junction_only=debug_junction_only,
+            debug_trial_window=debug_trial_window
         )
         all_results.append(result)
     
@@ -587,7 +591,11 @@ def run_grid(
                 ablation=ablation,
                 diagnostic_forced_shock=diagnostic_forced_shock,
                 forced_shock_path=forced_shock_path,
-                verbose=verbose
+                verbose=verbose,
+                debug=debug,
+                debug_console=debug_console,
+                debug_junction_only=debug_junction_only,
+                debug_trial_window=debug_trial_window
             )
             condition_results.append(result)
         
@@ -639,7 +647,11 @@ def run_one_shot_protocol(
             one_shot_override=protocol['one_shot'],
             diagnostic_forced_shock=diagnostic_forced_shock,
             forced_shock_path=forced_shock_path,
-            verbose=verbose
+            verbose=verbose,
+            debug=debug,
+            debug_console=debug_console,
+            debug_junction_only=debug_junction_only,
+            debug_trial_window=debug_trial_window
         )
         all_results.append(result)
 

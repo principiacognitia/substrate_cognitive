@@ -466,7 +466,7 @@ class AgentStage3:
             logits = beta_used * q_effective
             probs = self._softmax(logits)
             action = self.rng.choice(n_actions, p=probs)
-        
+
         # === ABSENCE_CHECK: Как EXPLORE (пока нет full scan policy) ===
         elif mode == GateMode.ABSENCE_CHECK:
             beta_used = beta_explore
@@ -494,9 +494,10 @@ class AgentStage3:
                 'logits': logits.tolist(),
             }
         }
+        # Для отладки: сохраняем q_safe в metadata если mode == EXPLOIT_SAFE
+        if mode == GateMode.EXPLOIT_SAFE:
+            metadata['policy_debug']['q_safe'] = q_safe.tolist()
 
-        metadata['policy_debug']['q_safe'] = q_safe.tolist()
-        
         return int(action), metadata
     
     def _softmax(self, logits: np.ndarray) -> np.ndarray:
