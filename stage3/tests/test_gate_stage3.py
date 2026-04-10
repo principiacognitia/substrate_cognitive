@@ -231,6 +231,70 @@ def test_exploit_safe_uses_temporal_risk():
 
     print("✓ PASS: exploit safe uses temporal risk")
 
+# =============================================================================
+# TEST 8: EXPLORE должен использовать theta_u и v_g модуляцию
+# ============================================================================= 
+
+def test_explore_uses_theta_u_and_vg_modulation():
+    """
+    Test: EXPLORE trigger uses theta_u and v_g approximation,
+    not just raw u_volatility * u_entropy.
+    """
+    gate = GateStage3(
+        GateThresholds(
+            theta_u=1.5,
+            theta_mb=0.30,
+            w_volatility=1.0,
+            w_entropy=1.0,
+            v_g_weight_hrisk=0.7,
+            v_g_weight_xrisk=0.3
+        )
+    )
+
+    # High uncertainty, low threat -> should explore
+    gate_input = GateInput(
+        instant=InstantDiagnostics(u_delta=0.8, u_entropy=0.9, u_volatility=0.9),
+        exposure=ExposureAggregates(X_risk=0.1, X_opp=0.3, D_est=0.8),
+        temporal=TemporalState(h_risk=0.1, h_opp=0.1, h_time=10)
+    )
+
+    mode, metadata = gate.select_mode(gate_input)
+
+    assert mode == GateMode.EXPLORE, f"Expected EXPLORE, got {mode}"
+    assert metadata['winning_constraint'] == 'standard_arbitration (high uncertainty)'
+    assert 'uncertainty_signal' in metadata['gate_state_snapshot']
+    assert 'v_g_approx' in metadata['gate_state_snapshot']
+
+# =============================================================================
+# TEST 9: High temporal risk can suppress EXPLORE even without EXPLOIT_SAFE threshold 
+# ============================================================================= 
+
+def test_high_temporal_risk_suppresses_explore_without_exploit_safe():
+    """
+    Test: high h_risk can suppress EXPLORE through v_g_approx
+    even when current X_risk is not enough for EXPLOIT_SAFE.
+    """
+    gate = GateStage3(
+        GateThresholds(
+            critical_risk_threshold=0.9,  # safe override deliberately hard to trigger
+            theta_u=1.5,
+            theta_mb=0.30,
+            w_volatility=1.0,
+            w_entropy=1.0,
+            v_g_weight_hrisk=0.7,
+            v_g_weight_xrisk=0.3
+        )
+    )
+
+    gate_input = GateInput(
+        instant=InstantDiagnostics(u_delta=0.8, u_entropy=0.9, u_volatility=0.9),
+        exposure=ExposureAggregates(X_risk=0.2, X_opp=0.4, D_est=0.8),
+        temporal=TemporalState(h_risk=0.9, h_opp=0.1, h_time=10)
+    )
+
+    mode, metadata = gate.select_mode(gate_input)
+
+    assert mode != GateMode.EXPLORE, "High temporal risk should suppress EXPLORE via v_g_approx"
 
 # =============================================================================
 # MAIN

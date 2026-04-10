@@ -350,6 +350,11 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
         # Patch B: current + accumulated threat
         'safe_drive_weight_current': 0.6,
         'safe_drive_weight_temporal': 0.4,
+
+        'w_volatility': 1.0,
+        'w_entropy': 1.0,
+        'v_g_weight_hrisk': 0.7,
+        'v_g_weight_xrisk': 0.3,
     },
     
     # === Stage 3 Core: Temporal State ===

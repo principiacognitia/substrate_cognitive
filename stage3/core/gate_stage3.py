@@ -37,19 +37,30 @@ class GateThresholds:
         suspicion_threshold: Порог для ABSENCE_CHECK (h_risk)
         visibility_threshold: Максимальная D_est для ABSENCE_CHECK
         safe_window_threshold: Минимальный h_time для ABSENCE_CHECK
-        theta_mb: Mode switch threshold (Stage 2 наследие)
-        theta_u: Uncertainty baseline (Stage 2 наследие)
+        theta_mb: Mode switch threshold
+        theta_u: Uncertainty baseline
+        safe_drive_weight_current: Вес текущей угрозы в safe override
+        safe_drive_weight_temporal: Вес накопленной угрозы в safe override
+        w_volatility: Вес u_volatility в uncertainty
+        w_entropy: Вес u_entropy в uncertainty
+        v_g_weight_hrisk: Вес h_risk в аппроксимации gate viscosity
+        v_g_weight_xrisk: Вес X_risk в аппроксимации gate viscosity
     """
-    critical_risk_threshold: float = 0.42
+    critical_risk_threshold: float = 0.7
     suspicion_threshold: float = 0.5
     visibility_threshold: float = 0.3
     safe_window_threshold: int = 50
+
     theta_mb: float = 0.30
     theta_u: float = 1.5
 
-    # Patch B: safe override uses current + temporal threat
     safe_drive_weight_current: float = 0.6
     safe_drive_weight_temporal: float = 0.4
+
+    w_volatility: float = 1.0
+    w_entropy: float = 1.0
+    v_g_weight_hrisk: float = 0.7
+    v_g_weight_xrisk: float = 0.3
 
     def __post_init__(self):
         """Валидация конфигурации."""
@@ -71,6 +82,21 @@ class GateThresholds:
 
         if (self.safe_drive_weight_current + self.safe_drive_weight_temporal) <= 0:
             raise ValueError("safe drive weights must sum to > 0")
+        
+        # 3.2B patch С validation for uncertainty signal weights and gate viscosity weights
+        if self.safe_drive_weight_current < 0:
+            raise ValueError(f"safe_drive_weight_current must be >= 0: {self.safe_drive_weight_current}")
+        if self.safe_drive_weight_temporal < 0:
+            raise ValueError(f"safe_drive_weight_temporal must be >= 0: {self.safe_drive_weight_temporal}")
+
+        if self.w_volatility < 0:
+            raise ValueError(f"w_volatility must be >= 0: {self.w_volatility}")
+        if self.w_entropy < 0:
+            raise ValueError(f"w_entropy must be >= 0: {self.w_entropy}")
+        if self.v_g_weight_hrisk < 0:
+            raise ValueError(f"v_g_weight_hrisk must be >= 0: {self.v_g_weight_hrisk}")
+        if self.v_g_weight_xrisk < 0:
+            raise ValueError(f"v_g_weight_xrisk must be >= 0: {self.v_g_weight_xrisk}")
 
 
 class GateStage3:
@@ -96,6 +122,28 @@ class GateStage3:
             thresholds: Конфигурация порогов (default: GateThresholds())
         """
         self.thresholds = thresholds or GateThresholds()
+
+    def _compute_uncertainty_signal(self, instant: InstantDiagnostics) -> float:
+        """
+        Вычисляет uncertainty через sigmoid(w_volatility * u_volatility +
+        w_entropy * u_entropy - theta_u).
+        """
+        raw = (
+            self.thresholds.w_volatility * instant.u_volatility +
+            self.thresholds.w_entropy * instant.u_entropy -
+            self.thresholds.theta_u
+        )
+        return float(1.0 / (1.0 + np.exp(-raw)))
+
+    def _compute_vg_approx(self, exposure: ExposureAggregates, temporal: TemporalState) -> float:
+        """
+        Аппроксимация gate viscosity из accumulated risk и current risk.
+        """
+        vg = (
+            self.thresholds.v_g_weight_hrisk * temporal.h_risk +
+            self.thresholds.v_g_weight_xrisk * exposure.X_risk
+        )
+        return float(np.clip(vg, 0.0, 1.0))
     
     def select_mode(self, gate_input: GateInput) -> Tuple[GateMode, Dict]:
         """
@@ -129,9 +177,14 @@ class GateStage3:
                 'D_est': exposure.D_est,
                 'h_risk': temporal.h_risk,
                 'h_opp': temporal.h_opp,
-                'h_time': temporal.h_time
+                'h_time': temporal.h_time,
+                'theta_u': self.thresholds.theta_u,
+                'theta_mb': self.thresholds.theta_mb
             }
         }
+
+        metadata['gate_state_snapshot']['uncertainty_signal'] = self._compute_uncertainty_signal(instant)
+        metadata['gate_state_snapshot']['v_g_approx'] = self._compute_vg_approx(exposure, temporal)
         
         # =====================================================================
         # THRESHOLD CASCADE (priority: highest → lowest)
@@ -196,8 +249,12 @@ class GateStage3:
     
     def _compute_exploit_safe_score(self, exposure: ExposureAggregates, temporal: TemporalState) -> float:
         """
-        Patch B:
+        Patch B: Вычисляет score для EXPLOIT_SAFE.
         safe_drive = w_x * X_risk + w_h * h_risk
+        
+        Score высокий когда:
+        - X_risk высокий (текущая угроза)
+        - h_risk высокий (накопленная угроза)
         """
         current_threat = exposure.X_risk
         accumulated_threat = temporal.h_risk
@@ -209,26 +266,21 @@ class GateStage3:
 
         return float(score)
     
-    def _compute_explore_score(self, instant: InstantDiagnostics, 
-                                exposure: ExposureAggregates, 
+    def _compute_explore_score(self, instant: InstantDiagnostics,
+                                exposure: ExposureAggregates,
                                 temporal: TemporalState) -> float:
         """
-        Вычисляет score для EXPLORE (Stage 2 logic + exposure modulation).
-        
+        Вычисляет score для EXPLORE через uncertainty-threshold stage.
+
         Score высокий когда:
-        - u_volatility высокий (неопределённость)
-        - u_entropy высокий (policy uncertainty)
-        - X_risk низкий (угроза не блокирует)
+        - uncertainty signal высокий
+        - effective gate viscosity низкая
         """
-        # Stage 2 uncertainty pressure
-        uncertainty_pressure = instant.u_volatility * instant.u_entropy
-        
-        # Exposure modulation (threat reduces exploration)
-        threat_modulation = 1.0 - exposure.X_risk
-        
-        # Score = uncertainty × (1 - threat)
-        score = uncertainty_pressure * threat_modulation
-        
+        uncertainty_signal = self._compute_uncertainty_signal(instant)
+        v_g_approx = self._compute_vg_approx(exposure, temporal)
+
+        score = uncertainty_signal * (1.0 - v_g_approx)
+
         return float(score)
     
     def _compute_exploit_score(self, instant: InstantDiagnostics,
@@ -284,34 +336,28 @@ class GateStage3:
         safe_drive = self._compute_exploit_safe_score(exposure, temporal)
         return safe_drive > self.thresholds.critical_risk_threshold
     
-# ИСПРАВЛЕНО:
+    # Stage 3.2B patch C: EXPLORE depends on uncertainty signal and gate viscosity approximation
     def _should_trigger_explore(self, instant: InstantDiagnostics,
                                 exposure: ExposureAggregates,
-                                temporal: TemporalState) -> bool:  # ← Добавлен параметр
+                                temporal: TemporalState) -> bool:
         """
-        Проверяет условие для EXPLORE (Stage 2 logic preserved).
-        
+        Проверяет условие для EXPLORE.
+
         Condition:
-            sigma(w^T u_t - theta_U) × (1 - V_G) > theta_MB
-            AND X_risk не блокирует
-        
-        For Stage 3.0, V_G is approximated from temporal state:
-            V_G ≈ h_risk (accumulated threat reduces exploration)
+            sigmoid(w_volatility * u_volatility + w_entropy * u_entropy - theta_u)
+            * (1 - v_g_approx) > theta_mb
+
+        where:
+            v_g_approx = clip(v_g_weight_hrisk * h_risk + v_g_weight_xrisk * X_risk, 0, 1)
+
+        EXPLOIT_SAFE остаётся выше по каскаду и должен отрабатывать раньше.
         """
-        # Compute uncertainty pressure (Stage 2 logic)
-        uncertainty_pressure = instant.u_volatility * instant.u_entropy
-        
-        # Approximate V_G from temporal state (accumulated threat)
-        v_g_approx = temporal.h_risk  # ← ТЕПЕРЬ РАБОТАЕТ
-        
-        # Stage 2 gate equation
-        gate_output = uncertainty_pressure * (1.0 - v_g_approx)
-        
-        # Check threshold AND threat not blocking
-        explore_triggered = gate_output > self.thresholds.theta_mb
-        threat_not_blocking = exposure.X_risk < self.thresholds.critical_risk_threshold
-        
-        return explore_triggered and threat_not_blocking
+        uncertainty_signal = self._compute_uncertainty_signal(instant)
+        v_g_approx = self._compute_vg_approx(exposure, temporal)
+
+        gate_output = uncertainty_signal * (1.0 - v_g_approx)
+
+        return gate_output > self.thresholds.theta_mb
     
     def reset(self):
         """
