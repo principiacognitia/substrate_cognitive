@@ -185,6 +185,34 @@ class GateStage3:
 
         metadata['gate_state_snapshot']['uncertainty_signal'] = self._compute_uncertainty_signal(instant)
         metadata['gate_state_snapshot']['v_g_approx'] = self._compute_vg_approx(exposure, temporal)
+
+        # Debug/Trace: Вычисляем все scores для логирования (хотя выбор будет через каскад)
+        uncertainty_signal = self._compute_uncertainty_signal(instant)
+        v_g_approx = self._compute_vg_approx(exposure, temporal)
+        safe_drive = self._compute_exploit_safe_score(exposure, temporal)
+        explore_gate_output = uncertainty_signal * (1.0 - v_g_approx)
+        absence_triggered = self._should_trigger_absence_check(exposure, temporal)
+        exploit_safe_triggered = safe_drive > self.thresholds.critical_risk_threshold
+        explore_triggered = explore_gate_output > self.thresholds.theta_mb
+
+        metadata['gate_state_snapshot'].update({
+            'uncertainty_signal': uncertainty_signal,
+            'v_g_approx': v_g_approx,
+            'safe_drive': safe_drive,
+            'explore_gate_output': explore_gate_output,
+
+            'critical_risk_threshold': self.thresholds.critical_risk_threshold,
+            'safe_drive_weight_current': self.thresholds.safe_drive_weight_current,
+            'safe_drive_weight_temporal': self.thresholds.safe_drive_weight_temporal,
+            'w_volatility': self.thresholds.w_volatility,
+            'w_entropy': self.thresholds.w_entropy,
+            'v_g_weight_hrisk': self.thresholds.v_g_weight_hrisk,
+            'v_g_weight_xrisk': self.thresholds.v_g_weight_xrisk,
+
+            'absence_triggered': absence_triggered,
+            'exploit_safe_triggered': exploit_safe_triggered,
+            'explore_triggered': explore_triggered,
+        })
         
         # =====================================================================
         # THRESHOLD CASCADE (priority: highest → lowest)
@@ -195,7 +223,8 @@ class GateStage3:
         absence_check_score = self._compute_absence_check_score(exposure, temporal)
         metadata['mode_scores'][GateMode.ABSENCE_CHECK] = absence_check_score
         
-        if self._should_trigger_absence_check(exposure, temporal):
+#       if self._should_trigger_absence_check(exposure, temporal):
+        if absence_triggered:
             metadata['winning_constraint'] = 'absence_trigger (high stakes + poor visibility + safe window)'
             return GateMode.ABSENCE_CHECK, metadata
         
@@ -204,7 +233,8 @@ class GateStage3:
         exploit_safe_score = self._compute_exploit_safe_score(exposure, temporal)
         metadata['mode_scores'][GateMode.EXPLOIT_SAFE] = exploit_safe_score
         
-        if self._should_trigger_exploit_safe(exposure, temporal):
+#       if self._should_trigger_exploit_safe(exposure, temporal):
+        if exploit_safe_triggered:
             metadata['winning_constraint'] = 'threat_override (safe_drive from current + temporal risk)'
             return GateMode.EXPLOIT_SAFE, metadata
         
@@ -213,7 +243,8 @@ class GateStage3:
         explore_score = self._compute_explore_score(instant, exposure, temporal)
         metadata['mode_scores'][GateMode.EXPLORE] = explore_score
         
-        if self._should_trigger_explore(instant, exposure, temporal):
+#       if self._should_trigger_explore(instant, exposure, temporal):
+        if explore_triggered:
             metadata['winning_constraint'] = 'standard_arbitration (high uncertainty)'
             return GateMode.EXPLORE, metadata
         

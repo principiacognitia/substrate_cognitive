@@ -85,7 +85,32 @@ def parse_args():
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output')
     
+    # Diagnostic trace options
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable diagnostic trace collection'
+    )
+    parser.add_argument(
+        '--debug-console',
+        action='store_true',
+        help='Print compact diagnostic trace to console'
+    )
+    parser.add_argument(
+        '--debug-junction-only',
+        action='store_true',
+        help='Store/print only junction-related diagnostic rows'
+    )
+    parser.add_argument(
+        '--debug-trial-window',
+        type=int,
+        default=2,
+        help='Store all rows within +/- N trials around shock trial (default: 2)'
+)
+    
     return parser.parse_args()
+
+
 
 def normalize_condition_name(condition_name: str) -> str:
     """
@@ -174,7 +199,11 @@ def run_condition(
     one_shot_override: Optional[Dict] = None,
     verbose: bool = False,
     diagnostic_forced_shock=False,
-    forced_shock_path=None
+    forced_shock_path=None,
+    debug=False,
+    debug_console=False,
+    debug_junction_only=False,
+    debug_trial_window=2
 ) -> Dict[str, Any]:
     """
     Runs a single condition for one seed.
@@ -188,6 +217,7 @@ def run_condition(
         condition_id=condition_id,
         one_shot_override=one_shot_override
     )
+    env_config['debug'] = bool(debug_console)
     env_config['n_trials'] = n_trials
 
     # Ablation-specific handling for one-shot
@@ -203,6 +233,7 @@ def run_condition(
 
     trial_summaries = []
     step_rows = []
+    debug_rows = []
 
     # IMPORTANT: reward feedback from previous step
     prev_reward = 0.0
@@ -336,6 +367,93 @@ def run_condition(
 
             prev_reward = reward
 
+            # Determine if we should store debug row for this step
+            shock_trial = getattr(env, 'one_shot_trial', -1)
+            in_shock_window = abs(trial - shock_trial) <= debug_trial_window if shock_trial >= 0 else False
+            at_junction = bool(info.get('at_junction', False))
+
+            should_store_debug = debug and (
+                (not debug_junction_only) or
+                at_junction or
+                in_shock_window or
+                bool(info.get('one_shot_fired', False)) or
+                forced_action_applied
+            )
+
+            # Store debug row if any of the following is true:
+            debug_row = {
+                'seed': seed,
+                'condition_id': condition_id,
+                'ablation': ablation,
+                'trial': trial,
+                'tick': info.get('tick', tick),
+
+                'node_id': info.get('node_id', ''),
+                'at_junction': at_junction,
+                'deliberation_state': info.get('deliberation_state', ''),
+                'candidate_path': info.get('candidate_path', ''),
+                'committed_path': info.get('committed_path', ''),
+
+                'mode': mode,
+                'gate_trigger': gate_trigger,
+                'action': action,
+                'reward': reward,
+
+                'u_delta': metadata.get('instant_diagnostics', {}).get('u_delta', np.nan),
+                'u_entropy': metadata.get('instant_diagnostics', {}).get('u_entropy', np.nan),
+                'u_volatility': metadata.get('instant_diagnostics', {}).get('u_volatility', np.nan),
+
+                'X_risk': exposure.get('X_risk', np.nan),
+                'X_opp': exposure.get('X_opp', np.nan),
+                'D_est': exposure.get('D_est', np.nan),
+
+                'h_risk': temporal_state.get('h_risk', np.nan),
+                'h_opp': temporal_state.get('h_opp', np.nan),
+                'h_time': temporal_state.get('h_time', np.nan),
+
+                'one_shot_fired': info.get('one_shot_fired', False),
+                'one_shot_active': info.get('one_shot_active', False),
+                'one_shot_trial': info.get('one_shot_trial', -1),
+                'one_shot_path': info.get('one_shot_path', ''),
+                'one_shot_pending': metadata.get('one_shot_pending', False),
+                'one_shot_amplitude': metadata.get('one_shot_amplitude', np.nan),
+                'salience_used': metadata.get('salience_used', np.nan),
+                'stakes_used': metadata.get('stakes_used', np.nan),
+
+                'safe_drive': metadata.get('safe_drive', np.nan),
+                'uncertainty_signal': metadata.get('uncertainty_signal', np.nan),
+                'v_g_approx': metadata.get('v_g_approx', np.nan),
+                'explore_gate_output': metadata.get('explore_gate_output', np.nan),
+
+                'mode_scores_raw': metadata.get('mode_scores_raw', {}),
+                'gate_state_snapshot': metadata.get('gate_state_snapshot', {}),
+                'action_policy_debug': metadata.get('action_policy_debug', {}),
+
+                'q_values': metadata.get('q_values', []),
+                'risk_values': metadata.get('risk_values', []),
+                'action_probs': metadata.get('action_probs', []),
+
+                'diagnostic_forced_shock': diagnostic_forced_shock,
+                'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
+                'forced_action_applied': forced_action_applied,
+            }
+
+            if should_store_debug:
+                debug_rows.append(debug_row)
+
+            if debug_console and should_store_debug:
+                print(
+                    f"[DBG] seed={seed} trial={trial} tick={info.get('tick', tick)} "
+                    f"node={info.get('node_id', '')} state={info.get('deliberation_state', '')} "
+                    f"mode={mode} gate={gate_trigger} action={action} reward={reward:.3f} "
+                    f"Xr={exposure.get('X_risk', np.nan):.3f} Hr={temporal_state.get('h_risk', np.nan):.3f} "
+                    f"safe={metadata.get('safe_drive', np.nan):.3f} "
+                    f"unc={metadata.get('uncertainty_signal', np.nan):.3f} "
+                    f"vg={metadata.get('v_g_approx', np.nan):.3f} "
+                    f"explore_out={metadata.get('explore_gate_output', np.nan):.3f} "
+                    f"probs={metadata.get('action_probs', [])}"
+                )
+
         if not done:
             raise RuntimeError(
                 f"Trial did not terminate within {max_ticks} ticks: "
@@ -371,6 +489,7 @@ def run_condition(
         'diagnostic_forced_shock': diagnostic_forced_shock,
         'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
         'forced_action_applied_count': forced_action_applied_count,
+        'debug_rows': debug_rows,
     }
 
     if verbose:
@@ -392,7 +511,11 @@ def run_single_condition(
     output_dir: str,
     verbose: bool,
     diagnostic_forced_shock=False,
-    forced_shock_path=None
+    forced_shock_path=None,
+    debug=False,
+    debug_console=False,
+    debug_junction_only=False,
+    debug_trial_window=2
 ) -> Dict[str, Any]:
     """Runs a single canonical condition."""
     canonical = get_canonical_conditions()
@@ -435,7 +558,11 @@ def run_grid(
     output_dir: str,
     verbose: bool,
     diagnostic_forced_shock=False,
-    forced_shock_path=None
+    forced_shock_path=None,
+    debug=False,
+    debug_console=False,
+    debug_junction_only=False,
+    debug_trial_window=2    
 ) -> Dict[str, Any]:
     """Runs full 3x3 matrix."""
     condition_grid = get_condition_grid()
@@ -477,7 +604,11 @@ def run_one_shot_protocol(
     output_dir: str,
     verbose: bool,
     diagnostic_forced_shock=False,
-    forced_shock_path=None
+    forced_shock_path=None,
+    debug=False,
+    debug_console=False,
+    debug_junction_only=False,
+    debug_trial_window=2
 ) -> Dict[str, Any]:
     """
     Runs one-shot protocol with pre/post blocks.
@@ -529,6 +660,7 @@ def aggregate_and_save(
     all_trials = []
     all_steps = []
     seed_summaries = []
+    all_debug_rows = []
 
     for result in results:
         seed_summaries.append({
@@ -550,7 +682,8 @@ def aggregate_and_save(
             all_trials.append(trial)
         for step in result.get('step_rows', []):
             all_steps.append(step)
-
+        for row in result.get('debug_rows', []):
+            all_debug_rows.append(row)
     if not all_trials:
         raise RuntimeError("No trials collected in aggregate_and_save()")
 
@@ -562,6 +695,7 @@ def aggregate_and_save(
     seeds_file = output_path / f"{prefix}_seed_summary.csv"
     condition_file = output_path / f"{prefix}_condition_summary.csv"
     summary_file = output_path / f"{prefix}_run_summary.json"
+    debug_file = output_path / f"{prefix}_debug_trace.jsonl"
 
     df_trials.to_csv(trials_file, index=False)
     if all_steps:
@@ -569,6 +703,12 @@ def aggregate_and_save(
         df_steps.to_csv(steps_file, index=False)
         print(f"Saved {len(df_steps)} steps to {steps_file}")
     df_seeds.to_csv(seeds_file, index=False)
+    
+    if all_debug_rows:
+        with open(debug_file, 'w', encoding='utf-8') as f:
+            for row in all_debug_rows:
+                f.write(json.dumps(row, ensure_ascii=False) + '\n')
+        print(f"Saved {len(all_debug_rows)} debug rows to {debug_file}")
 
     mode_counts = (
         df_trials['mode_at_junction']
@@ -642,6 +782,7 @@ def aggregate_grid_and_save(
     all_steps = []
     seed_summaries = []
     condition_summaries = []
+    all_debug_rows = []
 
     for condition_id, condition_results in results.items():
         condition_trials = []
@@ -667,6 +808,9 @@ def aggregate_grid_and_save(
 
             for step in result.get('step_rows', []):
                 all_steps.append(step)
+
+            for row in result.get('debug_rows', []):
+                all_debug_rows.append(row)    
 
         df_condition = pd.DataFrame(condition_trials)
 
@@ -699,6 +843,7 @@ def aggregate_grid_and_save(
     seeds_file = output_path / f"{prefix}_seed_summary.csv"
     conditions_file = output_path / f"{prefix}_condition_summary.csv"
     summary_file = output_path / f"{prefix}_run_summary.json"
+    debug_file = output_path / f"grid_{prefix}_debug_trace.jsonl"
 
     df_trials.to_csv(trials_file, index=False)
     if all_steps:
@@ -707,6 +852,12 @@ def aggregate_grid_and_save(
         print(f"Saved {len(df_steps)} steps to {steps_file}")
     df_seeds.to_csv(seeds_file, index=False)
     df_conditions.to_csv(conditions_file, index=False)
+
+    if all_debug_rows:
+        with open(debug_file, 'w', encoding='utf-8') as f:
+            for row in all_debug_rows:
+                f.write(json.dumps(row, ensure_ascii=False) + '\n')
+        print(f"Saved {len(all_debug_rows)} debug rows to {debug_file}")
 
     run_summary = {
         'timestamp': datetime.now().isoformat(),
@@ -758,7 +909,11 @@ def main():
             output_dir=output_dir,
             verbose=args.verbose,
             diagnostic_forced_shock=args.diagnostic_forced_shock,
-            forced_shock_path=args.forced_shock_path
+            forced_shock_path=args.forced_shock_path,
+            debug=args.debug,
+            debug_console=args.debug_console,
+            debug_junction_only=args.debug_junction_only,
+            debug_trial_window=args.debug_trial_window
         )
 
     elif args.grid:
@@ -776,7 +931,11 @@ def main():
             output_dir=output_dir,
             verbose=args.verbose,
             diagnostic_forced_shock=args.diagnostic_forced_shock,
-            forced_shock_path=args.forced_shock_path
+            forced_shock_path=args.forced_shock_path,
+            debug=args.debug,
+            debug_console=args.debug_console,
+            debug_junction_only=args.debug_junction_only,
+            debug_trial_window=args.debug_trial_window
         )
 
     elif args.one_shot:
@@ -793,7 +952,11 @@ def main():
             output_dir=output_dir,
             verbose=args.verbose,
             diagnostic_forced_shock=args.diagnostic_forced_shock,
-            forced_shock_path=args.forced_shock_path
+            forced_shock_path=args.forced_shock_path,
+            debug=args.debug,
+            debug_console=args.debug_console,
+            debug_junction_only=args.debug_junction_only,
+            debug_trial_window=args.debug_trial_window
         )
 
 

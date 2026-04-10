@@ -314,7 +314,8 @@ class AgentStage3:
         # 5. Gate Mode Selection (threshold cascade)
         # =====================================================================
         selected_mode, gate_metadata = self.gate.select_mode(gate_input)
-        
+        gate_snapshot = gate_metadata.get('gate_state_snapshot', {})
+
         # =====================================================================
         # 6. Action Selection с mode-specific stochastic policy (Task 2)
         # =====================================================================
@@ -379,6 +380,18 @@ class AgentStage3:
             'action_probs': action_metadata.get('action_probs', []),
             'q_values': action_metadata.get('q_values', []),
             'risk_values': action_metadata.get('risk_values', []),
+
+            # Полный снимок состояния gate для отладки (может быть большим, поэтому в отдельном поле)
+            'gate_state_snapshot': gate_snapshot,
+            'mode_scores_raw': {str(k): v for k, v in gate_metadata.get('mode_scores', {}).items()},
+            'selected_mode_raw': str(selected_mode),
+
+            'safe_drive': gate_snapshot.get('safe_drive', np.nan),
+            'uncertainty_signal': gate_snapshot.get('uncertainty_signal', np.nan),
+            'v_g_approx': gate_snapshot.get('v_g_approx', np.nan),
+            'explore_gate_output': gate_snapshot.get('explore_gate_output', np.nan),
+
+            'action_policy_debug': action_metadata.get('policy_debug', {}),
         }
         
         return action, metadata
@@ -414,10 +427,12 @@ class AgentStage3:
         # === Риск для каждого действия (из exposure) ===
         # Для простоты: open path (action=0) имеет риск X_risk, covered (action=1) имеет 0
         risk_values = np.array([exposure.X_risk, 0.0])[:n_actions]
-        
+     
         # === EXPLOIT: Softmax с высоким beta ===
         if mode == GateMode.EXPLOIT:
-            logits = beta_exploit * q_values
+            beta_used = beta_exploit
+            q_effective = q_values.copy()
+            logits = beta_used * q_effective
             probs = self._softmax(logits)
             action = self.rng.choice(n_actions, p=probs)
         
@@ -429,27 +444,34 @@ class AgentStage3:
                     action = self.rng.randint(0, n_actions)
                     probs = np.ones(n_actions) / n_actions
                 else:
-                    logits = beta_explore * q_values
+                    beta_used = beta_explore
+                    q_effective = q_values.copy()
+                    logits = beta_used * q_effective
                     probs = self._softmax(logits)
                     action = self.rng.choice(n_actions, p=probs)
             else:
                 # Pure softmax с низким beta
-                logits = beta_explore * q_values
+                beta_used = beta_explore
+                q_effective = q_values.copy()
+                logits = beta_used * q_effective
                 probs = self._softmax(logits)
                 action = self.rng.choice(n_actions, p=probs)
         
         # === EXPLOIT_SAFE: Softmax над risk-penalized values ===
         elif mode == GateMode.EXPLOIT_SAFE:
             # Penalized Q-values: Q_safe = Q - lambda_risk * risk
+            beta_used = beta_safe
             q_safe = q_values - lambda_risk * risk_values
-            
-            logits = beta_safe * q_safe
+            q_effective = q_safe
+            logits = beta_used * q_effective
             probs = self._softmax(logits)
             action = self.rng.choice(n_actions, p=probs)
         
         # === ABSENCE_CHECK: Как EXPLORE (пока нет full scan policy) ===
         elif mode == GateMode.ABSENCE_CHECK:
-            logits = beta_explore * q_values
+            beta_used = beta_explore
+            q_effective = q_values.copy()
+            logits = beta_used * q_effective
             probs = self._softmax(logits)
             action = self.rng.choice(n_actions, p=probs)
         
@@ -463,8 +485,17 @@ class AgentStage3:
             'action_probs': probs.tolist(),
             'q_values': q_values.tolist(),
             'risk_values': risk_values.tolist(),
-            'sampled_action': int(action)
+            'sampled_action': int(action),
+            'policy_debug': {
+                'mode': str(mode),
+                'beta_used': float(beta_used),
+                'lambda_risk': float(lambda_risk),
+                'q_effective': q_effective.tolist(),
+                'logits': logits.tolist(),
+            }
         }
+
+        metadata['policy_debug']['q_safe'] = q_safe.tolist()
         
         return int(action), metadata
     
