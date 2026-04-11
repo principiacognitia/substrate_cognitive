@@ -240,6 +240,12 @@ def run_condition(
 
     forced_action_applied_count = 0
 
+    # Temporal state
+    pending_one_shot_salience = None
+    pending_one_shot_stakes = None
+    pending_one_shot_source_trial = None
+    pending_one_shot_source_tick = None
+
     for trial in range(1, n_trials + 1):
         obs = env.reset(trial=trial)
 
@@ -255,10 +261,25 @@ def run_condition(
 
             step_salience = None
             step_stakes = None
+            step_one_shot_from_pending = False
 
-            if float(obs.get('one_shot_fired', 0.0)) > 0.0:
+            if pending_one_shot_salience is not None:
+                step_salience = float(pending_one_shot_salience)
+                step_stakes = float(pending_one_shot_stakes if pending_one_shot_stakes is not None else 1.0)
+                step_one_shot_from_pending = True
+
+                pending_one_shot_salience = None
+                pending_one_shot_stakes = None
+                pending_one_shot_source_trial = None
+                pending_one_shot_source_tick = None
+
+            elif float(obs.get('one_shot_fired', 0.0)) > 0.0:
                 step_salience = float(obs.get('one_shot_salience', 0.0))
                 step_stakes = float(obs.get('one_shot_stakes', 1.0))
+
+            obs_one_shot_fired_pre = obs.get('one_shot_fired', np.nan)
+            obs_one_shot_salience_pre = obs.get('one_shot_salience', np.nan)
+            obs_one_shot_stakes_pre = obs.get('one_shot_stakes', np.nan)
 
             action, metadata = agent.step(
                 observation=obs,
@@ -305,6 +326,18 @@ def run_condition(
                 gate_trigger=gate_trigger,
                 action_probs=action_probs
             )
+
+            post_step_one_shot_fired = float(obs.get('one_shot_fired', 0.0)) > 0.0 or bool(info.get('one_shot_fired', False))
+
+            if post_step_one_shot_fired:
+                pending_one_shot_salience = float(
+                    obs.get('one_shot_salience', info.get('one_shot_salience', 0.0))
+                )
+                pending_one_shot_stakes = float(
+                    obs.get('one_shot_stakes', info.get('one_shot_stakes', 1.0))
+                )
+                pending_one_shot_source_trial = trial
+                pending_one_shot_source_tick = info.get('tick', tick)
 
             temporal_state = metadata.get('temporal_state', {})
             exposure = metadata.get('exposure', {})
@@ -363,6 +396,18 @@ def run_condition(
                 'diagnostic_forced_shock': diagnostic_forced_shock,
                 'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
                 'forced_action_applied': forced_action_applied,
+
+                # Temporal state for next step (if one-shot fired)
+                'step_one_shot_from_pending': step_one_shot_from_pending,
+                'pending_one_shot_salience_used': step_salience,
+                'pending_one_shot_stakes_used': step_stakes,
+                'post_step_one_shot_fired': post_step_one_shot_fired,
+                'pending_one_shot_source_trial': pending_one_shot_source_trial,
+                'pending_one_shot_source_tick': pending_one_shot_source_tick,
+
+                'obs_one_shot_fired_pre': obs.get('one_shot_fired', np.nan),
+                'obs_one_shot_salience_pre': obs.get('one_shot_salience', np.nan),
+                'obs_one_shot_stakes_pre': obs.get('one_shot_stakes', np.nan),
             })
 
             prev_reward = reward
@@ -436,6 +481,18 @@ def run_condition(
                 'diagnostic_forced_shock': diagnostic_forced_shock,
                 'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
                 'forced_action_applied': forced_action_applied,
+
+                # Temporal state for next step (if one-shot fired)
+                'step_one_shot_from_pending': step_one_shot_from_pending,
+                'pending_one_shot_salience_used': step_salience,
+                'pending_one_shot_stakes_used': step_stakes,
+                'post_step_one_shot_fired': post_step_one_shot_fired,
+                'pending_one_shot_source_trial': pending_one_shot_source_trial,
+                'pending_one_shot_source_tick': pending_one_shot_source_tick,
+                    
+                'obs_one_shot_fired_pre': obs.get('one_shot_fired', np.nan),
+                'obs_one_shot_salience_pre': obs.get('one_shot_salience', np.nan),
+                'obs_one_shot_stakes_pre': obs.get('one_shot_stakes', np.nan),
             }
 
             if should_store_debug:
@@ -451,7 +508,9 @@ def run_condition(
                     f"unc={metadata.get('uncertainty_signal', np.nan):.3f} "
                     f"vg={metadata.get('v_g_approx', np.nan):.3f} "
                     f"explore_out={metadata.get('explore_gate_output', np.nan):.3f} "
-                    f"probs={metadata.get('action_probs', [])}"
+                    f"probs={metadata.get('action_probs', [])} "
+                    f"sal={step_salience} stakes={step_stakes} pending_used={step_one_shot_from_pending} "
+                    f"post_fired={post_step_one_shot_fired}"
                 )
 
         if not done:
