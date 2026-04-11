@@ -412,10 +412,20 @@ class AgentStage3:
             (action, metadata)
             metadata содержит action_probs, q_values, risk_values для логирования
         """
-        q_values = observation.get('q_values', [0.5, 0.5])
-        q_values = np.array(q_values, dtype=np.float64)
+        q_values_raw = observation.get('q_values', [0.5, 0.5])
+        q_values = np.array(q_values_raw, dtype=np.float64)
         n_actions = len(q_values)
-        
+
+        obs_risk_values = observation.get('risk_values', None)
+        if isinstance(obs_risk_values, (list, tuple)) and len(obs_risk_values) == n_actions:
+            risk_values = np.array(obs_risk_values, dtype=np.float64)
+            risk_source = 'observation_risk_values'
+        else:
+            risk_values = np.array([exposure.X_risk, 0.0], dtype=np.float64)[:n_actions]
+            risk_source = 'current_node_fallback'
+
+        q_source = 'observation_q_values'    
+
         # === Получаем параметры из action_policy ===
         beta_exploit = self.config.action_policy.get('beta_exploit', 
                               self.config.stage2_legacy.get('beta', 4.0))
@@ -424,10 +434,6 @@ class AgentStage3:
         lambda_risk = self.config.action_policy.get('lambda_risk', 2.0)
         epsilon_explore = self.config.action_policy.get('epsilon_explore', 0.0)
         
-        # === Риск для каждого действия (из exposure) ===
-        # Для простоты: open path (action=0) имеет риск X_risk, covered (action=1) имеет 0
-        risk_values = np.array([exposure.X_risk, 0.0])[:n_actions]
-     
         # === EXPLOIT: Softmax с высоким beta ===
         if mode == GateMode.EXPLOIT:
             beta_used = beta_exploit
@@ -490,6 +496,10 @@ class AgentStage3:
                 'mode': str(mode),
                 'beta_used': float(beta_used),
                 'lambda_risk': float(lambda_risk),
+                'q_source': q_source,
+                'risk_source': risk_source,
+                'raw_observation_q_values': q_values_raw if isinstance(q_values_raw, list) else list(q_values_raw),
+                'raw_observation_risk_values': list(obs_risk_values) if isinstance(obs_risk_values, (list, tuple)) else None,
                 'q_effective': q_effective.tolist(),
                 'logits': logits.tolist(),
             }

@@ -762,6 +762,17 @@ class OpenCoveredChoiceEnv:
         u_delta = self._compute_prediction_error()
         u_entropy = self._compute_policy_entropy()
         u_volatility = self._compute_volatility()
+
+        if current == self.junction_node:
+            option_reward_values = self._get_option_expected_reward_values()
+            option_risk_values = self._get_risk_values()
+            option_visibility_values = self._get_option_visibility_values()
+            option_expected_threat_values = self._get_option_expected_threat_values()
+        else:
+            option_reward_values = []
+            option_risk_values = []
+            option_visibility_values = []
+            option_expected_threat_values = []
         
         # Observation (только numeric, no strings!)
         observation = {
@@ -785,6 +796,9 @@ class OpenCoveredChoiceEnv:
             'committed_path_encoded': self._encode_path(self.state.committed_path),
             
             # === Junction decision variables ===
+            # Legacy compatibility during Stage 3.1B debug:
+            # env-side q_values are kept temporarily so we can isolate tracing and risk wiring
+            # before moving full option valuation into the agent.
             'q_values': self._get_q_values(),
             'risk_values': self._get_risk_values(),
             'expected_reward': self._get_expected_reward(),
@@ -809,6 +823,12 @@ class OpenCoveredChoiceEnv:
             'one_shot_salience': self.state.last_one_shot_salience,
             'one_shot_stakes': self.state.last_one_shot_stakes,
             'one_shot_reward': self.state.last_one_shot_reward,
+
+            # Stage 3.1B: condition metadata for agent-side learning
+            'option_reward_values': option_reward_values,
+            'option_risk_values': option_risk_values,
+            'option_visibility_values': option_visibility_values,
+            'option_expected_threat_values': option_expected_threat_values,
             
             # === State machine ===
             'state': self.state.deliberation_state.value
@@ -1096,6 +1116,30 @@ class OpenCoveredChoiceEnv:
         covered_risk = self.covered_path_cfg.get('exposure_profile', {}).get('X_risk', 0.0)
 
         return [float(open_risk), float(covered_risk)]
+    
+    def _get_option_expected_reward_values(self) -> List[float]:
+        open_expected = (
+            self.open_path_cfg.get('base_reward', 1.0) +
+            self.open_path_cfg.get('reward_bonus', 0.0)
+        ) * self.open_path_cfg.get('reward_prob', 1.0)
+
+        covered_expected = (
+            self.covered_path_cfg.get('base_reward', 1.0) +
+            self.covered_path_cfg.get('reward_bonus', 0.0)
+        ) * self.covered_path_cfg.get('reward_prob', 1.0)
+
+        return [float(open_expected), float(covered_expected)]
+
+    def _get_option_visibility_values(self) -> List[float]:
+        open_vis = self.open_path_cfg.get('exposure_profile', {}).get('D_est', 0.0)
+        covered_vis = self.covered_path_cfg.get('exposure_profile', {}).get('D_est', 0.0)
+        return [float(open_vis), float(covered_vis)]
+
+
+    def _get_option_expected_threat_values(self) -> List[float]:
+        open_threat = self.open_threat_penalty * self.open_threat_prob
+        covered_threat = self.covered_threat_penalty * self.covered_threat_prob
+        return [float(open_threat), float(covered_threat)]
     
     def _get_expected_reward(self) -> float:
         """

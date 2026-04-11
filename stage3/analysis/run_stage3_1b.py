@@ -281,8 +281,10 @@ def run_condition(
             obs_one_shot_salience_pre = obs.get('one_shot_salience', np.nan)
             obs_one_shot_stakes_pre = obs.get('one_shot_stakes', np.nan)
 
+            obs_pre = dict(obs)
+
             action, metadata = agent.step(
-                observation=obs,
+                observation=obs_pre,
                 reward=prev_reward,
                 salience=step_salience,
                 stakes=step_stakes
@@ -320,14 +322,19 @@ def run_condition(
                     # diagnostic tag in gate trigger
                     gate_trigger = f"{gate_trigger}|forced_shock"
 
-            obs, reward, done, info = env.step(
+            obs_post, reward, done, info = env.step(
                 action=action,
                 mode=mode,
                 gate_trigger=gate_trigger,
                 action_probs=action_probs
             )
 
-            post_step_one_shot_fired = float(obs.get('one_shot_fired', 0.0)) > 0.0 or bool(info.get('one_shot_fired', False))
+            obs = obs_post
+
+            post_step_one_shot_fired = (
+                float(obs_post.get('one_shot_fired', 0.0)) > 0.0
+                or bool(info.get('one_shot_fired', False))
+            )
 
             if post_step_one_shot_fired:
                 pending_one_shot_salience = float(
@@ -417,9 +424,16 @@ def run_condition(
             in_shock_window = abs(trial - shock_trial) <= debug_trial_window if shock_trial >= 0 else False
             at_junction = bool(info.get('at_junction', False))
 
+            pre_at_junction = float(obs_pre.get('at_junction', 0.0)) > 0.5
+            post_at_junction = bool(info.get('at_junction', False))
+
+            policy_q_values = metadata.get('q_values', [])
+            real_junction_choice_row = bool(pre_at_junction and isinstance(policy_q_values, list) and len(policy_q_values) == 2)
+
             should_store_debug = debug and (
                 (not debug_junction_only) or
-                at_junction or
+                pre_at_junction or
+                post_at_junction or
                 in_shock_window or
                 bool(info.get('one_shot_fired', False)) or
                 forced_action_applied
@@ -433,66 +447,76 @@ def run_condition(
                 'trial': trial,
                 'tick': info.get('tick', tick),
 
-                'node_id': info.get('node_id', ''),
-                'at_junction': at_junction,
-                'deliberation_state': info.get('deliberation_state', ''),
-                'candidate_path': info.get('candidate_path', ''),
-                'committed_path': info.get('committed_path', ''),
+                'pre_node_id': obs_pre.get('node_id', ''),
+                'pre_at_junction': pre_at_junction,
+                'pre_deliberation_state': obs_pre.get('deliberation_state', ''),
+                'pre_X_risk': obs_pre.get('X_risk', np.nan),
+                'pre_X_opp': obs_pre.get('X_opp', np.nan),
+                'pre_D_est': obs_pre.get('D_est', np.nan),
+
+                'pre_q_values': obs_pre.get('q_values', []),
+                'pre_risk_values': obs_pre.get('risk_values', []),
+
+                'pre_option_reward_values': obs_pre.get('option_reward_values', []),
+                'pre_option_risk_values': obs_pre.get('option_risk_values', []),
+                'pre_option_visibility_values': obs_pre.get('option_visibility_values', []),
+                'pre_option_expected_threat_values': obs_pre.get('option_expected_threat_values', []),
+
+                'pre_one_shot_fired': obs_pre.get('one_shot_fired', np.nan),
+                'pre_one_shot_salience': obs_pre.get('one_shot_salience', np.nan),
+                'pre_one_shot_stakes': obs_pre.get('one_shot_stakes', np.nan),
 
                 'mode': mode,
                 'gate_trigger': gate_trigger,
                 'action': action,
-                'reward': reward,
 
                 'u_delta': metadata.get('instant_diagnostics', {}).get('u_delta', np.nan),
                 'u_entropy': metadata.get('instant_diagnostics', {}).get('u_entropy', np.nan),
                 'u_volatility': metadata.get('instant_diagnostics', {}).get('u_volatility', np.nan),
 
-                'X_risk': exposure.get('X_risk', np.nan),
-                'X_opp': exposure.get('X_opp', np.nan),
-                'D_est': exposure.get('D_est', np.nan),
-
-                'h_risk': temporal_state.get('h_risk', np.nan),
-                'h_opp': temporal_state.get('h_opp', np.nan),
-                'h_time': temporal_state.get('h_time', np.nan),
-
-                'one_shot_fired': info.get('one_shot_fired', False),
-                'one_shot_active': info.get('one_shot_active', False),
-                'one_shot_trial': info.get('one_shot_trial', -1),
-                'one_shot_path': info.get('one_shot_path', ''),
-                'one_shot_pending': metadata.get('one_shot_pending', False),
-                'one_shot_amplitude': metadata.get('one_shot_amplitude', np.nan),
-                'salience_used': metadata.get('salience_used', np.nan),
-                'stakes_used': metadata.get('stakes_used', np.nan),
+                'h_risk': metadata.get('temporal_state', {}).get('h_risk', np.nan),
+                'h_opp': metadata.get('temporal_state', {}).get('h_opp', np.nan),
+                'h_time': metadata.get('temporal_state', {}).get('h_time', np.nan),
 
                 'safe_drive': metadata.get('safe_drive', np.nan),
                 'uncertainty_signal': metadata.get('uncertainty_signal', np.nan),
                 'v_g_approx': metadata.get('v_g_approx', np.nan),
                 'explore_gate_output': metadata.get('explore_gate_output', np.nan),
 
-                'mode_scores_raw': metadata.get('mode_scores_raw', {}),
+                'policy_q_values': metadata.get('q_values', []),
+                'policy_risk_values': metadata.get('risk_values', []),
+                'action_probs': metadata.get('action_probs', []),
+
                 'gate_state_snapshot': metadata.get('gate_state_snapshot', {}),
                 'action_policy_debug': metadata.get('action_policy_debug', {}),
 
-                'q_values': metadata.get('q_values', []),
-                'risk_values': metadata.get('risk_values', []),
-                'action_probs': metadata.get('action_probs', []),
+                'post_node_id': info.get('node_id', ''),
+                'post_at_junction': post_at_junction,
+                'post_deliberation_state': info.get('deliberation_state', ''),
+                'candidate_path': info.get('candidate_path', ''),
+                'committed_path': info.get('committed_path', ''),
+
+                'open_X_risk': info.get('open_X_risk', np.nan),
+                'covered_X_risk': info.get('covered_X_risk', np.nan),
+                'open_reward_prob': info.get('open_reward_prob', np.nan),
+                'covered_reward_prob': info.get('covered_reward_prob', np.nan),
+
+                'reward': reward,
+                'post_one_shot_fired': bool(info.get('one_shot_fired', False)),
+                'one_shot_pending': metadata.get('one_shot_pending', False),
+                'one_shot_amplitude': metadata.get('one_shot_amplitude', np.nan),
+                'salience_used': metadata.get('salience_used', np.nan),
+                'stakes_used': metadata.get('stakes_used', np.nan),
 
                 'diagnostic_forced_shock': diagnostic_forced_shock,
                 'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
                 'forced_action_applied': forced_action_applied,
 
-                # Temporal state for next step (if one-shot fired)
                 'step_one_shot_from_pending': step_one_shot_from_pending,
                 'pending_one_shot_salience_used': step_salience,
                 'pending_one_shot_stakes_used': step_stakes,
-                'post_step_one_shot_fired': post_step_one_shot_fired,
-                'pending_one_shot_source_trial': pending_one_shot_source_trial,
-                'pending_one_shot_source_tick': pending_one_shot_source_tick,
-                    
-                'obs_one_shot_fired_pre': obs.get('one_shot_fired', np.nan),
-                'obs_one_shot_salience_pre': obs.get('one_shot_salience', np.nan),
-                'obs_one_shot_stakes_pre': obs.get('one_shot_stakes', np.nan),
+
+                'real_junction_choice_row': real_junction_choice_row,
             }
 
             if should_store_debug:
