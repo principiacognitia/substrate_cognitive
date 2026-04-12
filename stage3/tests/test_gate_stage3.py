@@ -208,7 +208,7 @@ def test_exploit_safe_uses_temporal_risk():
     """
     gate = GateStage3(
         GateThresholds(
-            critical_risk_threshold=0.42,
+            critical_risk_threshold=0.37,
             safe_drive_weight_current=0.6,
             safe_drive_weight_temporal=0.4
         )

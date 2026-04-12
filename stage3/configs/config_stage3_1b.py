@@ -340,7 +340,7 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
     
     # === Stage 3 Core: Gate Thresholds ===
     'gate_thresholds': {
-        'critical_risk_threshold': 0.42,
+        'critical_risk_threshold': 0.37,
         'suspicion_threshold': 0.5,
         'visibility_threshold': 0.3,
         'safe_window_threshold': 50,
