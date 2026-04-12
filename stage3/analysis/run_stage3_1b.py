@@ -483,6 +483,15 @@ def run_condition(
                 'v_g_approx': metadata.get('v_g_approx', np.nan),
                 'explore_gate_output': metadata.get('explore_gate_output', np.nan),
 
+                'node_X_risk': metadata.get('node_exposure', {}).get('X_risk', np.nan),
+                'node_X_opp': metadata.get('node_exposure', {}).get('X_opp', np.nan),
+                'node_D_est': metadata.get('node_exposure', {}).get('D_est', np.nan),
+
+                'gate_X_risk': metadata.get('gate_exposure', {}).get('X_risk', np.nan),
+                'gate_X_opp': metadata.get('gate_exposure', {}).get('X_opp', np.nan),
+                'gate_D_est': metadata.get('gate_exposure', {}).get('D_est', np.nan),
+                'gate_exposure_source': metadata.get('gate_exposure_source', ''),
+
                 'policy_q_values': metadata.get('q_values', []),
                 'policy_risk_values': metadata.get('risk_values', []),
                 'action_probs': metadata.get('action_probs', []),

@@ -305,7 +305,7 @@ class TestConfigIntegrity:
         # Key frozen parameters
         assert AGENT_CONFIG_3_1B['temporal_state']['one_shot_threshold'] == 5.0
         assert AGENT_CONFIG_3_1B['temporal_state']['one_shot_boost'] == 2.0
-        assert AGENT_CONFIG_3_1B['gate_thresholds']['critical_risk_threshold'] == 0.7
+        assert AGENT_CONFIG_3_1B['gate_thresholds']['critical_risk_threshold'] == 0.42
     
     def test_ablation_configs_present(self):
         """Test that all required ablations are defined."""

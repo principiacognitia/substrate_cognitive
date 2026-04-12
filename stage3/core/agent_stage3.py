@@ -253,18 +253,46 @@ class AgentStage3:
         # Если observation уже содержит exposure aggregates (из spatial env),
         # используем их напрямую
         if 'X_risk' in observation and 'X_opp' in observation and 'D_est' in observation:
-            exposure_aggregates = ExposureAggregates(
+            node_exposure_aggregates = ExposureAggregates(
                 X_risk=observation['X_risk'],
                 X_opp=observation['X_opp'],
                 D_est=observation['D_est']
             )
         else:
-            exposure_aggregates = self.exposure_field.compute_exposure(
+            node_exposure_aggregates = self.exposure_field.compute_exposure(
                 observation=observation,
                 action=action,
                 reward=reward,
                 trial=self.trial_count
             )
+
+        gate_exposure_source = 'node_exposure'
+
+        option_risk_values = observation.get('option_risk_values', [])
+        option_visibility_values = observation.get('option_visibility_values', [])
+
+        at_junction = float(observation.get('at_junction', 0.0)) > 0.5
+
+        if (
+            at_junction and
+            isinstance(option_risk_values, (list, tuple)) and
+            len(option_risk_values) >= 2
+        ):
+            gate_x_risk = float(max(option_risk_values))
+            gate_d_est = (
+                float(max(option_visibility_values))
+                if isinstance(option_visibility_values, (list, tuple)) and len(option_visibility_values) >= 2
+                else float(node_exposure_aggregates.D_est)
+            )
+
+            gate_exposure_aggregates = ExposureAggregates(
+                X_risk=gate_x_risk,
+                X_opp=float(node_exposure_aggregates.X_opp),
+                D_est=gate_d_est
+            )
+            gate_exposure_source = 'junction_option_max_risk'
+        else:
+            gate_exposure_aggregates = node_exposure_aggregates
         
         # =====================================================================
         # 3. Обновление Temporal State
@@ -292,8 +320,8 @@ class AgentStage3:
 
         self.current_temporal_state = self.temporal_updater.update(
             state=self.current_temporal_state,
-            X_risk=exposure_aggregates.X_risk,
-            X_opp=exposure_aggregates.X_opp,
+            X_risk=node_exposure_aggregates.X_risk,
+            X_opp=node_exposure_aggregates.X_opp,
             salience=float(salience),
             stakes=float(stakes)
         )
@@ -306,7 +334,7 @@ class AgentStage3:
         else:
             gate_input = GateInput(
                 instant=instant_diagnostics,
-                exposure=exposure_aggregates,
+                exposure=gate_exposure_aggregates,
                 temporal=self.current_temporal_state
             )
         
@@ -323,7 +351,7 @@ class AgentStage3:
             mode=selected_mode,
             observation=observation,
             instant_diagnostics=instant_diagnostics,
-            exposure=exposure_aggregates
+            exposure=node_exposure_aggregates
         )
         
         # =====================================================================
@@ -332,7 +360,7 @@ class AgentStage3:
         if self.config.log_level > 0:
             log_entry = self._create_log_entry(
                 observation=observation,
-                exposure=exposure_aggregates,
+                exposure=node_exposure_aggregates,
                 temporal_state=self.current_temporal_state,
                 instant_diagnostics=instant_diagnostics,
                 mode_scores=gate_metadata['mode_scores'],
@@ -352,11 +380,17 @@ class AgentStage3:
             'trial': self.trial_count - 1,
             'mode': str(selected_mode),
             'action': action,
-            'exposure': {
-                'X_risk': exposure_aggregates.X_risk,
-                'X_opp': exposure_aggregates.X_opp,
-                'D_est': exposure_aggregates.D_est
+            'node_exposure': {
+                'X_risk': node_exposure_aggregates.X_risk,
+                'X_opp': node_exposure_aggregates.X_opp,
+                'D_est': node_exposure_aggregates.D_est,
             },
+            'gate_exposure': {
+                'X_risk': gate_exposure_aggregates.X_risk,
+                'X_opp': gate_exposure_aggregates.X_opp,
+                'D_est': gate_exposure_aggregates.D_est,
+            },
+            'gate_exposure_source': gate_exposure_source,
             'temporal_state': {
                 'h_risk': self.current_temporal_state.h_risk,
                 'h_opp': self.current_temporal_state.h_opp,
