@@ -278,9 +278,9 @@ class AgentStage3:
             isinstance(option_risk_values, (list, tuple)) and
             len(option_risk_values) >= 2
         ):
-            gate_x_risk = float(max(option_risk_values))
+            gate_x_risk = float(np.mean(option_risk_values))
             gate_d_est = (
-                float(max(option_visibility_values))
+                float(np.mean(option_visibility_values))
                 if isinstance(option_visibility_values, (list, tuple)) and len(option_visibility_values) >= 2
                 else float(node_exposure_aggregates.D_est)
             )
@@ -290,7 +290,7 @@ class AgentStage3:
                 X_opp=float(node_exposure_aggregates.X_opp),
                 D_est=gate_d_est
             )
-            gate_exposure_source = 'junction_option_max_risk'
+            gate_exposure_source = 'junction_option_mean_risk'
         else:
             gate_exposure_aggregates = node_exposure_aggregates
         

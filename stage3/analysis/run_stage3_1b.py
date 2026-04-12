@@ -533,17 +533,23 @@ def run_condition(
 
             if debug_console and should_store_debug:
                 print(
-                    f"[DBG] seed={seed} trial={trial} tick={info.get('tick', tick)} "
-                    f"node={info.get('node_id', '')} state={info.get('deliberation_state', '')} "
-                    f"mode={mode} gate={gate_trigger} action={action} reward={reward:.3f} "
-                    f"Xr={exposure.get('X_risk', np.nan):.3f} Hr={temporal_state.get('h_risk', np.nan):.3f} "
-                    f"safe={metadata.get('safe_drive', np.nan):.3f} "
-                    f"unc={metadata.get('uncertainty_signal', np.nan):.3f} "
-                    f"vg={metadata.get('v_g_approx', np.nan):.3f} "
-                    f"explore_out={metadata.get('explore_gate_output', np.nan):.3f} "
-                    f"probs={metadata.get('action_probs', [])} "
-                    f"sal={step_salience} stakes={step_stakes} pending_used={step_one_shot_from_pending} "
-                    f"post_fired={post_step_one_shot_fired}"
+                    f"[DBG] seed={debug_row['seed']} "
+                    f"trial={debug_row['trial']} tick={debug_row['tick']} "
+                    f"node={debug_row['post_node_id']} state={debug_row['post_deliberation_state']} "
+                    f"mode={debug_row['mode']} gate={debug_row['gate_trigger']} "
+                    f"action={debug_row['action']} reward={debug_row['reward']:.3f} "
+                    f"NXr={debug_row.get('node_X_risk', np.nan):.3f} "
+                    f"GXr={debug_row.get('gate_X_risk', np.nan):.3f} "
+                    f"Hr={debug_row['h_risk']:.3f} "
+                    f"safe={debug_row['safe_drive']:.3f} "
+                    f"unc={debug_row['uncertainty_signal']:.3f} "
+                    f"vg={debug_row['v_g_approx']:.3f} "
+                    f"explore_out={debug_row['explore_gate_output']:.3f} "
+                    f"probs={debug_row['action_probs']} "
+                    f"sal={debug_row['pending_one_shot_salience_used']} "
+                    f"stakes={debug_row['pending_one_shot_stakes_used']} "
+                    f"pending_used={debug_row['step_one_shot_from_pending']} "
+                    f"post_fired={debug_row['post_one_shot_fired']}"
                 )
 
         if not done:
