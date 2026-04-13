@@ -63,7 +63,10 @@ class AgentLog:
     h_risk: float = 0.0
     h_opp: float = 0.0
     h_time: int = 0
+    q_neg: float = 0.0
+    q_pos: float = 0.0
     one_shot_fired: bool = False
+    one_shot_type: str = "none"
     stakes: float = 1.0
     one_shot_amplitude: float = 0.0
 
@@ -394,7 +397,9 @@ class AgentStage3:
             'temporal_state': {
                 'h_risk': self.current_temporal_state.h_risk,
                 'h_opp': self.current_temporal_state.h_opp,
-                'h_time': self.current_temporal_state.h_time
+                'h_time': self.current_temporal_state.h_time,
+                'q_neg': self.current_temporal_state.q_neg,
+                'q_pos': self.current_temporal_state.q_pos,
             },
             'instant_diagnostics': {
                 'u_delta': instant_diagnostics.u_delta,
@@ -407,6 +412,7 @@ class AgentStage3:
             # Stage 3.1B one-shot plumbing
             'one_shot_pending': self.current_temporal_state.one_shot_pending,
             'one_shot_amplitude': self.current_temporal_state.one_shot_amplitude,
+            'one_shot_type': self.current_temporal_state.one_shot_type,
             'salience_used': float(salience),
             'stakes_used': float(stakes),
 
@@ -641,9 +647,12 @@ class AgentStage3:
             h_risk=temporal_state.h_risk,
             h_opp=temporal_state.h_opp,
             h_time=temporal_state.h_time,
+            q_neg=temporal_state.q_neg,
+            q_pos=temporal_state.q_pos,
             stakes=stakes,
             one_shot_amplitude=temporal_state.one_shot_amplitude,
-            one_shot_fired=temporal_state.one_shot_pending
+            one_shot_fired=temporal_state.one_shot_pending,
+            one_shot_type=temporal_state.one_shot_type
         )
     
     def reset(self):
@@ -662,7 +671,9 @@ class AgentStage3:
             'temporal_state': {
                 'h_risk': self.current_temporal_state.h_risk,
                 'h_opp': self.current_temporal_state.h_opp,
-                'h_time': self.current_temporal_state.h_time
+                'h_time': self.current_temporal_state.h_time,
+                'q_neg': self.current_temporal_state.q_neg,
+                'q_pos': self.current_temporal_state.q_pos,
             },
             'compatibility_mode': self.config.compatibility_mode,
             'log_buffer_size': len(self.log_buffer)

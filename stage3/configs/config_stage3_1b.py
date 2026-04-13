@@ -359,19 +359,28 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
     
     # === Stage 3 Core: Temporal State ===
     'temporal_state': {
-        'lambda_risk': 0.10,   # legacy / fallback
-        'lambda_opp': 0.90,
+        # Base update rates for h traces
+        # ВАЖНО: после rebuild lambda_opp тоже задаётся как update-rate, а не retention-coefficient
+        'lambda_risk': 0.10,
+        'lambda_opp': 0.10,
 
-        # Patch A: asymmetric risk trace
-        'lambda_risk_in': 0.10,
-        'lambda_risk_out': 0.98,
-        'one_shot_decay_override': 0.995,
-        'one_shot_persistence_window': 10,
-        'one_shot_floor': 0.15,
+        # Importance trace dynamics
+        'rho_neg': 0.98,
+        'rho_pos': 0.95,
+        'k_neg': 1.0,
+        'k_pos': 0.7,
 
+        # Event ranking thresholds
+        'theta_baseline': 0.25,
+        'theta_shot': 5.0,
+
+        # Coupling from q traces to effective update rates
+        'w_neg_to_risk': 2.0,
+        'w_pos_to_opp': 1.0,
+
+        # Existing
         'salience_threshold': 0.5,
-        'one_shot_threshold': 5.0,
-        'one_shot_boost': 2.0,
+        'q_clip': 10.0,
     },
     
     # === Stage 3 Core: Exposure Field ===
@@ -545,14 +554,15 @@ ABLATION_CONFIG_3_1B: Dict[str, Dict[str, Any]] = {
     },
     'one_shot_off': {
         'name': 'One-Shot-Off',
-        'description': 'One-shot update отключен (amplitude cap)',
+        'description': 'Importance ranking for extreme events disabled',
         'modifications': {
             'agent': {
                 'temporal_state': {
-                    'one_shot_threshold': 999.0,
-                    'one_shot_boost': 0.0,
-                    'one_shot_persistence_window': 0,
-                    'one_shot_floor': 0.0
+                    'theta_shot': 999.0,
+                    'k_neg': 0.0,
+                    'k_pos': 0.0,
+                    'w_neg_to_risk': 0.0,
+                    'w_pos_to_opp': 0.0
                 }
             }
         }

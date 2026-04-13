@@ -347,7 +347,7 @@ def run_condition(
                 pending_one_shot_source_tick = info.get('tick', tick)
 
             temporal_state = metadata.get('temporal_state', {})
-            exposure = metadata.get('exposure', {})
+            node_exposure = metadata.get('node_exposure', {})
 
             step_rows.append({
                 'seed': seed,
@@ -367,16 +367,19 @@ def run_condition(
                 'action': action,
                 'reward': reward,
 
-                'X_risk': exposure.get('X_risk', np.nan),
-                'X_opp': exposure.get('X_opp', np.nan),
-                'D_est': exposure.get('D_est', np.nan),
+                'X_risk': node_exposure.get('X_risk', np.nan),
+                'X_opp': node_exposure.get('X_opp', np.nan),
+                'D_est': node_exposure.get('D_est', np.nan),
 
                 'h_risk': temporal_state.get('h_risk', np.nan),
                 'h_opp': temporal_state.get('h_opp', np.nan),
                 'h_time': temporal_state.get('h_time', np.nan),
+                'q_neg': temporal_state.get('q_neg', np.nan),
+                'q_pos': temporal_state.get('q_pos', np.nan),
 
                 'one_shot_fired': temporal_state.get('one_shot_pending', False),
                 'one_shot_amplitude': temporal_state.get('one_shot_amplitude', 0.0),
+                'one_shot_type': metadata.get('one_shot_type', 'none'),
 
                 'open_reward_prob': info.get('open_reward_prob', np.nan),
                 'covered_reward_prob': info.get('covered_reward_prob', np.nan),
@@ -478,6 +481,10 @@ def run_condition(
                 'h_opp': metadata.get('temporal_state', {}).get('h_opp', np.nan),
                 'h_time': metadata.get('temporal_state', {}).get('h_time', np.nan),
 
+                'q_neg': metadata.get('temporal_state', {}).get('q_neg', np.nan),
+                'q_pos': metadata.get('temporal_state', {}).get('q_pos', np.nan),
+                'one_shot_type': metadata.get('one_shot_type', 'none'),
+
                 'safe_drive': metadata.get('safe_drive', np.nan),
                 'uncertainty_signal': metadata.get('uncertainty_signal', np.nan),
                 'v_g_approx': metadata.get('v_g_approx', np.nan),
@@ -541,6 +548,8 @@ def run_condition(
                     f"NXr={debug_row.get('node_X_risk', np.nan):.3f} "
                     f"GXr={debug_row.get('gate_X_risk', np.nan):.3f} "
                     f"Hr={debug_row['h_risk']:.3f} "
+                    f"Qn={debug_row.get('q_neg', np.nan):.3f} "
+                    f"Qp={debug_row.get('q_pos', np.nan):.3f} "
                     f"safe={debug_row['safe_drive']:.3f} "
                     f"unc={debug_row['uncertainty_signal']:.3f} "
                     f"vg={debug_row['v_g_approx']:.3f} "

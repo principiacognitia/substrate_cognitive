@@ -191,10 +191,15 @@ class TemporalState:
     h_risk: float = 0.0
     h_opp: float = 0.0
     h_time: int = 0
-    
+
+    # Stage 3.1B rebuild: long-lived importance traces
+    q_neg: float = 0.0
+    q_pos: float = 0.0
+
     # Debug metadata (не часть core state, для логирования)
     one_shot_pending: bool = False
     one_shot_amplitude: float = 0.0
+    one_shot_type: str = "none"
     
     def __post_init__(self):
         """Валидация: trace должны быть numeric."""
@@ -204,6 +209,12 @@ class TemporalState:
             raise ValueError(f"TemporalState.h_opp must be numeric: {self.h_opp}")
         if not isinstance(self.h_time, (int, np.integer)):
             raise ValueError(f"TemporalState.h_time must be int: {self.h_time}")
+        if not isinstance(self.q_neg, (int, float, np.number)):
+            raise ValueError(f"TemporalState.q_neg must be numeric: {self.q_neg}")
+        if not isinstance(self.q_pos, (int, float, np.number)):
+            raise ValueError(f"TemporalState.q_pos must be numeric: {self.q_pos}")
+        if self.one_shot_type not in ("none", "negative", "positive"):
+            raise ValueError(f"TemporalState.one_shot_type invalid: {self.one_shot_type}")
     
     @classmethod
     def zeros(cls) -> 'TemporalState':

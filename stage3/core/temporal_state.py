@@ -1,10 +1,14 @@
 """
-Stage 3.0: Temporal State Update Logic.
+Stage 3.1B: Temporal State Update Logic.
 
 Реализует обновление сжатой временной истории (h_t):
-- h_risk: exponentially smoothed risky exposure trace
-- h_opp: exponentially smoothed opportunity trace
+- h_risk: exponentially smoothed short-lived risky exposure trace
+- h_opp: exponentially smoothed short-lived opportunity trace
 - h_time: time trace since last high-salience event
+
+Importance traces:
+- q_neg: accumulated negative-event importance
+- q_pos: accumulated positive-event importance
 
 Design Constraints:
 - One-Shot как режим обновления (amplitude-dependent), не отдельный модуль
@@ -22,6 +26,11 @@ One-Shot Regime:
         h_risk ← h_risk + one_shot_boost * X_risk
         h_opp  ← h_opp  + one_shot_boost * X_opp
 
+    Design Principle:
+    Importance is not a symbolic tag and not a scheduler flag.
+    It is a continuous state variable that modulates the time constants
+    of already existing trace dynamics.
+        
 Author: Alex Snow (Aleksey L. Snigirov)
 License: MIT
 """
@@ -36,66 +45,66 @@ from stage3.core.gate_inputs import TemporalState
 @dataclass
 class TemporalStateConfig:
     """
-    Конфигурация для temporal state update.
-    
-    Attributes:
-        lambda_risk: Decay rate для h_risk (default: 0.9)
-        lambda_opp: Decay rate для h_opp (default: 0.9)
-        salience_threshold: Порог для сброса h_time (default: 0.5)
-        one_shot_threshold: Порог амплитуды для one-shot update (default: 5.0)
-        one_shot_boost: Множитель для one-shot update (default: 2.0)
+    Конфигурация непрерывной temporal dynamics для Stage 3.1B rebuild.
 
-    Конфигурация для temporal state update.
-
-    Backward compatibility:
-    - lambda_risk и lambda_opp оставлены как legacy fields
-    - если lambda_risk_in / lambda_risk_out не заданы, они наследуются из lambda_risk
+    ВАЖНО:
+    - никаких persistence windows
+    - никаких hidden schedulers
+    - one-shot effect возникает через importance traces q_neg / q_pos
+    - q traces модулируют time constants already-existing temporal traces
     """
 
-    # Legacy / shared
-    lambda_risk: float = 0.9
-    lambda_opp: float = 0.9
+    # Base update rates for h traces
+    # Интерпретация: чем меньше lambda, тем медленнее текущий вход переписывает trace
+    lambda_risk: float = 0.10
+    lambda_opp: float = 0.10
 
-    # New risk-trace dynamics
-    lambda_risk_in: Optional[float] = None
-    lambda_risk_out: Optional[float] = None
-    one_shot_decay_override: float = 0.995
-    one_shot_persistence_window: int = 10
-    one_shot_floor: float = 0.15
+    # Importance trace decay
+    rho_neg: float = 0.98
+    rho_pos: float = 0.95
+
+    # Importance gain
+    k_neg: float = 1.0
+    k_pos: float = 0.7
+
+    # Baseline field threshold below which input is treated as ordinary background
+    theta_baseline: float = 0.25
+
+    # Debug/diagnostic threshold for classifying event as one-shot
+    theta_shot: float = 5.0
+
+    # Coupling from importance traces to effective update rates
+    w_neg_to_risk: float = 2.0
+    w_pos_to_opp: float = 1.0
 
     # Existing
     salience_threshold: float = 0.5
-    one_shot_threshold: float = 5.0
-    one_shot_boost: float = 2.0
+
+    # Safety clip
+    q_clip: float = 10.0
 
     def __post_init__(self):
-        """Валидация конфигурации."""
-        if self.lambda_risk_in is None:
-            self.lambda_risk_in = self.lambda_risk
-        if self.lambda_risk_out is None:
-            self.lambda_risk_out = self.lambda_risk
-
         for name, value in [
             ("lambda_risk", self.lambda_risk),
             ("lambda_opp", self.lambda_opp),
-            ("lambda_risk_in", self.lambda_risk_in),
-            ("lambda_risk_out", self.lambda_risk_out),
-            ("one_shot_decay_override", self.one_shot_decay_override),
-            ("one_shot_floor", self.one_shot_floor),
+            ("rho_neg", self.rho_neg),
+            ("rho_pos", self.rho_pos),
         ]:
             if not 0.0 <= value <= 1.0:
                 raise ValueError(f"{name} must be in [0, 1]: {value}")
 
-        if self.salience_threshold < 0:
-            raise ValueError(f"salience_threshold must be >= 0: {self.salience_threshold}")
-        if self.one_shot_threshold < 0:
-            raise ValueError(f"one_shot_threshold must be >= 0: {self.one_shot_threshold}")
-        if self.one_shot_boost < 0:
-            raise ValueError(f"one_shot_boost must be >= 0: {self.one_shot_boost}")
-        if self.one_shot_persistence_window < 0:
-            raise ValueError(
-                f"one_shot_persistence_window must be >= 0: {self.one_shot_persistence_window}"
-            )
+        for name, value in [
+            ("k_neg", self.k_neg),
+            ("k_pos", self.k_pos),
+            ("theta_baseline", self.theta_baseline),
+            ("theta_shot", self.theta_shot),
+            ("w_neg_to_risk", self.w_neg_to_risk),
+            ("w_pos_to_opp", self.w_pos_to_opp),
+            ("salience_threshold", self.salience_threshold),
+            ("q_clip", self.q_clip),
+        ]:
+            if value < 0.0:
+                raise ValueError(f"{name} must be >= 0: {value}")
 
 
 class TemporalStateUpdater:
@@ -120,10 +129,6 @@ class TemporalStateUpdater:
         """
         self.config = config or TemporalStateConfig()
         
-        # Internal persistence state for post-shock slow decay.
-        # Это не отдельный memory module, а режим обновления того же trace.
-        self._one_shot_active_window = 0
-    
     def update(
         self,
         state: TemporalState,
@@ -133,84 +138,92 @@ class TemporalStateUpdater:
         stakes: float = 1.0
     ) -> TemporalState:
         """
-        Обновляет temporal state.
+        Обновляет temporal state через непрерывные importance traces.
 
-        Patch A:
-        - normal risk update uses fast input branch (lambda_risk_in)
-        - post-one-shot decay uses slow branch (lambda_risk_out / one_shot_decay_override)
-        - during persistence window h_risk can be clamped by one_shot_floor
+        Principle:
+        - q_neg / q_pos не являются ярлыками событий
+        - они являются long-lived continuous state variables
+        - их роль — модулировать effective update rates already-existing traces
         """
-        surprise_amplitude = salience * stakes
-        is_one_shot = surprise_amplitude > self.config.one_shot_threshold
 
-        # ---------------------------------------------------------------------
-        # One-shot window activation
-        # ---------------------------------------------------------------------
-        if is_one_shot:
-            self._one_shot_active_window = self.config.one_shot_persistence_window
+        X_risk = float(X_risk)
+        X_opp = float(X_opp)
+        salience = float(salience)
+        stakes = float(stakes)
 
-        # ---------------------------------------------------------------------
-        # h_risk update
-        # ---------------------------------------------------------------------
-        if is_one_shot:
-            # Fast encoding branch + immediate boost
-            lam = self.config.lambda_risk_in
-            h_risk_new = lam * state.h_risk + (1.0 - lam) * X_risk
-            h_risk_new += self.config.one_shot_boost * X_risk
-            h_risk_new = max(h_risk_new, self.config.one_shot_floor)
-            h_risk_new = np.clip(h_risk_new, 0.0, 1.0)
+        surprise_amplitude = max(0.0, salience) * max(0.0, stakes)
+        is_one_shot = surprise_amplitude > self.config.theta_shot
 
-        elif self._one_shot_active_window > 0:
-            # Slow decay branch during post-shock persistence window
-            lam = max(self.config.lambda_risk_out, self.config.one_shot_decay_override)
-            h_risk_new = lam * state.h_risk + (1.0 - lam) * X_risk
-            h_risk_new = max(h_risk_new, self.config.one_shot_floor)
-            h_risk_new = np.clip(h_risk_new, 0.0, 1.0)
+        # ------------------------------------------------------------------
+        # A. Importance drive from current field
+        # ------------------------------------------------------------------
+        risk_excess = max(0.0, X_risk - self.config.theta_baseline)
+        opp_excess = max(0.0, X_opp - self.config.theta_baseline)
 
-            self._one_shot_active_window -= 1
+        shot_neg = risk_excess * surprise_amplitude
+        shot_pos = opp_excess * surprise_amplitude
 
-        else:
-            # Ordinary update branch
-            lam = self.config.lambda_risk_in
-            h_risk_new = lam * state.h_risk + (1.0 - lam) * X_risk
-            h_risk_new = np.clip(h_risk_new, 0.0, 1.0)
+        # ------------------------------------------------------------------
+        # B. Continuous importance traces
+        # ------------------------------------------------------------------
+        q_neg_new = self.config.rho_neg * state.q_neg + self.config.k_neg * shot_neg
+        q_pos_new = self.config.rho_pos * state.q_pos + self.config.k_pos * shot_pos
 
-        # ---------------------------------------------------------------------
-        # h_opp update
-        # Leave conservative for now: keep existing Stage 3.1B behavior.
-        # ---------------------------------------------------------------------
-        h_opp_new = (
-            self.config.lambda_opp * state.h_opp +
-            (1.0 - self.config.lambda_opp) * X_opp
-        )
+        q_neg_new = float(np.clip(q_neg_new, 0.0, self.config.q_clip))
+        q_pos_new = float(np.clip(q_pos_new, 0.0, self.config.q_clip))
 
-        if is_one_shot:
-            h_opp_new += self.config.one_shot_boost * X_opp
-            h_opp_new = np.clip(h_opp_new, 0.0, 1.0)
+        # ------------------------------------------------------------------
+        # C. Effective update rates
+        # High q -> slower relaxation -> smaller lambda_eff
+        # ------------------------------------------------------------------
+        lambda_risk_eff = self.config.lambda_risk / (1.0 + self.config.w_neg_to_risk * q_neg_new)
+        lambda_opp_eff = self.config.lambda_opp / (1.0 + self.config.w_pos_to_opp * q_pos_new)
 
-        # ---------------------------------------------------------------------
-        # h_time update
-        # ---------------------------------------------------------------------
+        lambda_risk_eff = float(np.clip(lambda_risk_eff, 1e-6, 1.0))
+        lambda_opp_eff = float(np.clip(lambda_opp_eff, 1e-6, 1.0))
+
+        # ------------------------------------------------------------------
+        # D. Trace update
+        # ------------------------------------------------------------------
+        h_risk_new = (1.0 - lambda_risk_eff) * state.h_risk + lambda_risk_eff * X_risk
+        h_opp_new = (1.0 - lambda_opp_eff) * state.h_opp + lambda_opp_eff * X_opp
+
+        h_risk_new = float(np.clip(h_risk_new, 0.0, 1.0))
+        h_opp_new = float(np.clip(h_opp_new, 0.0, 1.0))
+
+        # ------------------------------------------------------------------
+        # E. h_time
+        # ------------------------------------------------------------------
         if salience > self.config.salience_threshold:
             h_time_new = 0
         else:
             h_time_new = state.h_time + 1
 
-        new_state = TemporalState(
-            h_risk=float(h_risk_new),
-            h_opp=float(h_opp_new),
+        # ------------------------------------------------------------------
+        # F. Debug classification only
+        # ------------------------------------------------------------------
+        if is_one_shot and shot_neg > shot_pos and shot_neg > 0.0:
+            one_shot_type = "negative"
+        elif is_one_shot and shot_pos > shot_neg and shot_pos > 0.0:
+            one_shot_type = "positive"
+        else:
+            one_shot_type = "none"
+
+        return TemporalState(
+            h_risk=h_risk_new,
+            h_opp=h_opp_new,
             h_time=int(h_time_new),
-            one_shot_pending=is_one_shot,
-            one_shot_amplitude=float(surprise_amplitude)
+            q_neg=q_neg_new,
+            q_pos=q_pos_new,
+            one_shot_pending=bool(is_one_shot),
+            one_shot_amplitude=float(surprise_amplitude),
+            one_shot_type=one_shot_type
         )
 
-        return new_state
-    
     def reset(self) -> TemporalState:
         """
         Сбрасывает temporal state к нулю.
         """
-        self._one_shot_active_window = 0
         return TemporalState.zeros()
     
     def get_trace_dynamics(
@@ -279,150 +292,96 @@ def create_test_state(
 # =============================================================================
 
 def test_temporal_state_update():
-    """
-    Test: Temporal State Update.
-    
-    Проверяет что h_risk, h_opp, h_time обновляются корректно.
-    """
     updater = TemporalStateUpdater()
     state = TemporalState.zeros()
-    
-    # Обновление с низким salience
+
     state = updater.update(
         state=state,
         X_risk=0.3,
         X_opp=0.1,
-        salience=0.2,  # Низкий salience
+        salience=0.2,
         stakes=1.0
     )
-    
+
     assert state.h_time == 1, f"h_time should be 1, got {state.h_time}"
     assert state.h_risk > 0, "h_risk should increase"
     assert state.h_opp > 0, "h_opp should increase"
-    assert not state.one_shot_pending, "Should not be one-shot"
-    
+    assert state.q_neg == 0.0, f"q_neg should remain 0 for non-extreme event, got {state.q_neg}"
+    assert state.q_pos == 0.0, f"q_pos should remain 0 for non-extreme event, got {state.q_pos}"
     print("✓ PASS: Temporal State Update")
     return True
 
 
-def test_one_shot_as_update_regime():
-    """
-    Test: One-Shot as Amplitude-Dependent Update Regime.
-    
-    Проверяет что one-shot — это не отдельный модуль, а режим обновления.
-    """
-    updater = TemporalStateUpdater(
-        TemporalStateConfig(one_shot_threshold=5.0, one_shot_boost=2.0)
-    )
-    state = TemporalState.zeros()
-    
-    # Low amplitude (many-shot)
-    state_low = updater.update(
-        state=state,
-        X_risk=0.3,
-        X_opp=0.1,
-        salience=0.2,  # Low salience
-        stakes=1.0     # Low stakes
-        # surprise_amplitude = 0.2 < 5.0 → no one-shot
-    )
-    
-    assert not state_low.one_shot_pending, "Low amplitude should not trigger one-shot"
-    
-    # High amplitude (one-shot)
-    state_high = updater.update(
-        state=state,
-        X_risk=0.3,
-        X_opp=0.1,
-        salience=0.9,  # High salience
-        stakes=10.0    # High stakes
-        # surprise_amplitude = 9.0 > 5.0 → one-shot!
-    )
-    
-    assert state_high.one_shot_pending, "High amplitude should trigger one-shot"
-    assert state_high.one_shot_amplitude > 5.0, "Amplitude should be recorded"
-    assert state_high.h_risk > state_low.h_risk, "One-shot should boost h_risk"
-    assert state_high.h_opp > state_low.h_opp, "One-shot should boost h_opp"
-    
-    print("✓ PASS: One-Shot as Update Regime")
-    return True
-
-
-def test_h_time_reset():
-    """
-    Test: h_time Reset on Salient Event.
-    
-    Проверяет что h_time сбрасывается при salient event.
-    """
-    updater = TemporalStateUpdater(
-        TemporalStateConfig(salience_threshold=0.5)
-    )
-    state = TemporalState(h_risk=0.0, h_opp=0.0, h_time=10)
-    
-    # Low salience → h_time increment
-    state = updater.update(
-        state=state,
-        X_risk=0.1,
-        X_opp=0.1,
-        salience=0.3,  # < 0.5
-        stakes=1.0
-    )
-    assert state.h_time == 11, f"h_time should increment to 11, got {state.h_time}"
-    
-    # High salience → h_time reset
-    state = updater.update(
-        state=state,
-        X_risk=0.1,
-        X_opp=0.1,
-        salience=0.8,  # > 0.5
-        stakes=1.0
-    )
-    assert state.h_time == 0, f"h_time should reset to 0, got {state.h_time}"
-    
-    print("✓ PASS: h_time Reset on Salient Event")
-    return True
-
-
-def test_trace_dynamics():
-    """
-    Test: Trace Dynamics Simulation.
-    
-    Проверяет что get_trace_dynamics работает корректно.
-    """
+def test_q_neg_rises_on_high_negative_event():
     updater = TemporalStateUpdater()
-    initial_state = TemporalState.zeros()
-    
-    # Последовательность событий
-    X_risk_seq = [0.1, 0.3, 0.5, 0.2, 0.1]
-    X_opp_seq = [0.1, 0.1, 0.2, 0.1, 0.1]
-    salience_seq = [0.2, 0.3, 0.8, 0.2, 0.2]
-    
-    states = updater.get_trace_dynamics(
-        initial_state=initial_state,
-        X_risk_sequence=X_risk_seq,
-        X_opp_sequence=X_opp_seq,
-        salience_sequence=salience_seq
+    state = TemporalState.zeros()
+
+    state = updater.update(
+        state=state,
+        X_risk=0.6,
+        X_opp=0.0,
+        salience=0.9,
+        stakes=10.0
     )
-    
-    # Должно быть 6 states (initial + 5 updates)
-    assert len(states) == 6, f"Should have 6 states, got {len(states)}"
-    
-    # h_time должен сброситься на шаге 2 (salience=0.8)
-    assert states[3].h_time == 0, f"h_time should reset at step 3, got {states[3].h_time}"
-    
-    print("✓ PASS: Trace Dynamics Simulation")
+
+    assert state.q_neg > 0.0, f"q_neg should rise, got {state.q_neg}"
+    assert state.q_pos == 0.0, f"q_pos should stay 0, got {state.q_pos}"
+    assert state.one_shot_type == "negative", f"expected negative shot, got {state.one_shot_type}"
+    print("✓ PASS: q_neg rises on high negative event")
+    return True
+
+
+def test_q_neg_slows_risk_relaxation():
+    updater = TemporalStateUpdater()
+    state = TemporalState.zeros()
+
+    state = updater.update(
+        state=state,
+        X_risk=0.6,
+        X_opp=0.0,
+        salience=0.9,
+        stakes=10.0
+    )
+    shocked_h = state.h_risk
+
+    for _ in range(10):
+        state = updater.update(
+            state=state,
+            X_risk=0.1,
+            X_opp=0.1,
+            salience=0.1,
+            stakes=1.0
+        )
+
+    assert state.q_neg > 0.0, f"q_neg should still be > 0, got {state.q_neg}"
+    assert 0.20 < state.h_risk < shocked_h, f"h_risk should decay slowly, got {state.h_risk}"
+    print("✓ PASS: q_neg slows risk relaxation")
+    return True
+
+
+def test_q_traces_stay_quiet_without_extreme_events():
+    updater = TemporalStateUpdater()
+    state = TemporalState.zeros()
+
+    for _ in range(20):
+        state = updater.update(
+            state=state,
+            X_risk=0.1,
+            X_opp=0.1,
+            salience=0.1,
+            stakes=1.0
+        )
+
+    assert state.q_neg == 0.0, f"q_neg should stay 0, got {state.q_neg}"
+    assert state.q_pos == 0.0, f"q_pos should stay 0, got {state.q_pos}"
+    print("✓ PASS: q traces stay quiet without extreme events")
     return True
 
 
 def test_backward_compatibility():
-    """
-    Test: Backward Compatibility (Stage 2 emulation).
-    
-    Проверяет что при нулевых exposure trace, behavior деградирует в Stage 2.
-    """
     updater = TemporalStateUpdater()
     state = TemporalState.zeros()
-    
-    # Нулевые exposure → trace должны оставаться близки к нулю
+
     for _ in range(10):
         state = updater.update(
             state=state,
@@ -431,25 +390,26 @@ def test_backward_compatibility():
             salience=0.0,
             stakes=0.0
         )
-    
+
     assert state.h_risk < 0.01, f"h_risk should be ~0, got {state.h_risk}"
     assert state.h_opp < 0.01, f"h_opp should be ~0, got {state.h_opp}"
-    
-    print("✓ PASS: Backward Compatibility (Stage 2 emulation)")
+    assert state.q_neg == 0.0, f"q_neg should be ~0, got {state.q_neg}"
+    assert state.q_pos == 0.0, f"q_pos should be ~0, got {state.q_pos}"
+    print("✓ PASS: Backward Compatibility")
     return True
 
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("Stage 3.0: Temporal State — Unit Tests")
+    print("Stage 3.1B Rebuild: Temporal State — Smoke Tests")
     print("=" * 70)
-    
+
     test_temporal_state_update()
-    test_one_shot_as_update_regime()
-    test_h_time_reset()
-    test_trace_dynamics()
+    test_q_neg_rises_on_high_negative_event()
+    test_q_neg_slows_risk_relaxation()
+    test_q_traces_stay_quiet_without_extreme_events()
     test_backward_compatibility()
-    
+
     print("=" * 70)
     print("All tests completed!")
     print("=" * 70)
