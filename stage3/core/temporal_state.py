@@ -157,7 +157,12 @@ class TemporalStateUpdater:
         stakes = float(stakes)
 
         surprise_amplitude = max(0.0, salience) * max(0.0, stakes)
-        is_one_shot = surprise_amplitude > self.config.theta_shot
+
+        # ВАЖНО:
+        # q traces должны реагировать не на любой salient step,
+        # а только на экстремальный surprise beyond ordinary regime.
+        surprise_excess = max(0.0, surprise_amplitude - self.config.theta_shot)
+        is_one_shot = surprise_excess > 0.0
 
         # ------------------------------------------------------------------
         # A. Importance drive from current field
@@ -165,8 +170,8 @@ class TemporalStateUpdater:
         risk_excess = max(0.0, X_risk - self.config.theta_baseline)
         opp_excess = max(0.0, X_opp - self.config.theta_baseline)
 
-        shot_neg = risk_excess * surprise_amplitude
-        shot_pos = opp_excess * surprise_amplitude
+        shot_neg = risk_excess * surprise_excess
+        shot_pos = opp_excess * surprise_excess
 
         # ------------------------------------------------------------------
         # B. Continuous importance traces
@@ -319,9 +324,9 @@ def test_temporal_state_update():
     assert state.h_time == 1, f"h_time should be 1, got {state.h_time}"
     assert state.h_risk > 0, "h_risk should increase"
     assert state.h_opp > 0, "h_opp should increase"
-    # For a low-salience, low-stakes event, q_neg and q_pos should remain near zero.
-    assert state.q_neg <= 0.011, f"q_neg should remain near zero for low-amplitude event, got {state.q_neg}"
-    assert state.q_pos <= 1e-9, f"q_pos should remain ~0 for low-opportunity event, got {state.q_pos}"
+    # For a low-salience, low-stakes event, q_neg and q_pos should remain  zero.
+    assert state.q_neg == 0.0, f"q_neg should remain 0 for non-extreme event, got {state.q_neg}"
+    assert state.q_pos == 0.0, f"q_pos should remain 0 for non-extreme event, got {state.q_pos}"
     print("✓ PASS: Temporal State Update")
     return True
 
