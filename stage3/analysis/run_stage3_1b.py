@@ -245,6 +245,9 @@ def run_condition(
     pending_one_shot_stakes = None
     pending_one_shot_source_trial = None
     pending_one_shot_source_tick = None
+    pending_one_shot_source_X_risk = None
+    pending_one_shot_source_X_opp = None
+    pending_one_shot_source_reward = None
 
     for trial in range(1, n_trials + 1):
         obs = env.reset(trial=trial)
@@ -262,16 +265,30 @@ def run_condition(
             step_salience = None
             step_stakes = None
             step_one_shot_from_pending = False
+            step_one_shot_source_trial = None
+            step_one_shot_source_tick = None
+            step_one_shot_source_X_risk = None
+            step_one_shot_source_X_opp = None
+            step_one_shot_source_reward = None
 
             if pending_one_shot_salience is not None:
                 step_salience = float(pending_one_shot_salience)
                 step_stakes = float(pending_one_shot_stakes if pending_one_shot_stakes is not None else 1.0)
                 step_one_shot_from_pending = True
 
+                step_one_shot_source_trial = pending_one_shot_source_trial
+                step_one_shot_source_tick = pending_one_shot_source_tick
+                step_one_shot_source_X_risk = pending_one_shot_source_X_risk
+                step_one_shot_source_X_opp = pending_one_shot_source_X_opp
+                step_one_shot_source_reward = pending_one_shot_source_reward
+
                 pending_one_shot_salience = None
                 pending_one_shot_stakes = None
                 pending_one_shot_source_trial = None
                 pending_one_shot_source_tick = None
+                pending_one_shot_source_X_risk = None
+                pending_one_shot_source_X_opp = None
+                pending_one_shot_source_reward = None
 
             elif float(obs.get('one_shot_fired', 0.0)) > 0.0:
                 step_salience = float(obs.get('one_shot_salience', 0.0))
@@ -282,6 +299,24 @@ def run_condition(
             obs_one_shot_stakes_pre = obs.get('one_shot_stakes', np.nan)
 
             obs_pre = dict(obs)
+
+            if step_one_shot_from_pending:
+                obs_pre['one_shot_source_X_risk'] = (
+                    float(step_one_shot_source_X_risk)
+                    if step_one_shot_source_X_risk is not None else 0.0
+                )
+                obs_pre['one_shot_source_X_opp'] = (
+                    float(step_one_shot_source_X_opp)
+                    if step_one_shot_source_X_opp is not None else 0.0
+                )
+                obs_pre['one_shot_source_reward'] = (
+                    float(step_one_shot_source_reward)
+                    if step_one_shot_source_reward is not None else 0.0
+                )
+            else:
+                obs_pre['one_shot_source_X_risk'] = obs_pre.get('one_shot_source_X_risk', 0.0)
+                obs_pre['one_shot_source_X_opp'] = obs_pre.get('one_shot_source_X_opp', 0.0)
+                obs_pre['one_shot_source_reward'] = obs_pre.get('one_shot_source_reward', 0.0)
 
             action, metadata = agent.step(
                 observation=obs_pre,
@@ -338,13 +373,18 @@ def run_condition(
 
             if post_step_one_shot_fired:
                 pending_one_shot_salience = float(
-                    obs.get('one_shot_salience', info.get('one_shot_salience', 0.0))
+                    obs_post.get('one_shot_salience', info.get('one_shot_salience', 0.0))
                 )
                 pending_one_shot_stakes = float(
-                    obs.get('one_shot_stakes', info.get('one_shot_stakes', 1.0))
+                    obs_post.get('one_shot_stakes', info.get('one_shot_stakes', 1.0))
                 )
                 pending_one_shot_source_trial = trial
                 pending_one_shot_source_tick = info.get('tick', tick)
+
+                # ВАЖНО: переносим не только amplitude, но и source field pattern
+                pending_one_shot_source_X_risk = float(obs_post.get('X_risk', np.nan))
+                pending_one_shot_source_X_opp = float(obs_post.get('X_opp', np.nan))
+                pending_one_shot_source_reward = float(reward)
 
             temporal_state = metadata.get('temporal_state', {})
             node_exposure = metadata.get('node_exposure', {})
@@ -412,8 +452,11 @@ def run_condition(
                 'pending_one_shot_salience_used': step_salience,
                 'pending_one_shot_stakes_used': step_stakes,
                 'post_step_one_shot_fired': post_step_one_shot_fired,
-                'pending_one_shot_source_trial': pending_one_shot_source_trial,
-                'pending_one_shot_source_tick': pending_one_shot_source_tick,
+                'pending_one_shot_source_trial': step_one_shot_source_trial,
+                'pending_one_shot_source_tick': step_one_shot_source_tick,
+                'one_shot_source_X_risk': step_one_shot_source_X_risk,
+                'one_shot_source_X_opp': step_one_shot_source_X_opp,
+                'one_shot_source_reward': step_one_shot_source_reward,
 
                 'obs_one_shot_fired_pre': obs.get('one_shot_fired', np.nan),
                 'obs_one_shot_salience_pre': obs.get('one_shot_salience', np.nan),
@@ -468,6 +511,10 @@ def run_condition(
                 'pre_one_shot_fired': obs_pre.get('one_shot_fired', np.nan),
                 'pre_one_shot_salience': obs_pre.get('one_shot_salience', np.nan),
                 'pre_one_shot_stakes': obs_pre.get('one_shot_stakes', np.nan),
+
+                'pre_one_shot_source_X_risk': obs_pre.get('one_shot_source_X_risk', np.nan),
+                'pre_one_shot_source_X_opp': obs_pre.get('one_shot_source_X_opp', np.nan),
+                'pre_one_shot_source_reward': obs_pre.get('one_shot_source_reward', np.nan),
 
                 'mode': mode,
                 'gate_trigger': gate_trigger,
@@ -532,6 +579,12 @@ def run_condition(
                 'pending_one_shot_salience_used': step_salience,
                 'pending_one_shot_stakes_used': step_stakes,
 
+                'pending_one_shot_source_trial': step_one_shot_source_trial,
+                'pending_one_shot_source_tick': step_one_shot_source_tick,
+                'one_shot_source_X_risk': step_one_shot_source_X_risk,
+                'one_shot_source_X_opp': step_one_shot_source_X_opp,
+                'one_shot_source_reward': step_one_shot_source_reward,
+
                 'real_junction_choice_row': real_junction_choice_row,
             }
 
@@ -550,6 +603,8 @@ def run_condition(
                     f"Hr={debug_row['h_risk']:.3f} "
                     f"Qn={debug_row.get('q_neg', np.nan):.3f} "
                     f"Qp={debug_row.get('q_pos', np.nan):.3f} "
+                    f"SrcXr={debug_row.get('one_shot_source_X_risk', np.nan):.3f} "
+                    f"SrcXo={debug_row.get('one_shot_source_X_opp', np.nan):.3f} "
                     f"safe={debug_row['safe_drive']:.3f} "
                     f"unc={debug_row['uncertainty_signal']:.3f} "
                     f"vg={debug_row['v_g_approx']:.3f} "

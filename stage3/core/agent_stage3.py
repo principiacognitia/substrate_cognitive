@@ -321,12 +321,17 @@ class AgentStage3:
         if stakes is None:
             stakes = obs_one_shot_stakes if obs_one_shot_fired else 1.0
 
+        event_X_risk = observation.get('one_shot_source_X_risk', None)
+        event_X_opp = observation.get('one_shot_source_X_opp', None)
+
         self.current_temporal_state = self.temporal_updater.update(
             state=self.current_temporal_state,
             X_risk=node_exposure_aggregates.X_risk,
             X_opp=node_exposure_aggregates.X_opp,
             salience=float(salience),
-            stakes=float(stakes)
+            stakes=float(stakes),
+            event_X_risk=event_X_risk,
+            event_X_opp=event_X_opp
         )
         
         # =====================================================================

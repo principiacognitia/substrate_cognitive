@@ -140,7 +140,9 @@ class TemporalStateUpdater:
         X_risk: float,
         X_opp: float,
         salience: float,
-        stakes: float = 1.0
+        stakes: float = 1.0,
+        event_X_risk: Optional[float] = None,
+        event_X_opp: Optional[float] = None
     ) -> TemporalState:
         """
         Обновляет temporal state через непрерывные importance traces.
@@ -158,17 +160,22 @@ class TemporalStateUpdater:
 
         surprise_amplitude = max(0.0, salience) * max(0.0, stakes)
 
-        # ВАЖНО:
-        # q traces должны реагировать не на любой salient step,
-        # а только на экстремальный surprise beyond ordinary regime.
+        # q traces должны реагировать только на экстремальный surprise
         surprise_excess = max(0.0, surprise_amplitude - self.config.theta_shot)
         is_one_shot = surprise_excess > 0.0
 
         # ------------------------------------------------------------------
-        # A. Importance drive from current field
+        # A. Importance drive from event source field
+        # ВАЖНО:
+        # h_risk/h_opp обновляются от текущего step field,
+        # но q_neg/q_pos должны ранжировать именно тот паттерн,
+        # который вызвал one-shot.
         # ------------------------------------------------------------------
-        risk_excess = max(0.0, X_risk - self.config.theta_baseline)
-        opp_excess = max(0.0, X_opp - self.config.theta_baseline)
+        source_X_risk = float(X_risk if event_X_risk is None else event_X_risk)
+        source_X_opp = float(X_opp if event_X_opp is None else event_X_opp)
+
+        risk_excess = max(0.0, source_X_risk - self.config.theta_baseline)
+        opp_excess = max(0.0, source_X_opp - self.config.theta_baseline)
 
         shot_neg = risk_excess * surprise_excess
         shot_pos = opp_excess * surprise_excess

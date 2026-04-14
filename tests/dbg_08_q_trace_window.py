@@ -21,6 +21,7 @@ mask = (
 cols = [
     "seed", "trial", "tick", "mode", "gate_trigger",
     "node_X_risk", "gate_X_risk",
+    "one_shot_source_X_risk", "one_shot_source_X_opp", "one_shot_source_reward",
     "h_risk", "h_opp",
     "q_neg", "q_pos",
     "one_shot_type", "one_shot_amplitude",
