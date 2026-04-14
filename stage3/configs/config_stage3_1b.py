@@ -363,6 +363,8 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
         # ВАЖНО: после rebuild lambda_opp тоже задаётся как update-rate, а не retention-coefficient
         'lambda_risk': 0.10,
         'lambda_opp': 0.10,
+        'lambda_input_risk': 0.10,
+        'lambda_input_opp': 0.10,
 
         # Importance trace dynamics
         'rho_neg': 0.98,
