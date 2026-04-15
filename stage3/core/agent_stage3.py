@@ -323,6 +323,7 @@ class AgentStage3:
 
         event_X_risk = observation.get('one_shot_source_X_risk', None)
         event_X_opp = observation.get('one_shot_source_X_opp', None)
+        event_override_active = (event_X_risk is not None) or (event_X_opp is not None)
 
         self.current_temporal_state = self.temporal_updater.update(
             state=self.current_temporal_state,
@@ -420,6 +421,11 @@ class AgentStage3:
             'one_shot_type': self.current_temporal_state.one_shot_type,
             'salience_used': float(salience),
             'stakes_used': float(stakes),
+            # Если событие форсирует обновление, то в лог сохраняем его параметры 
+            # (для анализа влияния one-shot на решения агента).
+            'event_override_active': event_override_active,
+            'event_X_risk_used': event_X_risk,
+            'event_X_opp_used': event_X_opp,
 
             # Action policy metadata
             'action_probs': action_metadata.get('action_probs', []),

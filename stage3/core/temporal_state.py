@@ -171,8 +171,14 @@ class TemporalStateUpdater:
         # но q_neg/q_pos должны ранжировать именно тот паттерн,
         # который вызвал one-shot.
         # ------------------------------------------------------------------
-        source_X_risk = float(X_risk if event_X_risk is None else event_X_risk)
-        source_X_opp = float(X_opp if event_X_opp is None else event_X_opp)
+        has_event_override = (event_X_risk is not None) or (event_X_opp is not None)
+
+        if has_event_override:
+            source_X_risk = float(0.0 if event_X_risk is None else event_X_risk)
+            source_X_opp = float(0.0 if event_X_opp is None else event_X_opp)
+        else:
+            source_X_risk = float(X_risk)
+            source_X_opp = float(X_opp)
 
         risk_excess = max(0.0, source_X_risk - self.config.theta_baseline)
         opp_excess = max(0.0, source_X_opp - self.config.theta_baseline)
@@ -472,6 +478,26 @@ def test_backward_compatibility():
     assert state.q_neg == 0.0, f"q_neg should be ~0, got {state.q_neg}"
     assert state.q_pos == 0.0, f"q_pos should be ~0, got {state.q_pos}"
     print("✓ PASS: Backward Compatibility")
+    return True
+
+def test_event_override_blocks_false_positive_q_pos():
+    updater = TemporalStateUpdater()
+    state = TemporalState.zeros()
+
+    state = updater.update(
+        state=state,
+        X_risk=0.1,      # текущий фон
+        X_opp=1.0,       # потенциально опасный ложный positive source
+        salience=0.9,
+        stakes=10.0,
+        event_X_risk=0.6,
+        event_X_opp=0.0
+    )
+
+    assert state.q_neg > 0.0, f"q_neg should rise, got {state.q_neg}"
+    assert state.q_pos == 0.0, f"q_pos should stay 0, got {state.q_pos}"
+    assert state.one_shot_type == "negative", f"expected negative shot, got {state.one_shot_type}"
+    print("✓ PASS: event override blocks false positive q_pos")
     return True
 
 

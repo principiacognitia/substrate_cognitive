@@ -391,9 +391,15 @@ def run_condition(
                 pending_one_shot_source_tick = info.get('tick', tick)
 
                 # ВАЖНО: переносим не только amplitude, но и source field pattern
-                pending_one_shot_source_X_risk = float(obs_post.get('X_risk', np.nan))
-                pending_one_shot_source_X_opp = float(obs_post.get('X_opp', np.nan))
-                pending_one_shot_source_reward = float(reward)
+                pending_one_shot_source_X_risk = float(
+                    obs_post.get('one_shot_source_X_risk', info.get('one_shot_source_X_risk', 0.0))
+                )
+                pending_one_shot_source_X_opp = float(
+                    obs_post.get('one_shot_source_X_opp', info.get('one_shot_source_X_opp', 0.0))
+                )
+                pending_one_shot_source_reward = float(
+                    obs_post.get('one_shot_source_reward', info.get('one_shot_source_reward', reward))
+                )
 
             temporal_state = metadata.get('temporal_state', {})
             node_exposure = metadata.get('node_exposure', {})

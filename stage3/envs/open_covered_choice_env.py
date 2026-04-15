@@ -153,6 +153,10 @@ class EnvState:
     last_one_shot_salience: float = 0.0
     last_one_shot_stakes: float = 1.0
     last_one_shot_reward: float = 0.0
+
+    last_one_shot_source_X_risk: float = 0.0
+    last_one_shot_source_X_opp: float = 0.0
+    last_one_shot_source_reward: float = 0.0
     
     def reset_trial(self, trial: int) -> None:
         """Сбрасывает состояние для нового триала."""
@@ -177,6 +181,9 @@ class EnvState:
         self.last_one_shot_salience = 0.0
         self.last_one_shot_stakes = 1.0
         self.last_one_shot_reward = 0.0
+        self.last_one_shot_source_X_risk = 0.0
+        self.last_one_shot_source_X_opp = 0.0
+        self.last_one_shot_source_reward = 0.0
 
 @dataclass
 class TrialSummary:
@@ -516,15 +523,16 @@ class OpenCoveredChoiceEnv:
             'one_shot_trial': self.one_shot_trial,
             'one_shot_path': self.one_shot_path,
 
-            'reward': reward,
             'salience': self.state.last_one_shot_salience if self.state.last_one_shot_fired else observation.get('prediction_error', 0.0),
             'stakes': self.state.last_one_shot_stakes if self.state.last_one_shot_fired else 1.0,
 
-            'one_shot_active': self.one_shot_enabled,
-            'one_shot_trial': self.one_shot_trial,
-            'one_shot_path': self.one_shot_path,
             'one_shot_fired': self.state.last_one_shot_fired,
             'one_shot_reward': self.state.last_one_shot_reward,
+
+            # Source variables for one-shot (for future analysis of what drives persistence)
+            'one_shot_source_X_risk': self.state.last_one_shot_source_X_risk,
+            'one_shot_source_X_opp': self.state.last_one_shot_source_X_opp,
+            'one_shot_source_reward': self.state.last_one_shot_source_reward,
 
             'vte_proxies': {
                 'junction_pause_duration': self.state.deliberation_metrics.pause_duration,
@@ -824,6 +832,11 @@ class OpenCoveredChoiceEnv:
             'one_shot_stakes': self.state.last_one_shot_stakes,
             'one_shot_reward': self.state.last_one_shot_reward,
 
+            # Stage 3.1B: one-shot source tags for agent-side credit assignment
+            'one_shot_source_X_risk': self.state.last_one_shot_source_X_risk,
+            'one_shot_source_X_opp': self.state.last_one_shot_source_X_opp,
+            'one_shot_source_reward': self.state.last_one_shot_source_reward,
+
             # Stage 3.1B: condition metadata for agent-side learning
             'option_reward_values': option_reward_values,
             'option_risk_values': option_risk_values,
@@ -922,6 +935,22 @@ class OpenCoveredChoiceEnv:
             self.state.last_one_shot_salience = self.one_shot_salience
             self.state.last_one_shot_stakes = self.one_shot_stakes
             self.state.last_one_shot_reward = self.one_shot_reward
+
+            path_exposure = path_cfg.get('exposure_profile', {})
+            path_X_risk = float(path_exposure.get('X_risk', 0.0))
+            path_X_opp = float(path_exposure.get('X_opp', 0.0))
+
+            if self.one_shot_reward < 0.0:
+                self.state.last_one_shot_source_X_risk = path_X_risk
+                self.state.last_one_shot_source_X_opp = 0.0
+            elif self.one_shot_reward > 0.0:
+                self.state.last_one_shot_source_X_risk = 0.0
+                self.state.last_one_shot_source_X_opp = path_X_opp
+            else:
+                self.state.last_one_shot_source_X_risk = 0.0
+                self.state.last_one_shot_source_X_opp = 0.0
+
+            self.state.last_one_shot_source_reward = float(self.one_shot_reward)
 
         return float(total_reward)
     
