@@ -141,6 +141,15 @@ def build_timestamped_output_dir(base_output_dir: str, run_label: str) -> str:
     output_dir = Path(base_output_dir) / f"{run_label}_{timestamp}"
     return str(output_dir)
 
+def fmt3(x):
+    """Safe formatter for debug console."""
+    if x is None:
+        return "nan"
+    try:
+        return f"{float(x):.3f}"
+    except (TypeError, ValueError):
+        return "nan"
+
 def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str, Any]:
     """Applies ablation modifications to agent config."""
     from stage3.configs.config_stage3_1b import ABLATION_CONFIG_3_1B
@@ -598,17 +607,17 @@ def run_condition(
                     f"node={debug_row['post_node_id']} state={debug_row['post_deliberation_state']} "
                     f"mode={debug_row['mode']} gate={debug_row['gate_trigger']} "
                     f"action={debug_row['action']} reward={debug_row['reward']:.3f} "
-                    f"NXr={debug_row.get('node_X_risk', np.nan):.3f} "
-                    f"GXr={debug_row.get('gate_X_risk', np.nan):.3f} "
-                    f"Hr={debug_row['h_risk']:.3f} "
-                    f"Qn={debug_row.get('q_neg', np.nan):.3f} "
-                    f"Qp={debug_row.get('q_pos', np.nan):.3f} "
-                    f"SrcXr={debug_row.get('one_shot_source_X_risk', np.nan):.3f} "
-                    f"SrcXo={debug_row.get('one_shot_source_X_opp', np.nan):.3f} "
-                    f"safe={debug_row['safe_drive']:.3f} "
-                    f"unc={debug_row['uncertainty_signal']:.3f} "
-                    f"vg={debug_row['v_g_approx']:.3f} "
-                    f"explore_out={debug_row['explore_gate_output']:.3f} "
+                    f"NXr={fmt3(debug_row.get('node_X_risk'))} "
+                    f"GXr={fmt3(debug_row.get('gate_X_risk'))} "
+                    f"Hr={fmt3(debug_row.get('h_risk'))} "
+                    f"Qn={fmt3(debug_row.get('q_neg'))} "
+                    f"Qp={fmt3(debug_row.get('q_pos'))} "
+                    f"SrcXr={fmt3(debug_row.get('one_shot_source_X_risk'))} "
+                    f"SrcXo={fmt3(debug_row.get('one_shot_source_X_opp'))} "
+                    f"safe={fmt3(debug_row.get('safe_drive'))} "
+                    f"unc={fmt3(debug_row.get('uncertainty_signal'))} "
+                    f"vg={fmt3(debug_row.get('v_g_approx'))} "
+                    f"explore_out={fmt3(debug_row.get('explore_gate_output'))} "
                     f"probs={debug_row['action_probs']} "
                     f"sal={debug_row['pending_one_shot_salience_used']} "
                     f"stakes={debug_row['pending_one_shot_stakes_used']} "
