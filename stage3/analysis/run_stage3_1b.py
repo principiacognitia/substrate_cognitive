@@ -97,6 +97,18 @@ def parse_args():
         help='Print compact diagnostic trace to console'
     )
     parser.add_argument(
+        '--debug-console-start',
+        type=int,
+        default=None,
+        help='First trial for console debug printing (inclusive)'
+    )
+    parser.add_argument(
+        '--debug-console-end',
+        type=int,
+        default=None,
+        help='Last trial for console debug printing (inclusive)'
+    )
+    parser.add_argument(
         '--debug-junction-only',
         action='store_true',
         help='Store/print only junction-related diagnostic rows'
@@ -108,7 +120,19 @@ def parse_args():
         help='Store all rows within +/- N trials around shock trial (default: 2)'
 )
     
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if (args.debug_console_start is None) ^ (args.debug_console_end is None):
+        parser.error('--debug-console-start and --debug-console-end must be provided together')
+
+    if (
+        args.debug_console_start is not None and
+        args.debug_console_end is not None and
+        args.debug_console_start > args.debug_console_end
+    ):
+        parser.error('--debug-console-start must be <= --debug-console-end')
+
+    return args
 
 
 
@@ -211,6 +235,8 @@ def run_condition(
     forced_shock_path=None,
     debug=False,
     debug_console=False,
+    debug_console_start=None,
+    debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2
 ) -> Dict[str, Any]:
@@ -226,7 +252,7 @@ def run_condition(
         condition_id=condition_id,
         one_shot_override=one_shot_override
     )
-    env_config['debug'] = bool(debug_console)
+    env_config['debug'] = False
     env_config['n_trials'] = n_trials
 
     # Ablation-specific handling for one-shot
@@ -260,6 +286,15 @@ def run_condition(
 
     for trial in range(1, n_trials + 1):
         obs = env.reset(trial=trial)
+
+        console_window_active = False
+        if debug_console:
+            if debug_console_start is None or debug_console_end is None:
+                console_window_active = True
+            else:
+                console_window_active = (debug_console_start <= trial <= debug_console_end)
+
+        env.debug = bool(console_window_active)
 
         # НЕ вызываем agent.reset() здесь:
         # Stage 3.1B должен позволять persistence через TemporalState
@@ -473,9 +508,9 @@ def run_condition(
                 'one_shot_source_X_opp': step_one_shot_source_X_opp,
                 'one_shot_source_reward': step_one_shot_source_reward,
 
-                'obs_one_shot_fired_pre': obs.get('one_shot_fired', np.nan),
-                'obs_one_shot_salience_pre': obs.get('one_shot_salience', np.nan),
-                'obs_one_shot_stakes_pre': obs.get('one_shot_stakes', np.nan),
+                'obs_one_shot_fired_pre': obs_one_shot_fired_pre,
+                'obs_one_shot_salience_pre': obs_one_shot_salience_pre,
+                'obs_one_shot_stakes_pre': obs_one_shot_stakes_pre,
             })
 
             prev_reward = reward
@@ -606,7 +641,7 @@ def run_condition(
             if should_store_debug:
                 debug_rows.append(debug_row)
 
-            if debug_console and should_store_debug:
+            if console_window_active and should_store_debug:
                 print(
                     f"[DBG] seed={debug_row['seed']} "
                     f"trial={debug_row['trial']} tick={debug_row['tick']} "
@@ -691,6 +726,8 @@ def run_single_condition(
     forced_shock_path=None,
     debug=False,
     debug_console=False,
+    debug_console_start=None,
+    debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2
 ) -> Dict[str, Any]:
@@ -722,6 +759,8 @@ def run_single_condition(
             verbose=verbose,
             debug=debug,
             debug_console=debug_console,
+            debug_console_start=debug_console_start,
+            debug_console_end=debug_console_end,
             debug_junction_only=debug_junction_only,
             debug_trial_window=debug_trial_window
         )
@@ -742,6 +781,8 @@ def run_grid(
     forced_shock_path=None,
     debug=False,
     debug_console=False,
+    debug_console_start=None,
+    debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2    
 ) -> Dict[str, Any]:
@@ -771,6 +812,8 @@ def run_grid(
                 verbose=verbose,
                 debug=debug,
                 debug_console=debug_console,
+                debug_console_start=debug_console_start,
+                debug_console_end=debug_console_end,
                 debug_junction_only=debug_junction_only,
                 debug_trial_window=debug_trial_window
             )
@@ -792,6 +835,8 @@ def run_one_shot_protocol(
     forced_shock_path=None,
     debug=False,
     debug_console=False,
+    debug_console_start=None,
+    debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2
 ) -> Dict[str, Any]:
@@ -827,6 +872,8 @@ def run_one_shot_protocol(
             verbose=verbose,
             debug=debug,
             debug_console=debug_console,
+            debug_console_start=debug_console_start,
+            debug_console_end=debug_console_end,
             debug_junction_only=debug_junction_only,
             debug_trial_window=debug_trial_window
         )
@@ -1101,6 +1148,8 @@ def main():
             forced_shock_path=args.forced_shock_path,
             debug=args.debug,
             debug_console=args.debug_console,
+            debug_console_start=args.debug_console_start,
+            debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
             debug_trial_window=args.debug_trial_window
         )
@@ -1123,6 +1172,8 @@ def main():
             forced_shock_path=args.forced_shock_path,
             debug=args.debug,
             debug_console=args.debug_console,
+            debug_console_start=args.debug_console_start,
+            debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
             debug_trial_window=args.debug_trial_window
         )
@@ -1144,6 +1195,8 @@ def main():
             forced_shock_path=args.forced_shock_path,
             debug=args.debug,
             debug_console=args.debug_console,
+            debug_console_start=args.debug_console_start,
+            debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
             debug_trial_window=args.debug_trial_window
         )
