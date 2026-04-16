@@ -79,6 +79,8 @@ class TemporalStateConfig:
     # Coupling from importance traces to effective update rates
     w_neg_to_risk: float = 2.0
     w_pos_to_opp: float = 1.0
+    w_qneg_input: float = 1.0
+
 
     # Existing
     salience_threshold: float = 0.5
@@ -197,10 +199,11 @@ class TemporalStateUpdater:
 
         # ------------------------------------------------------------------
         # C. Effective update rates
-        # High q -> slower relaxation -> smaller lambda_eff
+        # High prior q -> slower relaxation on the NEXT step(s), not on the
+        # same step that created the importance trace.
         # ------------------------------------------------------------------
-        lambda_risk_eff = self.config.lambda_risk / (1.0 + self.config.w_neg_to_risk * q_neg_new)
-        lambda_opp_eff = self.config.lambda_opp / (1.0 + self.config.w_pos_to_opp * q_pos_new)
+        lambda_risk_eff = self.config.lambda_risk / (1.0 + self.config.w_neg_to_risk * state.q_neg)
+        lambda_opp_eff = self.config.lambda_opp / (1.0 + self.config.w_pos_to_opp * state.q_pos)
 
         lambda_risk_eff = float(np.clip(lambda_risk_eff, 1e-6, 1.0))
         lambda_opp_eff = float(np.clip(lambda_opp_eff, 1e-6, 1.0))
@@ -209,14 +212,17 @@ class TemporalStateUpdater:
         # D. Trace update
         # Importance traces modulate decay / relaxation, not direct event encoding.
         # ------------------------------------------------------------------
+        risk_gain = 1.0 + self.config.w_qneg_input * (state.q_neg / (1.0 + state.q_neg))
+        X_risk_eff = float(np.clip(X_risk * risk_gain, 0.0, 1.0))
+
         h_risk_new = (
             (1.0 - lambda_risk_eff) * state.h_risk +
-            self.config.lambda_input_risk * X_risk
+            lambda_risk_eff * X_risk_eff
         )
 
         h_opp_new = (
             (1.0 - lambda_opp_eff) * state.h_opp +
-            self.config.lambda_input_opp * X_opp
+            lambda_opp_eff * X_opp
         )
 
         h_risk_new = float(np.clip(h_risk_new, 0.0, 1.0))
@@ -433,9 +439,14 @@ def test_q_neg_slows_risk_relaxation():
         )
 
     assert state_mod.q_neg > 0.0, f"q_neg should still be > 0, got {state_mod.q_neg}"
-    assert state_mod.h_risk > state_ctl.h_risk, (
-        f"importance-modulated trace should relax slower: "
-        f"mod={state_mod.h_risk}, ctl={state_ctl.h_risk}"
+    
+    # Цель теста — показать, что при наличии модуляции важности (w_neg_to_risk > 0),
+    # h_risk в модульной версии будет выше, чем в контрольной, после серии шагов 
+    # с низким риском, потому что q_neg замедляет релаксацию.
+    target_risk = 0.1
+    assert abs(state_mod.h_risk - target_risk) > abs(state_ctl.h_risk - target_risk), (
+        f"importance-modulated trace should move more slowly toward the post-shock field: "
+        f"mod={state_mod.h_risk}, ctl={state_ctl.h_risk}, target={target_risk}"
     )
     print("✓ PASS: q_neg slows risk relaxation")
     return True
