@@ -370,6 +370,12 @@ def test_q_neg_rises_on_high_negative_event():
 
 
 def test_q_neg_slows_risk_relaxation():
+    """
+    Pure relaxation test.
+
+    Here q_neg should affect only relaxation speed, not effective input gain.
+    Therefore w_qneg_input is forced to 0.0 in both branches.
+    """
     cfg_modulated = TemporalStateConfig(
         lambda_risk=0.10,
         lambda_opp=0.10,
@@ -383,7 +389,9 @@ def test_q_neg_slows_risk_relaxation():
         theta_shot=5.0,
         w_neg_to_risk=2.0,
         w_pos_to_opp=1.0,
+        w_qneg_input=0.0,
     )
+
     cfg_control = TemporalStateConfig(
         lambda_risk=0.10,
         lambda_opp=0.10,
@@ -395,25 +403,26 @@ def test_q_neg_slows_risk_relaxation():
         k_pos=0.7,
         theta_baseline=0.25,
         theta_shot=5.0,
-        w_neg_to_risk=0.0,   # importance coupling disabled
+        w_neg_to_risk=0.0,
         w_pos_to_opp=1.0,
+        w_qneg_input=0.0,
     )
 
-    updater_mod = TemporalStateUpdater(cfg_modulated)
-    updater_ctl = TemporalStateUpdater(cfg_control)
+    upd_mod = TemporalStateUpdater(cfg_modulated)
+    upd_ctl = TemporalStateUpdater(cfg_control)
 
     state_mod = TemporalState.zeros()
     state_ctl = TemporalState.zeros()
 
-    # shock step
-    state_mod = updater_mod.update(
+    # Shock step
+    state_mod = upd_mod.update(
         state=state_mod,
         X_risk=0.6,
         X_opp=0.0,
         salience=0.9,
         stakes=10.0
     )
-    state_ctl = updater_ctl.update(
+    state_ctl = upd_ctl.update(
         state=state_ctl,
         X_risk=0.6,
         X_opp=0.0,
@@ -421,16 +430,119 @@ def test_q_neg_slows_risk_relaxation():
         stakes=10.0
     )
 
-    # 10 ordinary low-risk steps
+    shocked_h_mod = state_mod.h_risk
+    shocked_h_ctl = state_ctl.h_risk
+
+    # Post-shock pure relaxation regime:
+    # the target field must be BELOW the shocked state, otherwise this is not a decay test.
     for _ in range(10):
-        state_mod = updater_mod.update(
+        state_mod = upd_mod.update(
+            state=state_mod,
+            X_risk=0.0,
+            X_opp=0.0,
+            salience=0.1,
+            stakes=1.0
+        )
+        state_ctl = upd_ctl.update(
+            state=state_ctl,
+            X_risk=0.0,
+            X_opp=0.0,
+            salience=0.1,
+            stakes=1.0
+        )
+
+    assert state_mod.q_neg > 0.0, f"q_neg should still be > 0, got {state_mod.q_neg}"
+    assert state_ctl.q_neg > 0.0, f"control q_neg should also be > 0, got {state_ctl.q_neg}"
+
+    assert state_mod.h_risk > state_ctl.h_risk, (
+        f"importance-modulated trace should decay more slowly toward zero-risk baseline: "
+        f"mod={state_mod.h_risk}, ctl={state_ctl.h_risk}"
+    )
+
+    assert state_mod.h_risk < shocked_h_mod, (
+        f"modulated trace should still relax somewhat after shock: "
+        f"final={state_mod.h_risk}, shock={shocked_h_mod}"
+    )
+    assert state_ctl.h_risk < shocked_h_ctl, (
+        f"control trace should also relax after shock: "
+        f"final={state_ctl.h_risk}, shock={shocked_h_ctl}"
+    )
+
+    print("✓ PASS: q_neg slows risk relaxation")
+    return True
+
+def test_q_neg_input_gain_increases_postshock_carryover():
+    """
+    Input-gain test.
+
+    Here both branches have the same relaxation coupling w_neg_to_risk,
+    but only the modulated branch has w_qneg_input > 0.
+    This isolates the effect of amplified effective post-shock risk input.
+    """
+    cfg_modulated = TemporalStateConfig(
+        lambda_risk=0.10,
+        lambda_opp=0.10,
+        lambda_input_risk=0.10,
+        lambda_input_opp=0.10,
+        rho_neg=0.98,
+        rho_pos=0.95,
+        k_neg=1.0,
+        k_pos=0.7,
+        theta_baseline=0.25,
+        theta_shot=5.0,
+        w_neg_to_risk=2.0,
+        w_pos_to_opp=1.0,
+        w_qneg_input=1.0,
+    )
+
+    cfg_control = TemporalStateConfig(
+        lambda_risk=0.10,
+        lambda_opp=0.10,
+        lambda_input_risk=0.10,
+        lambda_input_opp=0.10,
+        rho_neg=0.98,
+        rho_pos=0.95,
+        k_neg=1.0,
+        k_pos=0.7,
+        theta_baseline=0.25,
+        theta_shot=5.0,
+        w_neg_to_risk=2.0,
+        w_pos_to_opp=1.0,
+        w_qneg_input=0.0,
+    )
+
+    upd_mod = TemporalStateUpdater(cfg_modulated)
+    upd_ctl = TemporalStateUpdater(cfg_control)
+
+    state_mod = TemporalState.zeros()
+    state_ctl = TemporalState.zeros()
+
+    # Shock step
+    state_mod = upd_mod.update(
+        state=state_mod,
+        X_risk=0.6,
+        X_opp=0.0,
+        salience=0.9,
+        stakes=10.0
+    )
+    state_ctl = upd_ctl.update(
+        state=state_ctl,
+        X_risk=0.6,
+        X_opp=0.0,
+        salience=0.9,
+        stakes=10.0
+    )
+
+    # Post-shock low-risk regime
+    for _ in range(10):
+        state_mod = upd_mod.update(
             state=state_mod,
             X_risk=0.1,
             X_opp=0.1,
             salience=0.1,
             stakes=1.0
         )
-        state_ctl = updater_ctl.update(
+        state_ctl = upd_ctl.update(
             state=state_ctl,
             X_risk=0.1,
             X_opp=0.1,
@@ -438,19 +550,21 @@ def test_q_neg_slows_risk_relaxation():
             stakes=1.0
         )
 
-    assert state_mod.q_neg > 0.0, f"q_neg should still be > 0, got {state_mod.q_neg}"
-    
-    # Цель теста — показать, что при наличии модуляции важности (w_neg_to_risk > 0),
-    # h_risk в модульной версии будет выше, чем в контрольной, после серии шагов 
-    # с низким риском, потому что q_neg замедляет релаксацию.
-    target_risk = 0.1
-    assert abs(state_mod.h_risk - target_risk) > abs(state_ctl.h_risk - target_risk), (
-        f"importance-modulated trace should move more slowly toward the post-shock field: "
-        f"mod={state_mod.h_risk}, ctl={state_ctl.h_risk}, target={target_risk}"
-    )
-    print("✓ PASS: q_neg slows risk relaxation")
-    return True
+    assert state_mod.q_neg > 0.0, f"modulated q_neg should be > 0, got {state_mod.q_neg}"
+    assert state_ctl.q_neg > 0.0, f"control q_neg should be > 0, got {state_ctl.q_neg}"
 
+    assert np.isclose(state_mod.q_neg, state_ctl.q_neg, atol=1e-9), (
+        f"q_neg dynamics should match when only w_qneg_input differs: "
+        f"mod={state_mod.q_neg}, ctl={state_ctl.q_neg}"
+    )
+
+    assert state_mod.h_risk > state_ctl.h_risk, (
+        f"input-gain modulation should increase post-shock carryover: "
+        f"mod={state_mod.h_risk}, ctl={state_ctl.h_risk}"
+    )
+
+    print("✓ PASS: q_neg input gain increases post-shock carryover")
+    return True
 
 def test_q_traces_stay_quiet_without_extreme_events():
     updater = TemporalStateUpdater()
@@ -520,6 +634,7 @@ if __name__ == "__main__":
     test_temporal_state_update()
     test_q_neg_rises_on_high_negative_event()
     test_q_neg_slows_risk_relaxation()
+    test_q_neg_input_gain_increases_postshock_carryover()
     test_q_traces_stay_quiet_without_extreme_events()
     test_backward_compatibility()
 
