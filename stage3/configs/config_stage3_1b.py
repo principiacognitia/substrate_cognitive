@@ -242,34 +242,79 @@ ONE_SHOT_DISABLED: Dict[str, Any] = {
     "one_shot_reward": 0.0,
     "one_shot_salience": 0.0,
     "one_shot_stakes": 0.0,
-}
-
-ONE_SHOT_CONFIG: Dict[str, Any] = {
-    "one_shot_enabled": True,
-    "one_shot_trial": 30,
-    "one_shot_path": "open",
-    "one_shot_reward": -5.0,
-    "one_shot_salience": 0.9,
-    "one_shot_stakes": 10.0,
+    "one_shot_kind": "off",
+    "source_override_mode": "none",
 }
 
 
-def get_one_shot_protocol() -> Dict[str, Any]:
+def make_one_shot_config(
+    *,
+    kind: str,
+    trial: int,
+    path: str,
+    reward: float,
+    salience: float,
+    stakes: float,
+    source_override_mode: str,
+) -> Dict[str, Any]:
+    return {
+        "one_shot_enabled": True,
+        "one_shot_trial": int(trial),
+        "one_shot_path": str(path),
+        "one_shot_reward": float(reward),
+        "one_shot_salience": float(salience),
+        "one_shot_stakes": float(stakes),
+        "one_shot_kind": str(kind),
+        "source_override_mode": str(source_override_mode),
+    }
+
+
+def get_one_shot_protocol(
+    *,
+    kind: str = "shock",
+    shock_trial: int = 30,
+    condition_name: str = "balanced_conflict",
+    condition_id: str = "R1_T2",
+    path: str = "open",
+    reward: float = None,
+    salience: float = 0.9,
+    stakes: float = 10.0,
+) -> Dict[str, Any]:
     """
     Возвращает one-shot protocol structure.
 
-    ВАЖНО:
-    protocol сам по себе включает one-shot,
-    но обычные build_env_config_for_condition() должны оставаться one-shot OFF.
+    kind:
+    - shock: aversive negative event
+    - treat: positive jackpot event
+
+    source_override_mode:
+    - path_negative: использовать path-risk pattern как source для q_neg
+    - positive_reward: форсировать positive source pattern для q_pos
     """
+    if kind not in {"shock", "treat"}:
+        raise ValueError(f"Unsupported one-shot kind: {kind}")
+
+    if reward is None:
+        reward = -5.0 if kind == "shock" else 5.0
+
+    source_override_mode = "path_negative" if kind == "shock" else "positive_reward"
+
     return {
         "pre_block_trials": 30,
-        "shock_trial": 30,
-        "post_block_trials": 69,
+        "shock_trial": int(shock_trial),
+        "post_block_trials": 100 - int(shock_trial) - 1,
         "total_trials": 100,
-        "condition_name": "balanced_conflict",
-        "condition_id": "R1_T2",
-        "one_shot": copy.deepcopy(ONE_SHOT_CONFIG),
+        "condition_name": condition_name,
+        "condition_id": condition_id,
+        "one_shot": make_one_shot_config(
+            kind=kind,
+            trial=shock_trial,
+            path=path,
+            reward=reward,
+            salience=salience,
+            stakes=stakes,
+            source_override_mode=source_override_mode,
+        ),
     }
 
 

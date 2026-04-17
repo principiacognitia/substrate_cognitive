@@ -66,7 +66,44 @@ def parse_args():
     parser.add_argument(
         '--forced-shock-path', type=str, default=None,
         choices=['open', 'covered', None],
-        help="Optional override for forced shock path in diagnostic mode; default uses env.one_shot_path"
+        help="Optional override for forced event path in diagnostic mode; default uses env.one_shot_path"
+    )
+    parser.add_argument(
+        '--diagnostic-forced-treat',
+        action="store_true",
+        help="Diagnostic mode: force action toward configured treat path at junction"
+    )
+    parser.add_argument(
+        '--one-shot-kind',
+        type=str,
+        default='shock',
+        choices=['shock', 'treat'],
+        help='One-shot protocol kind (default: shock)'
+    )
+    parser.add_argument(
+        '--one-shot-path-override',
+        type=str,
+        default=None,
+        choices=['open', 'covered', None],
+        help='Optional override for one-shot path'
+    )
+    parser.add_argument(
+        '--one-shot-reward-override',
+        type=float,
+        default=None,
+        help='Optional override for one-shot reward magnitude'
+    )
+    parser.add_argument(
+        '--one-shot-salience-override',
+        type=float,
+        default=None,
+        help='Optional override for one-shot salience'
+    )
+    parser.add_argument(
+        '--one-shot-stakes-override',
+        type=float,
+        default=None,
+        help='Optional override for one-shot stakes'
     )
     
     # Common parameters
@@ -127,6 +164,9 @@ def parse_args():
 )
     
     args = parser.parse_args()
+
+    if args.diagnostic_forced_shock and args.diagnostic_forced_treat:
+        parser.error('--diagnostic-forced-shock and --diagnostic-forced-treat are mutually exclusive')
 
     if (args.debug_console_start is None) ^ (args.debug_console_end is None):
         parser.error('--debug-console-start and --debug-console-end must be provided together')
@@ -418,8 +458,9 @@ def run_condition(
                     forced_action_applied = True
                     forced_action_applied_count += 1
 
-                    # diagnostic tag in gate trigger
-                    gate_trigger = f"{gate_trigger}|forced_shock"
+                    event_reward = float(env_config.get("one_shot", {}).get("one_shot_reward", 0.0))
+                    force_tag = "forced_treat" if event_reward > 0.0 else "forced_shock"
+                    gate_trigger = f"{gate_trigger}|{force_tag}"
 
             obs_post, reward, done, info = env.step(
                 action=action,
@@ -445,7 +486,6 @@ def run_condition(
                 pending_one_shot_source_trial = trial
                 pending_one_shot_source_tick = info.get('tick', tick)
 
-                # ВАЖНО: переносим не только amplitude, но и source field pattern
                 pending_one_shot_source_X_risk = float(
                     obs_post.get('one_shot_source_X_risk', info.get('one_shot_source_X_risk', 0.0))
                 )
@@ -455,6 +495,15 @@ def run_condition(
                 pending_one_shot_source_reward = float(
                     obs_post.get('one_shot_source_reward', info.get('one_shot_source_reward', reward))
                 )
+
+                source_override_mode = env_config.get('one_shot', {}).get('source_override_mode', 'none')
+
+                if source_override_mode == 'path_negative':
+                    pending_one_shot_source_X_opp = 0.0
+
+                elif source_override_mode == 'positive_reward':
+                    pending_one_shot_source_X_risk = 0.0
+                    pending_one_shot_source_X_opp = 1.0
 
             temporal_state = metadata.get('temporal_state', {})
             node_exposure = metadata.get('node_exposure', {})
@@ -511,10 +560,14 @@ def run_condition(
                 'one_shot_active': info.get('one_shot_active', False),
                 'one_shot_trial': info.get('one_shot_trial', -1),
                 'one_shot_path': info.get('one_shot_path', ''),
+                'one_shot_kind': env_config.get('one_shot', {}).get('one_shot_kind', 'off'),
+                'source_override_mode': env_config.get('one_shot', {}).get('source_override_mode', 'none'),
 
                 'diagnostic_forced_shock': diagnostic_forced_shock,
                 'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
                 'forced_action_applied': forced_action_applied,
+                'one_shot_kind': env_config.get('one_shot', {}).get('one_shot_kind', 'off'),
+                'source_override_mode': env_config.get('one_shot', {}).get('source_override_mode', 'none'),
 
                 # Temporal state for next step (if one-shot fired)
                 'step_one_shot_from_pending': step_one_shot_from_pending,
@@ -862,12 +915,13 @@ def run_one_shot_protocol(
     debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2,
-    w_qneg_input_override=None
+    w_qneg_input_override=None,
+    one_shot_protocol=None
 ) -> Dict[str, Any]:
     """
     Runs one-shot protocol with pre/post blocks.
     """
-    protocol = get_one_shot_protocol()
+    protocol = one_shot_protocol if one_shot_protocol is not None else get_one_shot_protocol()
 
     print(f"\n{'='*60}")
     print(f"Stage 3.1B: One-Shot Protocol")
@@ -1211,9 +1265,22 @@ def main():
         )
 
     elif args.one_shot:
-        diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
+        one_shot_protocol = get_one_shot_protocol(
+            kind=args.one_shot_kind,
+            path=args.one_shot_path_override or 'open',
+            reward=args.one_shot_reward_override,
+            salience=args.one_shot_salience_override if args.one_shot_salience_override is not None else 0.9,
+            stakes=args.one_shot_stakes_override if args.one_shot_stakes_override is not None else 10.0,
+        )
+
+        force_event = args.diagnostic_forced_shock or args.diagnostic_forced_treat
+        forced_path = args.forced_shock_path
+        if forced_path is None and args.diagnostic_forced_treat:
+            forced_path = args.one_shot_path_override or 'open'
+
+        diagnostic_suffix = "_forced" if force_event else ""
         param_suffix = format_param_tag(args.w_qneg_input_override)
-        run_label = f"one_shot_{args.ablation}{diagnostic_suffix}{param_suffix}"
+        run_label = f"one_shot_{args.one_shot_kind}_{args.ablation}{diagnostic_suffix}{param_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
         print(f"\nOutput directory: {output_dir}")
@@ -1224,15 +1291,16 @@ def main():
             ablation=args.ablation,
             output_dir=output_dir,
             verbose=args.verbose,
-            diagnostic_forced_shock=args.diagnostic_forced_shock,
-            forced_shock_path=args.forced_shock_path,
+            diagnostic_forced_shock=force_event,
+            forced_shock_path=forced_path,
             debug=args.debug,
             debug_console=args.debug_console,
             debug_console_start=args.debug_console_start,
             debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
             debug_trial_window=args.debug_trial_window,
-            w_qneg_input_override=args.w_qneg_input_override
+            w_qneg_input_override=args.w_qneg_input_override,
+            one_shot_protocol=one_shot_protocol
         )
 
 
