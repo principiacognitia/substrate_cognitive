@@ -82,6 +82,12 @@ def parse_args():
     parser.add_argument('--ablation', type=str, default='full',
                        choices=['full', 'novg', 'novp', 'nox', 'one_shot_off'],
                        help='Ablation condition (default: full)')
+    parser.add_argument(
+        '--w-qneg-input-override',
+        type=float,
+        default=None,
+        help='Optional override for temporal_state.w_qneg_input'
+    )
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output')
     
@@ -174,6 +180,12 @@ def fmt3(x):
     except (TypeError, ValueError):
         return "nan"
 
+def format_param_tag(x: Optional[float]) -> str:
+    """Short suffix for sweep parameter in run labels."""
+    if x is None:
+        return ""
+    return f"_wqni_{int(round(float(x) * 100)):03d}"
+
 def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str, Any]:
     """Applies ablation modifications to agent config."""
     from stage3.configs.config_stage3_1b import ABLATION_CONFIG_3_1B
@@ -238,7 +250,8 @@ def run_condition(
     debug_console_start=None,
     debug_console_end=None,
     debug_junction_only=False,
-    debug_trial_window=2
+    debug_trial_window=2,
+    w_qneg_input_override=None
 ) -> Dict[str, Any]:
     """
     Runs a single condition for one seed.
@@ -261,6 +274,13 @@ def run_condition(
 
     # Apply ablation to agent config
     agent_config = apply_ablation(json.loads(json.dumps(AGENT_CONFIG_3_1B)), ablation)
+
+    if w_qneg_input_override is not None:
+        agent_config.setdefault('temporal_state', {})['w_qneg_input'] = float(w_qneg_input_override)
+
+    w_qneg_input_effective = (
+        agent_config.get('temporal_state', {}).get('w_qneg_input', np.nan)
+    )
 
     # Create env and agent
     env = OpenCoveredChoiceEnv(env_config, seed=seed)
@@ -468,7 +488,6 @@ def run_condition(
                 'q_pos': temporal_state.get('q_pos', np.nan),
 
                 'one_shot_fired': temporal_state.get('one_shot_pending', False),
-                'one_shot_amplitude': temporal_state.get('one_shot_amplitude', 0.0),
                 'one_shot_type': metadata.get('one_shot_type', 'none'),
 
                 'open_reward_prob': info.get('open_reward_prob', np.nan),
@@ -642,30 +661,28 @@ def run_condition(
                 debug_rows.append(debug_row)
 
             if console_window_active and should_store_debug:
+                probs = debug_row.get('action_probs', [])
+                if isinstance(probs, list) and len(probs) == 2:
+                    probs_str = f"[{fmt3(probs[0])},{fmt3(probs[1])}]"
+                else:
+                    probs_str = "[]"
+
                 print(
-                    f"[DBG] seed={debug_row['seed']} "
-                    f"trial={debug_row['trial']} tick={debug_row['tick']} "
-                    f"node={debug_row['post_node_id']} state={debug_row['post_deliberation_state']} "
+                    "[DBG] "
+                    f"s={debug_row['seed']} t={debug_row['trial']} k={debug_row['tick']} "
+                    f"node={debug_row['post_node_id']} st={debug_row['post_deliberation_state']} "
                     f"mode={debug_row['mode']} gate={debug_row['gate_trigger']} "
-                    f"action={debug_row['action']} reward={debug_row['reward']:.3f} "
-                    f"NXr={fmt3(debug_row.get('node_X_risk'))} "
-                    f"GXr={fmt3(debug_row.get('gate_X_risk'))} "
+                    f"a={debug_row['action']} r={fmt3(debug_row['reward'])} "
                     f"Hr={fmt3(debug_row.get('h_risk'))} "
                     f"Qn={fmt3(debug_row.get('q_neg'))} "
                     f"Qp={fmt3(debug_row.get('q_pos'))} "
-                    f"SrcXr={fmt3(debug_row.get('one_shot_source_X_risk'))} "
-                    f"SrcXo={fmt3(debug_row.get('one_shot_source_X_opp'))} "
                     f"safe={fmt3(debug_row.get('safe_drive'))} "
                     f"unc={fmt3(debug_row.get('uncertainty_signal'))} "
-                    f"vg={fmt3(debug_row.get('v_g_approx'))} "
-                    f"explore_out={fmt3(debug_row.get('explore_gate_output'))} "
-                    f"probs={debug_row['action_probs']} "
-                    f"sal={debug_row['pending_one_shot_salience_used']} "
-                    f"stakes={debug_row['pending_one_shot_stakes_used']} "
-                    f"pending_used={debug_row['step_one_shot_from_pending']} "
-                    f"post_fired={debug_row['post_one_shot_fired']}"
+                    f"p={probs_str} "
+                    f"path={debug_row.get('candidate_path')}->{debug_row.get('committed_path')} "
+                    f"shot={debug_row.get('step_one_shot_from_pending')}/{debug_row.get('post_one_shot_fired')}",
+                    flush=True
                 )
-
         if not done:
             raise RuntimeError(
                 f"Trial did not terminate within {max_ticks} ticks: "
@@ -701,6 +718,8 @@ def run_condition(
         'diagnostic_forced_shock': diagnostic_forced_shock,
         'forced_shock_path': forced_shock_path or getattr(env, "one_shot_path", ""),
         'forced_action_applied_count': forced_action_applied_count,
+        'w_qneg_input_override': w_qneg_input_override,
+        'w_qneg_input_effective': w_qneg_input_effective,
         'debug_rows': debug_rows,
     }
 
@@ -729,7 +748,8 @@ def run_single_condition(
     debug_console_start=None,
     debug_console_end=None,
     debug_junction_only=False,
-    debug_trial_window=2
+    debug_trial_window=2,
+    w_qneg_input_override=None
 ) -> Dict[str, Any]:
     """Runs a single canonical condition."""
     canonical = get_canonical_conditions()
@@ -762,7 +782,8 @@ def run_single_condition(
             debug_console_start=debug_console_start,
             debug_console_end=debug_console_end,
             debug_junction_only=debug_junction_only,
-            debug_trial_window=debug_trial_window
+            debug_trial_window=debug_trial_window,
+            w_qneg_input_override=w_qneg_input_override
         )
         all_results.append(result)
     
@@ -784,7 +805,8 @@ def run_grid(
     debug_console_start=None,
     debug_console_end=None,
     debug_junction_only=False,
-    debug_trial_window=2    
+    debug_trial_window=2,
+    w_qneg_input_override=None
 ) -> Dict[str, Any]:
     """Runs full 3x3 matrix."""
     condition_grid = get_condition_grid()
@@ -815,7 +837,8 @@ def run_grid(
                 debug_console_start=debug_console_start,
                 debug_console_end=debug_console_end,
                 debug_junction_only=debug_junction_only,
-                debug_trial_window=debug_trial_window
+                debug_trial_window=debug_trial_window,
+                w_qneg_input_override=w_qneg_input_override
             )
             condition_results.append(result)
         
@@ -838,7 +861,8 @@ def run_one_shot_protocol(
     debug_console_start=None,
     debug_console_end=None,
     debug_junction_only=False,
-    debug_trial_window=2
+    debug_trial_window=2,
+    w_qneg_input_override=None
 ) -> Dict[str, Any]:
     """
     Runs one-shot protocol with pre/post blocks.
@@ -875,7 +899,8 @@ def run_one_shot_protocol(
             debug_console_start=debug_console_start,
             debug_console_end=debug_console_end,
             debug_junction_only=debug_junction_only,
-            debug_trial_window=debug_trial_window
+            debug_trial_window=debug_trial_window,
+            w_qneg_input_override=w_qneg_input_override
         )
         all_results.append(result)
 
@@ -912,8 +937,8 @@ def aggregate_and_save(
             'mean_junction_deliberation_proxy': result['mean_junction_deliberation_proxy'],
             'p_commit_bound': result['p_commit_bound'],
             'p_commit_timeout': result['p_commit_timeout'],
+            'w_qneg_input_effective': result.get('w_qneg_input_effective', np.nan),
         })
-
         for trial in result['trial_summaries']:
             all_trials.append(trial)
         for step in result.get('step_rows', []):
@@ -967,6 +992,7 @@ def aggregate_and_save(
         'p_commit_bound': float((df_trials['commit_reason'] == 'bound').mean()),
         'p_commit_timeout': float((df_trials['commit_reason'] == 'timeout').mean()),
         'mode_at_junction_distribution': mode_counts,
+        'w_qneg_input_effective': float(df_seeds['w_qneg_input_effective'].iloc[0]) if 'w_qneg_input_effective' in df_seeds.columns else np.nan,
     }
 
     pd.DataFrame([condition_summary]).to_csv(condition_file, index=False)
@@ -977,6 +1003,7 @@ def aggregate_and_save(
             'n_seeds': int(df_seeds['seed'].nunique()),
             'n_trials_per_seed': int(df_seeds['n_trials'].iloc[0]) if 'n_trials' in df_seeds.columns else 0,
             'ablation': condition_summary['ablation'],
+            'w_qneg_input_override': condition_summary.get('w_qneg_input_effective', np.nan),
         },
         'condition_summary': condition_summary,
     }
@@ -1036,6 +1063,7 @@ def aggregate_grid_and_save(
                 'mean_junction_deliberation_proxy': result['mean_junction_deliberation_proxy'],
                 'p_commit_bound': result['p_commit_bound'],
                 'p_commit_timeout': result['p_commit_timeout'],
+                'w_qneg_input_effective': result.get('w_qneg_input_effective', np.nan),
             })
 
             for trial in result['trial_summaries']:
@@ -1132,7 +1160,8 @@ def main():
     if args.condition:
         condition_name = normalize_condition_name(args.condition)
         diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
-        run_label = f"{condition_name}_{args.ablation}{diagnostic_suffix}"
+        param_suffix = format_param_tag(args.w_qneg_input_override)
+        run_label = f"{condition_name}_{args.ablation}{diagnostic_suffix}{param_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
         print(f"\nOutput directory: {output_dir}")
@@ -1151,12 +1180,14 @@ def main():
             debug_console_start=args.debug_console_start,
             debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
-            debug_trial_window=args.debug_trial_window
+            debug_trial_window=args.debug_trial_window,
+            w_qneg_input_override=args.w_qneg_input_override
         )
 
     elif args.grid:
         diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
-        run_label = f"grid_{args.ablation}{diagnostic_suffix}"
+        param_suffix = format_param_tag(args.w_qneg_input_override)
+        run_label = f"grid_{args.ablation}{diagnostic_suffix}{param_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
         print(f"\nOutput directory: {output_dir}")
@@ -1175,12 +1206,14 @@ def main():
             debug_console_start=args.debug_console_start,
             debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
-            debug_trial_window=args.debug_trial_window
+            debug_trial_window=args.debug_trial_window,
+            w_qneg_input_override=args.w_qneg_input_override
         )
 
     elif args.one_shot:
         diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
-        run_label = f"one_shot_{args.ablation}{diagnostic_suffix}"
+        param_suffix = format_param_tag(args.w_qneg_input_override)
+        run_label = f"one_shot_{args.ablation}{diagnostic_suffix}{param_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
         print(f"\nOutput directory: {output_dir}")
@@ -1198,7 +1231,8 @@ def main():
             debug_console_start=args.debug_console_start,
             debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
-            debug_trial_window=args.debug_trial_window
+            debug_trial_window=args.debug_trial_window,
+            w_qneg_input_override=args.w_qneg_input_override
         )
 
 

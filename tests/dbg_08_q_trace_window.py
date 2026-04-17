@@ -9,12 +9,26 @@ trial_max = int(sys.argv[3]) if len(sys.argv) > 3 else 45
 rows = []
 with open(path, "r", encoding="utf-8") as f:
     for line in f:
+        line = line.strip()
+        if not line:
+            continue
         rows.append(json.loads(line))
 
 df = pd.DataFrame(rows)
 
+required = ["seed", "trial", "tick", "real_junction_choice_row"]
+for col in required:
+    if col not in df.columns:
+        df[col] = pd.NA
+
+df = df.dropna(subset=["seed", "trial", "tick"]).copy()
+
+df["seed"] = df["seed"].astype(int)
+df["trial"] = df["trial"].astype(int)
+df["tick"] = df["tick"].astype(int)
+
 mask = (
-    (df["trial"].between(trial_min, trial_max)) &
+    df["trial"].between(trial_min, trial_max) &
     (df["real_junction_choice_row"] == True)
 )
 
@@ -29,4 +43,12 @@ cols = [
     "candidate_path", "committed_path"
 ]
 
-print(df.loc[mask, cols].to_string(index=False))
+out = df.loc[mask, cols].sort_values(["seed", "trial", "tick"]).copy()
+
+with pd.option_context(
+    "display.max_columns", None,
+    "display.width", 2000,
+    "display.expand_frame_repr", False,
+    "display.max_colwidth", 80,
+):
+    print(out.to_string(index=False))
