@@ -424,6 +424,8 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
         # Coupling from q traces to effective update rates
         'w_neg_to_risk': 2.0,
         'w_pos_to_opp': 1.0,
+        'w_qneg_input': 1.0,
+        'w_qpos_input': 0.0,
 
         # Existing
         'salience_threshold': 0.5,
@@ -609,7 +611,9 @@ ABLATION_CONFIG_3_1B: Dict[str, Dict[str, Any]] = {
                     'k_neg': 0.0,
                     'k_pos': 0.0,
                     'w_neg_to_risk': 0.0,
-                    'w_pos_to_opp': 0.0
+                    'w_pos_to_opp': 0.0,
+                    'w_qneg_input': 0.0,
+                    'w_qpos_input': 0.0
                 }
             }
         }

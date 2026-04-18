@@ -80,6 +80,7 @@ class TemporalStateConfig:
     w_neg_to_risk: float = 2.0
     w_pos_to_opp: float = 1.0
     w_qneg_input: float = 1.0
+    w_qpos_input: float = 0.0
 
 
     # Existing
@@ -107,6 +108,8 @@ class TemporalStateConfig:
             ("theta_shot", self.theta_shot),
             ("w_neg_to_risk", self.w_neg_to_risk),
             ("w_pos_to_opp", self.w_pos_to_opp),
+            ("w_qneg_input", self.w_qneg_input),
+            ("w_qpos_input", self.w_qpos_input),
             ("salience_threshold", self.salience_threshold),
             ("q_clip", self.q_clip),
         ]:
@@ -215,6 +218,9 @@ class TemporalStateUpdater:
         risk_gain = 1.0 + self.config.w_qneg_input * (state.q_neg / (1.0 + state.q_neg))
         X_risk_eff = float(np.clip(X_risk * risk_gain, 0.0, 1.0))
 
+        opp_gain = 1.0 + self.config.w_qpos_input * (state.q_pos / (1.0 + state.q_pos))
+        X_opp_eff = float(np.clip(X_opp * opp_gain, 0.0, 1.0))
+
         h_risk_new = (
             (1.0 - lambda_risk_eff) * state.h_risk +
             lambda_risk_eff * X_risk_eff
@@ -222,7 +228,7 @@ class TemporalStateUpdater:
 
         h_opp_new = (
             (1.0 - lambda_opp_eff) * state.h_opp +
-            lambda_opp_eff * X_opp
+            lambda_opp_eff * X_opp_eff
         )
 
         h_risk_new = float(np.clip(h_risk_new, 0.0, 1.0))
@@ -366,6 +372,24 @@ def test_q_neg_rises_on_high_negative_event():
     assert state.q_pos == 0.0, f"q_pos should stay 0, got {state.q_pos}"
     assert state.one_shot_type == "negative", f"expected negative shot, got {state.one_shot_type}"
     print("✓ PASS: q_neg rises on high negative event")
+    return True
+
+def test_q_pos_rises_on_high_positive_event():
+    updater = TemporalStateUpdater()
+    state = TemporalState.zeros()
+
+    state = updater.update(
+        state=state,
+        X_risk=0.0,
+        X_opp=1.0,
+        salience=0.9,
+        stakes=10.0
+    )
+
+    assert state.q_pos > 0.0, f"q_pos should rise, got {state.q_pos}"
+    assert state.q_neg == 0.0, f"q_neg should stay 0, got {state.q_neg}"
+    assert state.one_shot_type == "positive", f"expected positive shot, got {state.one_shot_type}"
+    print("✓ PASS: q_pos rises on high positive event")
     return True
 
 
@@ -566,6 +590,205 @@ def test_q_neg_input_gain_increases_postshock_carryover():
     print("✓ PASS: q_neg input gain increases post-shock carryover")
     return True
 
+def test_q_pos_slows_opp_relaxation():
+    """
+    Pure relaxation test for positive importance.
+
+    Here q_pos should affect only relaxation speed, not effective input gain.
+    Therefore w_qpos_input is forced to 0.0 in both branches.
+    """
+    cfg_modulated = TemporalStateConfig(
+        lambda_risk=0.10,
+        lambda_opp=0.10,
+        lambda_input_risk=0.10,
+        lambda_input_opp=0.10,
+        rho_neg=0.98,
+        rho_pos=0.95,
+        k_neg=1.0,
+        k_pos=0.7,
+        theta_baseline=0.25,
+        theta_shot=5.0,
+        w_neg_to_risk=2.0,
+        w_pos_to_opp=1.0,
+        w_qneg_input=0.0,
+        w_qpos_input=0.0,
+    )
+
+    cfg_control = TemporalStateConfig(
+        lambda_risk=0.10,
+        lambda_opp=0.10,
+        lambda_input_risk=0.10,
+        lambda_input_opp=0.10,
+        rho_neg=0.98,
+        rho_pos=0.95,
+        k_neg=1.0,
+        k_pos=0.7,
+        theta_baseline=0.25,
+        theta_shot=5.0,
+        w_neg_to_risk=2.0,
+        w_pos_to_opp=0.0,
+        w_qneg_input=0.0,
+        w_qpos_input=0.0,
+    )
+
+    upd_mod = TemporalStateUpdater(cfg_modulated)
+    upd_ctl = TemporalStateUpdater(cfg_control)
+
+    state_mod = TemporalState.zeros()
+    state_ctl = TemporalState.zeros()
+
+    # Treat step
+    state_mod = upd_mod.update(
+        state=state_mod,
+        X_risk=0.0,
+        X_opp=1.0,
+        salience=0.9,
+        stakes=10.0
+    )
+    state_ctl = upd_ctl.update(
+        state=state_ctl,
+        X_risk=0.0,
+        X_opp=1.0,
+        salience=0.9,
+        stakes=10.0
+    )
+
+    shocked_h_mod = state_mod.h_opp
+    shocked_h_ctl = state_ctl.h_opp
+
+    for _ in range(10):
+        state_mod = upd_mod.update(
+            state=state_mod,
+            X_risk=0.0,
+            X_opp=0.0,
+            salience=0.1,
+            stakes=1.0
+        )
+        state_ctl = upd_ctl.update(
+            state=state_ctl,
+            X_risk=0.0,
+            X_opp=0.0,
+            salience=0.1,
+            stakes=1.0
+        )
+
+    assert state_mod.q_pos > 0.0, f"q_pos should still be > 0, got {state_mod.q_pos}"
+    assert state_ctl.q_pos > 0.0, f"control q_pos should also be > 0, got {state_ctl.q_pos}"
+
+    assert state_mod.h_opp > state_ctl.h_opp, (
+        f"importance-modulated opportunity trace should decay more slowly: "
+        f"mod={state_mod.h_opp}, ctl={state_ctl.h_opp}"
+    )
+
+    assert state_mod.h_opp < shocked_h_mod, (
+        f"modulated opportunity trace should still relax somewhat after treat: "
+        f"final={state_mod.h_opp}, treat={shocked_h_mod}"
+    )
+    assert state_ctl.h_opp < shocked_h_ctl, (
+        f"control opportunity trace should also relax after treat: "
+        f"final={state_ctl.h_opp}, treat={shocked_h_ctl}"
+    )
+
+    print("✓ PASS: q_pos slows opportunity relaxation")
+    return True
+
+
+def test_q_pos_input_gain_increases_posttreat_carryover():
+    """
+    Input-gain test for positive importance.
+
+    Here both branches have the same relaxation coupling w_pos_to_opp,
+    but only the modulated branch has w_qpos_input > 0.
+    """
+    cfg_modulated = TemporalStateConfig(
+        lambda_risk=0.10,
+        lambda_opp=0.10,
+        lambda_input_risk=0.10,
+        lambda_input_opp=0.10,
+        rho_neg=0.98,
+        rho_pos=0.95,
+        k_neg=1.0,
+        k_pos=0.7,
+        theta_baseline=0.25,
+        theta_shot=5.0,
+        w_neg_to_risk=2.0,
+        w_pos_to_opp=1.0,
+        w_qneg_input=0.0,
+        w_qpos_input=1.0,
+    )
+
+    cfg_control = TemporalStateConfig(
+        lambda_risk=0.10,
+        lambda_opp=0.10,
+        lambda_input_risk=0.10,
+        lambda_input_opp=0.10,
+        rho_neg=0.98,
+        rho_pos=0.95,
+        k_neg=1.0,
+        k_pos=0.7,
+        theta_baseline=0.25,
+        theta_shot=5.0,
+        w_neg_to_risk=2.0,
+        w_pos_to_opp=1.0,
+        w_qneg_input=0.0,
+        w_qpos_input=0.0,
+    )
+
+    upd_mod = TemporalStateUpdater(cfg_modulated)
+    upd_ctl = TemporalStateUpdater(cfg_control)
+
+    state_mod = TemporalState.zeros()
+    state_ctl = TemporalState.zeros()
+
+    # Treat step
+    state_mod = upd_mod.update(
+        state=state_mod,
+        X_risk=0.0,
+        X_opp=1.0,
+        salience=0.9,
+        stakes=10.0
+    )
+    state_ctl = upd_ctl.update(
+        state=state_ctl,
+        X_risk=0.0,
+        X_opp=1.0,
+        salience=0.9,
+        stakes=10.0
+    )
+
+    # Post-treat low-opportunity regime
+    for _ in range(10):
+        state_mod = upd_mod.update(
+            state=state_mod,
+            X_risk=0.1,
+            X_opp=0.1,
+            salience=0.1,
+            stakes=1.0
+        )
+        state_ctl = upd_ctl.update(
+            state=state_ctl,
+            X_risk=0.1,
+            X_opp=0.1,
+            salience=0.1,
+            stakes=1.0
+        )
+
+    assert state_mod.q_pos > 0.0, f"modulated q_pos should be > 0, got {state_mod.q_pos}"
+    assert state_ctl.q_pos > 0.0, f"control q_pos should be > 0, got {state_ctl.q_pos}"
+
+    assert np.isclose(state_mod.q_pos, state_ctl.q_pos, atol=1e-9), (
+        f"q_pos dynamics should match when only w_qpos_input differs: "
+        f"mod={state_mod.q_pos}, ctl={state_ctl.q_pos}"
+    )
+
+    assert state_mod.h_opp > state_ctl.h_opp, (
+        f"positive input-gain modulation should increase post-treat carryover: "
+        f"mod={state_mod.h_opp}, ctl={state_ctl.h_opp}"
+    )
+
+    print("✓ PASS: q_pos input gain increases post-treat carryover")
+    return True
+
 def test_q_traces_stay_quiet_without_extreme_events():
     updater = TemporalStateUpdater()
     state = TemporalState.zeros()
@@ -625,6 +848,25 @@ def test_event_override_blocks_false_positive_q_pos():
     print("✓ PASS: event override blocks false positive q_pos")
     return True
 
+def test_event_override_blocks_false_negative_q_neg():
+    updater = TemporalStateUpdater()
+    state = TemporalState.zeros()
+
+    state = updater.update(
+        state=state,
+        X_risk=1.0,      # текущий фон, который не должен дать false q_neg
+        X_opp=0.1,
+        salience=0.9,
+        stakes=10.0,
+        event_X_risk=0.0,
+        event_X_opp=1.0
+    )
+
+    assert state.q_pos > 0.0, f"q_pos should rise, got {state.q_pos}"
+    assert state.q_neg == 0.0, f"q_neg should stay 0, got {state.q_neg}"
+    assert state.one_shot_type == "positive", f"expected positive shot, got {state.one_shot_type}"
+    print("✓ PASS: event override blocks false negative q_neg")
+    return True
 
 if __name__ == "__main__":
     print("=" * 70)
@@ -633,10 +875,15 @@ if __name__ == "__main__":
 
     test_temporal_state_update()
     test_q_neg_rises_on_high_negative_event()
+    test_q_pos_rises_on_high_positive_event()
     test_q_neg_slows_risk_relaxation()
     test_q_neg_input_gain_increases_postshock_carryover()
+    test_q_pos_slows_opp_relaxation()
+    test_q_pos_input_gain_increases_posttreat_carryover()
     test_q_traces_stay_quiet_without_extreme_events()
     test_backward_compatibility()
+    test_event_override_blocks_false_positive_q_pos()
+    test_event_override_blocks_false_negative_q_neg()
 
     print("=" * 70)
     print("All tests completed!")
