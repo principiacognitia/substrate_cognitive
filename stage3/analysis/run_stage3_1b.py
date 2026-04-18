@@ -125,6 +125,18 @@ def parse_args():
         default=None,
         help='Optional override for temporal_state.w_qneg_input'
     )
+    parser.add_argument(
+        '--w-qpos-input-override',
+        type=float,
+        default=None,
+        help='Optional override for temporal_state.w_qpos_input'
+    )
+    parser.add_argument(
+        '--k-pos-override',
+        type=float,
+        default=None,
+        help='Optional override for temporal_state.k_pos'
+    )
     parser.add_argument('--verbose', action='store_true',
                        help='Verbose output')
     
@@ -220,11 +232,11 @@ def fmt3(x):
     except (TypeError, ValueError):
         return "nan"
 
-def format_param_tag(x: Optional[float]) -> str:
+def format_param_tag(prefix: str, x: Optional[float]) -> str:
     """Short suffix for sweep parameter in run labels."""
     if x is None:
         return ""
-    return f"_wqni_{int(round(float(x) * 100)):03d}"
+    return f"_{prefix}_{int(round(float(x) * 100)):03d}"
 
 def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str, Any]:
     """Applies ablation modifications to agent config."""
@@ -291,7 +303,9 @@ def run_condition(
     debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2,
-    w_qneg_input_override=None
+    w_qneg_input_override=None,
+    w_qpos_input_override=None,
+    k_pos_override=None,
 ) -> Dict[str, Any]:
     """
     Runs a single condition for one seed.
@@ -318,8 +332,20 @@ def run_condition(
     if w_qneg_input_override is not None:
         agent_config.setdefault('temporal_state', {})['w_qneg_input'] = float(w_qneg_input_override)
 
+    if w_qpos_input_override is not None:
+        agent_config.setdefault('temporal_state', {})['w_qpos_input'] = float(w_qpos_input_override)
+
+    if k_pos_override is not None:
+        agent_config.setdefault('temporal_state', {})['k_pos'] = float(k_pos_override)
+
     w_qneg_input_effective = (
         agent_config.get('temporal_state', {}).get('w_qneg_input', np.nan)
+    )
+    w_qpos_input_effective = (
+        agent_config.get('temporal_state', {}).get('w_qpos_input', np.nan)
+    )
+    k_pos_effective = (
+        agent_config.get('temporal_state', {}).get('k_pos', np.nan)
     )
 
     # Create env and agent
@@ -773,6 +799,10 @@ def run_condition(
         'forced_action_applied_count': forced_action_applied_count,
         'w_qneg_input_override': w_qneg_input_override,
         'w_qneg_input_effective': w_qneg_input_effective,
+        'w_qpos_input_override': w_qpos_input_override,
+        'w_qpos_input_effective': w_qpos_input_effective,
+        'k_pos_override': k_pos_override,
+        'k_pos_effective': k_pos_effective,
         'debug_rows': debug_rows,
     }
 
@@ -802,7 +832,9 @@ def run_single_condition(
     debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2,
-    w_qneg_input_override=None
+    w_qneg_input_override=None,
+    w_qpos_input_override=None,
+    k_pos_override=None,
 ) -> Dict[str, Any]:
     """Runs a single canonical condition."""
     canonical = get_canonical_conditions()
@@ -836,7 +868,9 @@ def run_single_condition(
             debug_console_end=debug_console_end,
             debug_junction_only=debug_junction_only,
             debug_trial_window=debug_trial_window,
-            w_qneg_input_override=w_qneg_input_override
+            w_qneg_input_override=w_qneg_input_override,
+            w_qpos_input_override=w_qpos_input_override,
+            k_pos_override=k_pos_override,
         )
         all_results.append(result)
     
@@ -859,7 +893,9 @@ def run_grid(
     debug_console_end=None,
     debug_junction_only=False,
     debug_trial_window=2,
-    w_qneg_input_override=None
+    w_qneg_input_override=None,
+    w_qpos_input_override=None,
+    k_pos_override=None,
 ) -> Dict[str, Any]:
     """Runs full 3x3 matrix."""
     condition_grid = get_condition_grid()
@@ -891,7 +927,9 @@ def run_grid(
                 debug_console_end=debug_console_end,
                 debug_junction_only=debug_junction_only,
                 debug_trial_window=debug_trial_window,
-                w_qneg_input_override=w_qneg_input_override
+                w_qneg_input_override=w_qneg_input_override,
+                w_qpos_input_override=w_qpos_input_override,
+                k_pos_override=k_pos_override,
             )
             condition_results.append(result)
         
@@ -899,7 +937,6 @@ def run_grid(
     
     # Aggregate and save
     return aggregate_grid_and_save(all_results, output_dir, f"grid_{grid_type}_{ablation}")
-
 
 def run_one_shot_protocol(
     n_seeds: int,
@@ -916,6 +953,8 @@ def run_one_shot_protocol(
     debug_junction_only=False,
     debug_trial_window=2,
     w_qneg_input_override=None,
+    w_qpos_input_override=None,
+    k_pos_override=None,
     one_shot_protocol=None
 ) -> Dict[str, Any]:
     """
@@ -954,7 +993,9 @@ def run_one_shot_protocol(
             debug_console_end=debug_console_end,
             debug_junction_only=debug_junction_only,
             debug_trial_window=debug_trial_window,
-            w_qneg_input_override=w_qneg_input_override
+            w_qneg_input_override=w_qneg_input_override,
+            w_qpos_input_override=w_qpos_input_override,
+            k_pos_override=k_pos_override,
         )
         all_results.append(result)
 
@@ -992,6 +1033,8 @@ def aggregate_and_save(
             'p_commit_bound': result['p_commit_bound'],
             'p_commit_timeout': result['p_commit_timeout'],
             'w_qneg_input_effective': result.get('w_qneg_input_effective', np.nan),
+            'w_qpos_input_effective': result.get('w_qpos_input_effective', np.nan),
+            'k_pos_effective': result.get('k_pos_effective', np.nan),
         })
         for trial in result['trial_summaries']:
             all_trials.append(trial)
@@ -1047,6 +1090,8 @@ def aggregate_and_save(
         'p_commit_timeout': float((df_trials['commit_reason'] == 'timeout').mean()),
         'mode_at_junction_distribution': mode_counts,
         'w_qneg_input_effective': float(df_seeds['w_qneg_input_effective'].iloc[0]) if 'w_qneg_input_effective' in df_seeds.columns else np.nan,
+        'w_qpos_input_effective': float(df_seeds['w_qpos_input_effective'].iloc[0]) if 'w_qpos_input_effective' in df_seeds.columns else np.nan,
+        'k_pos_effective': float(df_seeds['k_pos_effective'].iloc[0]) if 'k_pos_effective' in df_seeds.columns else np.nan,
     }
 
     pd.DataFrame([condition_summary]).to_csv(condition_file, index=False)
@@ -1058,6 +1103,8 @@ def aggregate_and_save(
             'n_trials_per_seed': int(df_seeds['n_trials'].iloc[0]) if 'n_trials' in df_seeds.columns else 0,
             'ablation': condition_summary['ablation'],
             'w_qneg_input_override': condition_summary.get('w_qneg_input_effective', np.nan),
+            'w_qpos_input_override': condition_summary.get('w_qpos_input_effective', np.nan),
+            'k_pos_override': condition_summary.get('k_pos_effective', np.nan),
         },
         'condition_summary': condition_summary,
     }
@@ -1118,6 +1165,8 @@ def aggregate_grid_and_save(
                 'p_commit_bound': result['p_commit_bound'],
                 'p_commit_timeout': result['p_commit_timeout'],
                 'w_qneg_input_effective': result.get('w_qneg_input_effective', np.nan),
+                'w_qpos_input_effective': result.get('w_qpos_input_effective', np.nan),
+                'k_pos_effective': result.get('k_pos_effective', np.nan),
             })
 
             for trial in result['trial_summaries']:
@@ -1214,7 +1263,11 @@ def main():
     if args.condition:
         condition_name = normalize_condition_name(args.condition)
         diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
-        param_suffix = format_param_tag(args.w_qneg_input_override)
+        param_suffix = (
+            format_param_tag("wqni", args.w_qneg_input_override)
+            + format_param_tag("wqpi", args.w_qpos_input_override)
+            + format_param_tag("kpos", args.k_pos_override)
+        )
         run_label = f"{condition_name}_{args.ablation}{diagnostic_suffix}{param_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
@@ -1235,12 +1288,18 @@ def main():
             debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
             debug_trial_window=args.debug_trial_window,
-            w_qneg_input_override=args.w_qneg_input_override
+            w_qneg_input_override=args.w_qneg_input_override,
+            w_qpos_input_override=args.w_qpos_input_override,
+            k_pos_override=args.k_pos_override,
         )
 
     elif args.grid:
         diagnostic_suffix = "_forced" if args.diagnostic_forced_shock else ""
-        param_suffix = format_param_tag(args.w_qneg_input_override)
+        param_suffix = (
+            format_param_tag("wqni", args.w_qneg_input_override)
+            + format_param_tag("wqpi", args.w_qpos_input_override)
+            + format_param_tag("kpos", args.k_pos_override)
+        )
         run_label = f"grid_{args.ablation}{diagnostic_suffix}{param_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
@@ -1261,7 +1320,9 @@ def main():
             debug_console_end=args.debug_console_end,
             debug_junction_only=args.debug_junction_only,
             debug_trial_window=args.debug_trial_window,
-            w_qneg_input_override=args.w_qneg_input_override
+            w_qneg_input_override=args.w_qneg_input_override,
+            w_qpos_input_override=args.w_qpos_input_override,
+            k_pos_override=args.k_pos_override,
         )
 
     elif args.one_shot:
@@ -1279,7 +1340,11 @@ def main():
             forced_path = args.one_shot_path_override or 'open'
 
         diagnostic_suffix = "_forced" if force_event else ""
-        param_suffix = format_param_tag(args.w_qneg_input_override)
+        param_suffix = (
+            format_param_tag("wqni", args.w_qneg_input_override)
+            + format_param_tag("wqpi", args.w_qpos_input_override)
+            + format_param_tag("kpos", args.k_pos_override)
+        )
         run_label = f"one_shot_{args.one_shot_kind}_{args.ablation}{diagnostic_suffix}{param_suffix}"
         output_dir = build_timestamped_output_dir(args.output_dir, run_label)
 
@@ -1300,6 +1365,8 @@ def main():
             debug_junction_only=args.debug_junction_only,
             debug_trial_window=args.debug_trial_window,
             w_qneg_input_override=args.w_qneg_input_override,
+            w_qpos_input_override=args.w_qpos_input_override,
+            k_pos_override=args.k_pos_override,
             one_shot_protocol=one_shot_protocol
         )
 
