@@ -88,6 +88,12 @@ def parse_args():
         help='Optional override for one-shot path'
     )
     parser.add_argument(
+        '--one-shot-source-id-override',
+        type=str,
+        default=None,
+        help='Optional explicit override for one-shot source_id (e.g. path_open, path_covered)'
+    )
+    parser.add_argument(
         '--one-shot-reward-override',
         type=float,
         default=None,
@@ -238,6 +244,28 @@ def format_param_tag(prefix: str, x: Optional[float]) -> str:
         return ""
     return f"_{prefix}_{int(round(float(x) * 100)):03d}"
 
+def normalize_one_shot_source_id(
+    source_id_override: Optional[str],
+    path_override: Optional[str],
+) -> str:
+    """
+    Backward-compatible source-id normalization.
+
+    Priority:
+    1. explicit source_id override
+    2. derive from path override
+    3. empty string
+    """
+    if source_id_override is not None and str(source_id_override).strip():
+        return str(source_id_override).strip()
+
+    if path_override == 'open':
+        return 'path_open'
+    if path_override == 'covered':
+        return 'path_covered'
+
+    return ""
+
 def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str, Any]:
     """Applies ablation modifications to agent config."""
     from stage3.configs.config_stage3_1b import ABLATION_CONFIG_3_1B
@@ -296,7 +324,9 @@ def run_condition(
     one_shot_override: Optional[Dict] = None,
     verbose: bool = False,
     diagnostic_forced_shock=False,
+    diagnostic_forced_treat=False,
     forced_shock_path=None,
+    one_shot_source_id_override=None,
     debug=False,
     debug_console=False,
     debug_console_start=None,
@@ -321,6 +351,18 @@ def run_condition(
     )
     env_config['debug'] = False
     env_config['n_trials'] = n_trials
+
+    one_shot_cfg = env_config.setdefault('one_shot', {})
+
+    inferred_one_shot_source_id = normalize_one_shot_source_id(
+        source_id_override=one_shot_source_id_override,
+        path_override=one_shot_cfg.get('one_shot_path', None),
+    )
+
+    if inferred_one_shot_source_id:
+        one_shot_cfg['one_shot_source_id'] = inferred_one_shot_source_id
+    else:
+        one_shot_cfg.setdefault('one_shot_source_id', '')
 
     # Ablation-specific handling for one-shot
     if ablation == 'one_shot_off':
@@ -366,6 +408,7 @@ def run_condition(
     pending_one_shot_stakes = None
     pending_one_shot_source_trial = None
     pending_one_shot_source_tick = None
+    pending_one_shot_source_id = None
     pending_one_shot_source_X_risk = None
     pending_one_shot_source_X_opp = None
     pending_one_shot_source_reward = None
@@ -397,6 +440,7 @@ def run_condition(
             step_one_shot_from_pending = False
             step_one_shot_source_trial = None
             step_one_shot_source_tick = None
+            step_one_shot_source_id = None
             step_one_shot_source_X_risk = None
             step_one_shot_source_X_opp = None
             step_one_shot_source_reward = None
@@ -408,6 +452,7 @@ def run_condition(
 
                 step_one_shot_source_trial = pending_one_shot_source_trial
                 step_one_shot_source_tick = pending_one_shot_source_tick
+                step_one_shot_source_id = pending_one_shot_source_id
                 step_one_shot_source_X_risk = pending_one_shot_source_X_risk
                 step_one_shot_source_X_opp = pending_one_shot_source_X_opp
                 step_one_shot_source_reward = pending_one_shot_source_reward
@@ -416,6 +461,7 @@ def run_condition(
                 pending_one_shot_stakes = None
                 pending_one_shot_source_trial = None
                 pending_one_shot_source_tick = None
+                pending_one_shot_source_id = None
                 pending_one_shot_source_X_risk = None
                 pending_one_shot_source_X_opp = None
                 pending_one_shot_source_reward = None
@@ -431,6 +477,10 @@ def run_condition(
             obs_pre = dict(obs)
 
             if step_one_shot_from_pending:
+                obs_pre['one_shot_source_id'] = (
+                    str(step_one_shot_source_id)
+                    if step_one_shot_source_id is not None else ""
+                )
                 obs_pre['one_shot_source_X_risk'] = (
                     float(step_one_shot_source_X_risk)
                     if step_one_shot_source_X_risk is not None else 0.0
@@ -444,6 +494,12 @@ def run_condition(
                     if step_one_shot_source_reward is not None else 0.0
                 )
             else:
+                obs_pre['one_shot_source_id'] = str(
+                    obs_pre.get(
+                        'one_shot_source_id',
+                        env_config.get('one_shot', {}).get('one_shot_source_id', '')
+                    )
+                )
                 obs_pre['one_shot_source_X_risk'] = obs_pre.get('one_shot_source_X_risk', 0.0)
                 obs_pre['one_shot_source_X_opp'] = obs_pre.get('one_shot_source_X_opp', 0.0)
                 obs_pre['one_shot_source_reward'] = obs_pre.get('one_shot_source_reward', 0.0)
@@ -462,25 +518,47 @@ def run_condition(
             forced_action_applied = False
 
             # -----------------------------------------------------------------
-            # Diagnostic forced-shock mode
+            # Diagnostic forced-event mode
             # Purpose:
-            #   Guarantee that on shock trial the agent commits to one_shot_path,
-            #   so that we can test causal post-shock effects without dilution.
-            # This is a diagnostic intervention only, not a final experiment.
+            #   Force re-entry/commit toward explicit source_id on one-shot trial.
+            # Backward compatibility:
+            #   if source_id absent, derive from path_open/path_covered mapping.
             # -----------------------------------------------------------------
-            if diagnostic_forced_shock:
+            if diagnostic_forced_shock or diagnostic_forced_treat:
                 shock_trial = getattr(env, "one_shot_trial", -1)
-                configured_shock_path = forced_shock_path or getattr(env, "one_shot_path", "open")
+
+                configured_source_id = (
+                    one_shot_source_id_override
+                    or obs.get("one_shot_source_id", "")
+                    or env_config.get("one_shot", {}).get("one_shot_source_id", "")
+                )
+
+                if (not configured_source_id) and forced_shock_path is not None:
+                    configured_source_id = normalize_one_shot_source_id(
+                        source_id_override=None,
+                        path_override=forced_shock_path,
+                    )
+
+                action_to_source_id = obs.get("action_to_source_id", {})
+                forced_action = None
+
+                if isinstance(action_to_source_id, dict):
+                    for k, v in action_to_source_id.items():
+                        if str(v) == str(configured_source_id):
+                            forced_action = int(k)
+                            break
+
+                if forced_action is None:
+                    if str(configured_source_id) == "path_open":
+                        forced_action = 0
+                    elif str(configured_source_id) == "path_covered":
+                        forced_action = 1
 
                 at_junction = float(obs.get("at_junction", 0.0)) > 0.5
-                already_committed = float(obs.get("committed_path_encoded", 0.0)) != 0.0
+                already_committed = bool(obs.get("committed_source_id", ""))
 
-                if trial == shock_trial and at_junction and not already_committed:
-                    if configured_shock_path == "open":
-                        action = 0
-                    elif configured_shock_path == "covered":
-                        action = 1
-
+                if trial == shock_trial and at_junction and not already_committed and forced_action is not None:
+                    action = int(forced_action)
                     forced_action_applied = True
                     forced_action_applied_count += 1
 
@@ -511,6 +589,15 @@ def run_condition(
                 )
                 pending_one_shot_source_trial = trial
                 pending_one_shot_source_tick = info.get('tick', tick)
+                pending_one_shot_source_id = str(
+                    obs_post.get(
+                        'one_shot_source_id',
+                        info.get(
+                            'one_shot_source_id',
+                            env_config.get('one_shot', {}).get('one_shot_source_id', '')
+                        )
+                    )
+                )
 
                 pending_one_shot_source_X_risk = float(
                     obs_post.get('one_shot_source_X_risk', info.get('one_shot_source_X_risk', 0.0))
@@ -546,6 +633,8 @@ def run_condition(
                 'deliberation_state': info.get('deliberation_state', ''),
                 'candidate_path': info.get('candidate_path', ''),
                 'committed_path': info.get('committed_path', ''),
+                'candidate_source_id': info.get('candidate_source_id', ''),
+                'committed_source_id': info.get('committed_source_id', ''),
 
                 'mode': mode,
                 'gate_trigger': gate_trigger,
@@ -586,6 +675,7 @@ def run_condition(
                 'one_shot_active': info.get('one_shot_active', False),
                 'one_shot_trial': info.get('one_shot_trial', -1),
                 'one_shot_path': info.get('one_shot_path', ''),
+                'one_shot_source_id': info.get('one_shot_source_id', ''),
                 'one_shot_kind': env_config.get('one_shot', {}).get('one_shot_kind', 'off'),
                 'source_override_mode': env_config.get('one_shot', {}).get('source_override_mode', 'none'),
 
@@ -602,6 +692,7 @@ def run_condition(
                 'post_step_one_shot_fired': post_step_one_shot_fired,
                 'pending_one_shot_source_trial': step_one_shot_source_trial,
                 'pending_one_shot_source_tick': step_one_shot_source_tick,
+                'pending_one_shot_source_id': step_one_shot_source_id,
                 'one_shot_source_X_risk': step_one_shot_source_X_risk,
                 'one_shot_source_X_opp': step_one_shot_source_X_opp,
                 'one_shot_source_reward': step_one_shot_source_reward,
@@ -663,6 +754,9 @@ def run_condition(
                 'pre_one_shot_source_X_risk': obs_pre.get('one_shot_source_X_risk', np.nan),
                 'pre_one_shot_source_X_opp': obs_pre.get('one_shot_source_X_opp', np.nan),
                 'pre_one_shot_source_reward': obs_pre.get('one_shot_source_reward', np.nan),
+                'pre_one_shot_source_id': obs_pre.get('one_shot_source_id', ''),
+                'pre_option_ids': obs_pre.get('option_ids', []),
+                'pre_option_source_ids': obs_pre.get('option_source_ids', []),
 
                 'mode': mode,
                 'gate_trigger': gate_trigger,
@@ -706,6 +800,8 @@ def run_condition(
                 'post_deliberation_state': info.get('deliberation_state', ''),
                 'candidate_path': info.get('candidate_path', ''),
                 'committed_path': info.get('committed_path', ''),
+                'candidate_source_id': info.get('candidate_source_id', ''),
+                'committed_source_id': info.get('committed_source_id', ''),
 
                 'open_X_risk': info.get('open_X_risk', np.nan),
                 'covered_X_risk': info.get('covered_X_risk', np.nan),
@@ -729,10 +825,12 @@ def run_condition(
 
                 'pending_one_shot_source_trial': step_one_shot_source_trial,
                 'pending_one_shot_source_tick': step_one_shot_source_tick,
+                'pending_one_shot_source_id': step_one_shot_source_id,                
                 'one_shot_source_X_risk': step_one_shot_source_X_risk,
                 'one_shot_source_X_opp': step_one_shot_source_X_opp,
                 'one_shot_source_reward': step_one_shot_source_reward,
-
+                'post_one_shot_source_id': info.get('one_shot_source_id', ''),
+                
                 'real_junction_choice_row': real_junction_choice_row,
             }
 

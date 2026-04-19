@@ -137,6 +137,12 @@ class EnvState:
     candidate_path: Optional[str] = None
     committed_path: Optional[str] = None
     path_choice: Optional[str] = None
+
+    # Source-local identity for option-specific carryover.
+    # ВАЖНО: это internal metadata среды/агента, не вход Gate.
+    candidate_source_id: Optional[str] = None
+    committed_source_id: Optional[str] = None
+
     deliberation_metrics: DeliberationMetrics = field(default_factory=DeliberationMetrics)
     trial_reward: float = 0.0
     last_reward_sampled: float = 0.0
@@ -168,6 +174,8 @@ class EnvState:
         self.candidate_path = None
         self.committed_path = None
         self.path_choice = None
+        self.candidate_source_id = None
+        self.committed_source_id = None
         self.deliberation_metrics.reset()
         self.trial_reward = 0.0
         self.last_reward_sampled = 0.0
@@ -364,23 +372,50 @@ class OpenCoveredChoiceEnv:
         self.preferred_by_reward = self.conflict_vars.get('preferred_by_reward', '')
         self.preferred_by_threat = self.conflict_vars.get('preferred_by_threat', '')
 
+        # Stable option/source IDs for backward-compatible open/covered maze.
+        # ВАЖНО:
+        # - это internal identity среды;
+        # - Gate по-прежнему работает только со скалярами и агрегатами;
+        # - строки не должны участвовать в gate-computation.
+        self.path_by_action = {
+            0: "open",
+            1: "covered",
+        }
+        self.option_id_by_action = {
+            0: "path_open",
+            1: "path_covered",
+        }
+        # На текущем этапе option_id == source_id.
+        # Позже это можно развести, если понадобится.
+        self.source_id_by_action = dict(self.option_id_by_action)
+
+        self.action_by_path = {v: k for k, v in self.path_by_action.items()}
+        self.action_by_option_id = {v: k for k, v in self.option_id_by_action.items()}
+        self.action_by_source_id = {v: k for k, v in self.source_id_by_action.items()}
+        self.source_id_by_path = {
+            "open": "path_open",
+            "covered": "path_covered",
+        }
+        self.path_by_source_id = {v: k for k, v in self.source_id_by_path.items()}
+
         # Stage 3.1B: one-shot config
-        self.one_shot_config = self.config.get('one_shot', {})
+        self.one_shot_config = config.get('one_shot', {})
         self.one_shot_enabled = bool(self.one_shot_config.get('one_shot_enabled', False))
         self.one_shot_trial = int(self.one_shot_config.get('one_shot_trial', -1))
-        self.one_shot_path = self.one_shot_config.get('one_shot_path', '')
-        self.one_shot_reward = float(self.one_shot_config.get('one_shot_reward', 0.0))
-        self.one_shot_salience = float(self.one_shot_config.get('one_shot_salience', 0.0))
-        self.one_shot_stakes = float(self.one_shot_config.get('one_shot_stakes', 1.0))
-        
-        # Stage 3.1B: One-shot protocol
-        self.one_shot_config = config.get('one_shot', {})
-        self.one_shot_enabled = self.one_shot_config.get('one_shot_enabled', False)
-        self.one_shot_trial = self.one_shot_config.get('one_shot_trial', -1)
-        self.one_shot_path = self.one_shot_config.get('one_shot_path', 'open')
-        self.one_shot_reward = self.one_shot_config.get('one_shot_reward', -5.0)
-        self.one_shot_salience = self.one_shot_config.get('one_shot_salience', 0.9)
-        self.one_shot_stakes = self.one_shot_config.get('one_shot_stakes', 10.0)
+        self.one_shot_path = str(self.one_shot_config.get('one_shot_path', 'open'))
+        self.one_shot_reward = float(self.one_shot_config.get('one_shot_reward', -5.0))
+        self.one_shot_salience = float(self.one_shot_config.get('one_shot_salience', 0.9))
+        self.one_shot_stakes = float(self.one_shot_config.get('one_shot_stakes', 10.0))
+
+        # New: explicit source-local target for one-shot.
+        # Backward compatibility:
+        # - if one_shot_source_id absent, derive it from one_shot_path.
+        self.one_shot_source_id = str(
+            self.one_shot_config.get(
+                'one_shot_source_id',
+                self.source_id_by_path.get(self.one_shot_path, "")
+            )
+        )
         
     def _build_maze(self) -> MazeGraph:
         """
@@ -406,6 +441,30 @@ class OpenCoveredChoiceEnv:
         
         return maze
     
+    def _get_option_ids(self) -> List[str]:
+        """Stable option IDs in action order."""
+        return [self.option_id_by_action[i] for i in sorted(self.option_id_by_action.keys())]
+
+    def _get_source_ids(self) -> List[str]:
+        """Stable source IDs in action order."""
+        return [self.source_id_by_action[i] for i in sorted(self.source_id_by_action.keys())]
+
+    def _get_source_id_for_action(self, action: int) -> str:
+        """Maps action index -> source_id."""
+        return str(self.source_id_by_action.get(int(action), ""))
+
+    def _get_action_for_source_id(self, source_id: Optional[str]) -> Optional[int]:
+        """Maps source_id -> action index."""
+        if source_id is None:
+            return None
+        return self.action_by_source_id.get(str(source_id), None)
+
+    def _get_path_for_source_id(self, source_id: Optional[str]) -> str:
+        """Maps source_id -> semantic path label for logging only."""
+        if source_id is None:
+            return ""
+        return str(self.path_by_source_id.get(str(source_id), ""))
+
     def reset(self, trial: Optional[int] = None) -> Dict[str, Any]:
         """
         Сбрасывает среду для нового триала.
@@ -496,6 +555,8 @@ class OpenCoveredChoiceEnv:
             'deliberation_state': self.state.deliberation_state.value,
             'candidate_path': self.state.candidate_path,
             'committed_path': self.state.committed_path,
+            'candidate_source_id': self.state.candidate_source_id,
+            'committed_source_id': self.state.committed_source_id,
             'mode': mode,
             'gate_trigger': gate_trigger,
             'action_probs': action_probs or [],
@@ -522,6 +583,12 @@ class OpenCoveredChoiceEnv:
             'one_shot_active': self.one_shot_enabled,
             'one_shot_trial': self.one_shot_trial,
             'one_shot_path': self.one_shot_path,
+            'one_shot_source_id': self.one_shot_source_id,
+
+            # Stable option/source metadata for source-local carryover
+            'option_ids': self._get_option_ids() if self.state.current_node == self.junction_node else [],
+            'option_source_ids': self._get_source_ids() if self.state.current_node == self.junction_node else [],
+            'action_to_source_id': dict(self.source_id_by_action) if self.state.current_node == self.junction_node else {},            
 
             'salience': self.state.last_one_shot_salience if self.state.last_one_shot_fired else observation.get('prediction_error', 0.0),
             'stakes': self.state.last_one_shot_stakes if self.state.last_one_shot_fired else 1.0,
@@ -605,14 +672,17 @@ class OpenCoveredChoiceEnv:
             if action == 0:
                 metrics.evidence_balance -= step
                 candidate = "open"
+                candidate_source_id = self._get_source_id_for_action(0)
             elif action == 1:
                 metrics.evidence_balance += step
                 candidate = "covered"
+                candidate_source_id = self._get_source_id_for_action(1)
             else:
                 return
 
             metrics.record_candidate_path(candidate, self.state.tick)
             self.state.candidate_path = candidate
+            self.state.candidate_source_id = candidate_source_id
 
             # collapsing bound
             bound_base = self.delib_config.get('evidence_bound_base', 0.45)
@@ -667,6 +737,8 @@ class OpenCoveredChoiceEnv:
             self.state.committed_path = "covered"
         else:
             raise ValueError(f"Unsupported commit action: {action}")
+
+        self.state.committed_source_id = self._get_source_id_for_action(action)
 
         metrics.commit_tick = self.state.tick
         metrics.commit_latency = metrics.commit_tick - metrics.junction_entry_tick
@@ -846,7 +918,21 @@ class OpenCoveredChoiceEnv:
             # === State machine ===
             'state': self.state.deliberation_state.value
         }
-        
+
+        at_choice_point = (current == self.junction_node)
+
+        # Internal metadata for source-local appetitive carryover.
+        # ВАЖНО: Gate не должен использовать эти строки как вход.
+        # Они предназначены для policy layer / debug / runner plumbing.
+        observation['option_ids'] = self._get_option_ids() if at_choice_point else []
+        observation['option_source_ids'] = self._get_source_ids() if at_choice_point else []
+        observation['action_to_option_id'] = dict(self.option_id_by_action) if at_choice_point else {}
+        observation['action_to_source_id'] = dict(self.source_id_by_action) if at_choice_point else {}
+
+        observation['candidate_source_id'] = self.state.candidate_source_id or ""
+        observation['committed_source_id'] = self.state.committed_source_id or ""
+        observation['one_shot_source_id'] = self.one_shot_source_id
+
         return observation
     
     def _compute_prediction_error(self) -> float:
