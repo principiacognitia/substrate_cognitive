@@ -844,6 +844,24 @@ def run_condition(
                 else:
                     probs_str = "[]"
 
+                cand_path = debug_row.get('candidate_path')
+                comm_path = debug_row.get('committed_path')
+                cand_sid = debug_row.get('candidate_source_id')
+                comm_sid = debug_row.get('committed_source_id')
+
+                pre_sid = debug_row.get('pre_one_shot_source_id')
+                pending_sid = debug_row.get('pending_one_shot_source_id')
+                post_sid = debug_row.get('post_one_shot_source_id')
+
+                opt_sids = debug_row.get('pre_option_source_ids', [])
+                if isinstance(opt_sids, list) and opt_sids:
+                    opt_sids_str = "[" + ",".join(str(x) for x in opt_sids) + "]"
+                else:
+                    opt_sids_str = "[]"
+
+                path_str = f"{cand_path}->{comm_path}"
+                src_path_str = f"{cand_sid}->{comm_sid}"
+
                 print(
                     "[DBG] "
                     f"s={debug_row['seed']} t={debug_row['trial']} k={debug_row['tick']} "
@@ -856,7 +874,12 @@ def run_condition(
                     f"safe={fmt3(debug_row.get('safe_drive'))} "
                     f"unc={fmt3(debug_row.get('uncertainty_signal'))} "
                     f"p={probs_str} "
-                    f"path={debug_row.get('candidate_path')}->{debug_row.get('committed_path')} "
+                    f"path={path_str} "
+                    f"sid={src_path_str} "
+                    f"cfg_sid={pre_sid} "
+                    f"pending_sid={pending_sid} "
+                    f"post_sid={post_sid} "
+                    f"opts={opt_sids_str} "
                     f"shot={debug_row.get('step_one_shot_from_pending')}/{debug_row.get('post_one_shot_fired')}",
                     flush=True
                 )
