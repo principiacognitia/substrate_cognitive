@@ -754,7 +754,13 @@ def run_condition(
                 'pre_one_shot_source_X_risk': obs_pre.get('one_shot_source_X_risk', np.nan),
                 'pre_one_shot_source_X_opp': obs_pre.get('one_shot_source_X_opp', np.nan),
                 'pre_one_shot_source_reward': obs_pre.get('one_shot_source_reward', np.nan),
-                'pre_one_shot_source_id': obs_pre.get('one_shot_source_id', ''),
+
+                'configured_one_shot_source_id': env_config.get('one_shot', {}).get('one_shot_source_id', ''),
+                'active_one_shot_source_id': (
+                    str(step_one_shot_source_id) if step_one_shot_source_id is not None else ''
+                ),
+                'obs_pre_one_shot_source_id': obs_pre.get('one_shot_source_id', ''),
+
                 'pre_option_ids': obs_pre.get('option_ids', []),
                 'pre_option_source_ids': obs_pre.get('option_source_ids', []),
 
@@ -849,7 +855,9 @@ def run_condition(
                 cand_sid = debug_row.get('candidate_source_id')
                 comm_sid = debug_row.get('committed_source_id')
 
-                pre_sid = debug_row.get('pre_one_shot_source_id')
+                cfg_sid = debug_row.get('configured_one_shot_source_id')
+                active_sid = debug_row.get('active_one_shot_source_id')
+                obs_pre_sid = debug_row.get('obs_pre_one_shot_source_id')
                 pending_sid = debug_row.get('pending_one_shot_source_id')
                 post_sid = debug_row.get('post_one_shot_source_id')
 
@@ -876,7 +884,9 @@ def run_condition(
                     f"p={probs_str} "
                     f"path={path_str} "
                     f"sid={src_path_str} "
-                    f"cfg_sid={pre_sid} "
+                    f"cfg_sid={cfg_sid} "
+                    f"active_sid={active_sid} "
+                    f"obs_sid={obs_pre_sid} "
                     f"pending_sid={pending_sid} "
                     f"post_sid={post_sid} "
                     f"opts={opt_sids_str} "
@@ -1066,6 +1076,7 @@ def run_one_shot_protocol(
     output_dir: str,
     verbose: bool,
     diagnostic_forced_shock=False,
+    diagnostic_forced_treat=False,
     forced_shock_path=None,
     debug=False,
     debug_console=False,
@@ -1106,6 +1117,7 @@ def run_one_shot_protocol(
             ablation=ablation,
             one_shot_override=protocol['one_shot'],
             diagnostic_forced_shock=diagnostic_forced_shock,
+            diagnostic_forced_treat=diagnostic_forced_treat,
             forced_shock_path=forced_shock_path,
             verbose=verbose,
             debug=debug,
@@ -1455,9 +1467,13 @@ def main():
             stakes=args.one_shot_stakes_override if args.one_shot_stakes_override is not None else 10.0,
         )
 
-        force_event = args.diagnostic_forced_shock or args.diagnostic_forced_treat
+        diagnostic_forced_shock = bool(args.diagnostic_forced_shock)
+        diagnostic_forced_treat = bool(args.diagnostic_forced_treat)
+
+        force_event = diagnostic_forced_shock or diagnostic_forced_treat
+
         forced_path = args.forced_shock_path
-        if forced_path is None and args.diagnostic_forced_treat:
+        if forced_path is None and diagnostic_forced_treat:
             forced_path = args.one_shot_path_override or 'open'
 
         diagnostic_suffix = "_forced" if force_event else ""
@@ -1477,7 +1493,8 @@ def main():
             ablation=args.ablation,
             output_dir=output_dir,
             verbose=args.verbose,
-            diagnostic_forced_shock=force_event,
+            diagnostic_forced_shock=diagnostic_forced_shock,
+            diagnostic_forced_treat=diagnostic_forced_treat,
             forced_shock_path=forced_path,
             debug=args.debug,
             debug_console=args.debug_console,
