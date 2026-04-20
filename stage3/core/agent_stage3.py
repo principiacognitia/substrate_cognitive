@@ -325,6 +325,36 @@ class AgentStage3:
         event_X_opp = observation.get('one_shot_source_X_opp', None)
         event_override_active = (event_X_risk is not None) or (event_X_opp is not None)
 
+        # event_source_id должен передаваться только когда реально есть event pathway,
+        # а не просто потому что env конфиг хранит default source_id.
+        event_source_id = None
+        if obs_one_shot_fired or event_override_active:
+            raw_event_source_id = observation.get('one_shot_source_id', '')
+            if raw_event_source_id is not None and str(raw_event_source_id).strip():
+                event_source_id = str(raw_event_source_id).strip()
+
+        # Source-local positive input map for option-specific appetitive carryover.
+        # Здесь используем numeric option affordance, а не семантический label.
+        # Для текущего open/covered maze это junction-side expected reward signal.
+        source_input_map: Dict[str, float] = {}
+        option_source_ids = observation.get('option_source_ids', [])
+        option_reward_values = observation.get('option_reward_values', [])
+
+        if (
+            at_junction and
+            isinstance(option_source_ids, (list, tuple)) and
+            isinstance(option_reward_values, (list, tuple)) and
+            len(option_source_ids) == len(option_reward_values)
+        ):
+            for sid, raw_val in zip(option_source_ids, option_reward_values):
+                sid_str = str(sid).strip() if sid is not None else ""
+                if not sid_str:
+                    continue
+                try:
+                    source_input_map[sid_str] = float(np.clip(float(raw_val), 0.0, 1.0))
+                except (TypeError, ValueError):
+                    continue
+
         self.current_temporal_state = self.temporal_updater.update(
             state=self.current_temporal_state,
             X_risk=node_exposure_aggregates.X_risk,
@@ -332,7 +362,9 @@ class AgentStage3:
             salience=float(salience),
             stakes=float(stakes),
             event_X_risk=event_X_risk,
-            event_X_opp=event_X_opp
+            event_X_opp=event_X_opp,
+            event_source_id=event_source_id,
+            source_input_map=source_input_map,
         )
         
         # =====================================================================
@@ -406,6 +438,8 @@ class AgentStage3:
                 'h_time': self.current_temporal_state.h_time,
                 'q_neg': self.current_temporal_state.q_neg,
                 'q_pos': self.current_temporal_state.q_pos,
+                'q_pos_local': dict(self.current_temporal_state.q_pos_local),
+                'h_opp_local': dict(self.current_temporal_state.h_opp_local),
             },
             'instant_diagnostics': {
                 'u_delta': instant_diagnostics.u_delta,
@@ -430,6 +464,8 @@ class AgentStage3:
             # Action policy metadata
             'action_probs': action_metadata.get('action_probs', []),
             'q_values': action_metadata.get('q_values', []),
+            'q_values_with_local_bonus': action_metadata.get('q_values_with_local_bonus', []),
+            'local_bonus_values': action_metadata.get('local_bonus_values', []),
             'risk_values': action_metadata.get('risk_values', []),
 
             # Полный снимок состояния gate для отладки (может быть большим, поэтому в отдельном поле)
@@ -455,14 +491,14 @@ class AgentStage3:
         exposure: ExposureAggregates
     ) -> Tuple[int, Dict]:
         """
-        Task 2: Mode-specific stochastic policy через softmax.
-        
-        Design Principle: Principled stochasticity, не hand-coded random.
-        
-        Returns:
-            (action, metadata)
-            metadata содержит action_probs, q_values, risk_values для логирования
+        Mode-specific stochastic policy через softmax.
+
+        ВАЖНО:
+        - Gate уже выбрал mode.
+        - Здесь мы добавляем только source-local appetitive bonus к option values.
+        - Это post-Gate valuation, не часть Gate routing.
         """
+
         q_values_raw = observation.get('q_values', [0.5, 0.5])
         q_values = np.array(q_values_raw, dtype=np.float64)
         n_actions = len(q_values)
@@ -475,72 +511,84 @@ class AgentStage3:
             risk_values = np.array([exposure.X_risk, 0.0], dtype=np.float64)[:n_actions]
             risk_source = 'current_node_fallback'
 
-        q_source = 'observation_q_values'    
+        q_source = 'observation_q_values'
 
-        # === Получаем параметры из action_policy ===
-        beta_exploit = self.config.action_policy.get('beta_exploit', 
-                              self.config.stage2_legacy.get('beta', 4.0))
+        # ------------------------------------------------------------------
+        # Source-local appetitive bonus
+        # ------------------------------------------------------------------
+        option_source_ids = observation.get('option_source_ids', [])
+        h_opp_local_map = getattr(self.current_temporal_state, 'h_opp_local', {}) or {}
+        local_bonus_weight = float(self.config.action_policy.get('local_opp_bonus_weight', 1.0))
+
+        if isinstance(option_source_ids, (list, tuple)) and len(option_source_ids) == n_actions:
+            local_bonus_values = np.array(
+                [local_bonus_weight * float(h_opp_local_map.get(str(sid), 0.0)) for sid in option_source_ids],
+                dtype=np.float64
+            )
+            local_bonus_source = 'temporal_state.h_opp_local'
+        else:
+            local_bonus_values = np.zeros(n_actions, dtype=np.float64)
+            local_bonus_source = 'none'
+
+        q_values_with_local_bonus = q_values + local_bonus_values
+
+        beta_exploit = self.config.action_policy.get(
+            'beta_exploit',
+            self.config.stage2_legacy.get('beta', 4.0)
+        )
         beta_explore = self.config.action_policy.get('beta_explore', 1.0)
         beta_safe = self.config.action_policy.get('beta_safe', 5.0)
         lambda_risk = self.config.action_policy.get('lambda_risk', 2.0)
         epsilon_explore = self.config.action_policy.get('epsilon_explore', 0.0)
-        
-        # === EXPLOIT: Softmax с высоким beta ===
+
+        beta_used = 0.0
+        q_effective = q_values_with_local_bonus.copy()
+        logits = np.zeros_like(q_effective)
+
         if mode == GateMode.EXPLOIT:
             beta_used = beta_exploit
-            q_effective = q_values.copy()
+            q_effective = q_values_with_local_bonus.copy()
             logits = beta_used * q_effective
             probs = self._softmax(logits)
             action = self.rng.choice(n_actions, p=probs)
-        
-        # === EXPLORE: Softmax с низким beta (более случайно) ===
+
         elif mode == GateMode.EXPLORE:
-            if epsilon_explore > 0:
-                # Epsilon-soft policy
-                if self.rng.random() < epsilon_explore:
-                    action = self.rng.randint(0, n_actions)
-                    probs = np.ones(n_actions) / n_actions
-                else:
-                    beta_used = beta_explore
-                    q_effective = q_values.copy()
-                    logits = beta_used * q_effective
-                    probs = self._softmax(logits)
-                    action = self.rng.choice(n_actions, p=probs)
+            if epsilon_explore > 0.0 and self.rng.random() < epsilon_explore:
+                probs = np.ones(n_actions, dtype=np.float64) / n_actions
+                action = int(self.rng.integers(0, n_actions))
+                q_effective = q_values_with_local_bonus.copy()
+                logits = q_effective.copy()
             else:
-                # Pure softmax с низким beta
                 beta_used = beta_explore
-                q_effective = q_values.copy()
+                q_effective = q_values_with_local_bonus.copy()
                 logits = beta_used * q_effective
                 probs = self._softmax(logits)
                 action = self.rng.choice(n_actions, p=probs)
-        
-        # === EXPLOIT_SAFE: Softmax над risk-penalized values ===
+
         elif mode == GateMode.EXPLOIT_SAFE:
-            # Penalized Q-values: Q_safe = Q - lambda_risk * risk
             beta_used = beta_safe
-            q_safe = q_values - lambda_risk * risk_values
+            q_safe = q_values_with_local_bonus - lambda_risk * risk_values
             q_effective = q_safe
             logits = beta_used * q_effective
             probs = self._softmax(logits)
             action = self.rng.choice(n_actions, p=probs)
 
-        # === ABSENCE_CHECK: Как EXPLORE (пока нет full scan policy) ===
         elif mode == GateMode.ABSENCE_CHECK:
             beta_used = beta_explore
-            q_effective = q_values.copy()
+            q_effective = q_values_with_local_bonus.copy()
             logits = beta_used * q_effective
             probs = self._softmax(logits)
             action = self.rng.choice(n_actions, p=probs)
-        
+
         else:
-            # Fallback: равномерное распределение
-            probs = np.ones(n_actions) / n_actions
+            probs = np.ones(n_actions, dtype=np.float64) / n_actions
             action = self.rng.choice(n_actions, p=probs)
-        
-        # Metadata для логирования
+
         metadata = {
             'action_probs': probs.tolist(),
             'q_values': q_values.tolist(),
+            'q_values_with_local_bonus': q_values_with_local_bonus.tolist(),
+            'local_bonus_values': local_bonus_values.tolist(),
             'risk_values': risk_values.tolist(),
             'sampled_action': int(action),
             'policy_debug': {
@@ -549,15 +597,23 @@ class AgentStage3:
                 'lambda_risk': float(lambda_risk),
                 'q_source': q_source,
                 'risk_source': risk_source,
+                'local_bonus_source': local_bonus_source,
+                'local_bonus_weight': float(local_bonus_weight),
+                'option_source_ids': list(option_source_ids) if isinstance(option_source_ids, (list, tuple)) else [],
+                'h_opp_local': dict(h_opp_local_map),
+                'q_pos_local': dict(getattr(self.current_temporal_state, 'q_pos_local', {}) or {}),
                 'raw_observation_q_values': q_values_raw if isinstance(q_values_raw, list) else list(q_values_raw),
                 'raw_observation_risk_values': list(obs_risk_values) if isinstance(obs_risk_values, (list, tuple)) else None,
+                'local_bonus_values': local_bonus_values.tolist(),
+                'q_values_with_local_bonus': q_values_with_local_bonus.tolist(),
                 'q_effective': q_effective.tolist(),
                 'logits': logits.tolist(),
             }
         }
+
         # Для отладки: сохраняем q_safe в metadata если mode == EXPLOIT_SAFE
         if mode == GateMode.EXPLOIT_SAFE:
-            metadata['policy_debug']['q_safe'] = q_safe.tolist()
+            metadata['policy_debug']['q_safe'] = q_effective.tolist()
 
         return int(action), metadata
     

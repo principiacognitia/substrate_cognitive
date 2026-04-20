@@ -147,15 +147,18 @@ class TemporalStateUpdater:
         salience: float,
         stakes: float = 1.0,
         event_X_risk: Optional[float] = None,
-        event_X_opp: Optional[float] = None
+        event_X_opp: Optional[float] = None,
+        event_source_id: Optional[str] = None,
+        source_input_map: Optional[Dict[str, float]] = None,
     ) -> TemporalState:
         """
         Обновляет temporal state через непрерывные importance traces.
 
         Principle:
         - q_neg / q_pos не являются ярлыками событий
-        - они являются long-lived continuous state variables
-        - их роль — модулировать effective update rates already-existing traces
+        - они являются continuous state variables
+        - global q_pos/h_opp работают как прежде
+        - positive source-local carryover хранится отдельно по source_id
         """
 
         X_risk = float(X_risk)
@@ -164,17 +167,11 @@ class TemporalStateUpdater:
         stakes = float(stakes)
 
         surprise_amplitude = max(0.0, salience) * max(0.0, stakes)
-
-        # q traces должны реагировать только на экстремальный surprise
         surprise_excess = max(0.0, surprise_amplitude - self.config.theta_shot)
         is_one_shot = surprise_excess > 0.0
 
         # ------------------------------------------------------------------
         # A. Importance drive from event source field
-        # ВАЖНО:
-        # h_risk/h_opp обновляются от текущего step field,
-        # но q_neg/q_pos должны ранжировать именно тот паттерн,
-        # который вызвал one-shot.
         # ------------------------------------------------------------------
         has_event_override = (event_X_risk is not None) or (event_X_opp is not None)
 
@@ -192,7 +189,7 @@ class TemporalStateUpdater:
         shot_pos = opp_excess * surprise_excess
 
         # ------------------------------------------------------------------
-        # B. Continuous importance traces
+        # B. Global continuous importance traces
         # ------------------------------------------------------------------
         q_neg_new = self.config.rho_neg * state.q_neg + self.config.k_neg * shot_neg
         q_pos_new = self.config.rho_pos * state.q_pos + self.config.k_pos * shot_pos
@@ -201,9 +198,27 @@ class TemporalStateUpdater:
         q_pos_new = float(np.clip(q_pos_new, 0.0, self.config.q_clip))
 
         # ------------------------------------------------------------------
-        # C. Effective update rates
-        # High prior q -> slower relaxation on the NEXT step(s), not on the
-        # same step that created the importance trace.
+        # C. Source-local positive importance traces
+        # ------------------------------------------------------------------
+        event_source_id_str = ""
+        if event_source_id is not None and str(event_source_id).strip():
+            event_source_id_str = str(event_source_id).strip()
+
+        q_pos_local_new: Dict[str, float] = {}
+        local_q_keys = set(state.q_pos_local.keys())
+        if event_source_id_str:
+            local_q_keys.add(event_source_id_str)
+
+        for sid in local_q_keys:
+            prev_local_q = float(state.q_pos_local.get(sid, 0.0))
+            local_shot_pos = shot_pos if (sid == event_source_id_str) else 0.0
+            new_local_q = self.config.rho_pos * prev_local_q + self.config.k_pos * local_shot_pos
+            new_local_q = float(np.clip(new_local_q, 0.0, self.config.q_clip))
+            if new_local_q > 1e-9:
+                q_pos_local_new[sid] = new_local_q
+
+        # ------------------------------------------------------------------
+        # D. Effective global update rates
         # ------------------------------------------------------------------
         lambda_risk_eff = self.config.lambda_risk / (1.0 + self.config.w_neg_to_risk * state.q_neg)
         lambda_opp_eff = self.config.lambda_opp / (1.0 + self.config.w_pos_to_opp * state.q_pos)
@@ -212,8 +227,7 @@ class TemporalStateUpdater:
         lambda_opp_eff = float(np.clip(lambda_opp_eff, 1e-6, 1.0))
 
         # ------------------------------------------------------------------
-        # D. Trace update
-        # Importance traces modulate decay / relaxation, not direct event encoding.
+        # E. Global trace update
         # ------------------------------------------------------------------
         risk_gain = 1.0 + self.config.w_qneg_input * (state.q_neg / (1.0 + state.q_neg))
         X_risk_eff = float(np.clip(X_risk * risk_gain, 0.0, 1.0))
@@ -235,7 +249,49 @@ class TemporalStateUpdater:
         h_opp_new = float(np.clip(h_opp_new, 0.0, 1.0))
 
         # ------------------------------------------------------------------
-        # E. h_time
+        # F. Source-local positive trace update
+        # source_input_map is policy-side numeric affordance input, not Gate routing.
+        # ------------------------------------------------------------------
+        source_input_map_clean: Dict[str, float] = {}
+        if isinstance(source_input_map, dict):
+            for raw_sid, raw_val in source_input_map.items():
+                sid = str(raw_sid).strip() if raw_sid is not None else ""
+                if not sid:
+                    continue
+                try:
+                    source_input_map_clean[sid] = float(np.clip(float(raw_val), 0.0, 1.0))
+                except (TypeError, ValueError):
+                    continue
+
+        h_opp_local_new: Dict[str, float] = {}
+        local_h_keys = (
+            set(state.h_opp_local.keys())
+            | set(q_pos_local_new.keys())
+            | set(source_input_map_clean.keys())
+        )
+
+        for sid in local_h_keys:
+            prev_local_h = float(state.h_opp_local.get(sid, 0.0))
+            prev_local_q = float(state.q_pos_local.get(sid, 0.0))
+
+            lambda_opp_local_eff = self.config.lambda_opp / (1.0 + self.config.w_pos_to_opp * prev_local_q)
+            lambda_opp_local_eff = float(np.clip(lambda_opp_local_eff, 1e-6, 1.0))
+
+            local_gain = 1.0 + self.config.w_qpos_input * (prev_local_q / (1.0 + prev_local_q))
+            local_input = float(source_input_map_clean.get(sid, 0.0))
+            local_input_eff = float(np.clip(local_input * local_gain, 0.0, 1.0))
+
+            new_local_h = (
+                (1.0 - lambda_opp_local_eff) * prev_local_h +
+                lambda_opp_local_eff * local_input_eff
+            )
+            new_local_h = float(np.clip(new_local_h, 0.0, 1.0))
+
+            if new_local_h > 1e-9 or q_pos_local_new.get(sid, 0.0) > 1e-9:
+                h_opp_local_new[sid] = new_local_h
+
+        # ------------------------------------------------------------------
+        # G. h_time
         # ------------------------------------------------------------------
         if salience > self.config.salience_threshold:
             h_time_new = 0
@@ -243,7 +299,7 @@ class TemporalStateUpdater:
             h_time_new = state.h_time + 1
 
         # ------------------------------------------------------------------
-        # F. Debug classification only
+        # H. Debug classification only
         # ------------------------------------------------------------------
         if is_one_shot and shot_neg > shot_pos and shot_neg > 0.0:
             one_shot_type = "negative"
@@ -258,6 +314,8 @@ class TemporalStateUpdater:
             h_time=int(h_time_new),
             q_neg=q_neg_new,
             q_pos=q_pos_new,
+            q_pos_local=q_pos_local_new,
+            h_opp_local=h_opp_local_new,
             one_shot_pending=bool(is_one_shot),
             one_shot_amplitude=float(surprise_amplitude),
             one_shot_type=one_shot_type

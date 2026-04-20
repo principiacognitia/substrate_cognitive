@@ -381,6 +381,11 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
         'epsilon_explore': 0.0,
         'commit_confidence': 0.7,
         'max_deliberation_ticks': 10,
+
+        # Source-local appetitive carryover.
+        # Применяется post-Gate на уровне option valuation.
+        # Gate про source_id ничего не знает.
+        'local_opp_bonus_weight': 1.0,
     },
     
     # === Stage 3 Core: Gate Thresholds ===

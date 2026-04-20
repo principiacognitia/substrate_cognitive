@@ -24,7 +24,7 @@ License: MIT
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Dict
 import numpy as np
 
 
@@ -186,23 +186,42 @@ class TemporalState:
     Note:
         Update логика вынесена в temporal_state.py.
         Этот dataclass только хранит состояние.
+
+    Core traces for Gate:
+    - h_risk
+    - h_opp
+    - h_time
+    - q_neg
+    - q_pos
+
+    Source-local positive traces:
+    - q_pos_local[source_id]
+    - h_opp_local[source_id]
+
+    ВАЖНО:
+    - Gate не должен использовать source_id как routing input.
+    - Эти словари хранятся в TemporalState как debug / policy-side state.
+    - Gate по-прежнему опирается только на глобальные скаляры.
     """
-    
+
     h_risk: float = 0.0
     h_opp: float = 0.0
     h_time: int = 0
 
-    # Stage 3.1B rebuild: long-lived importance traces
+    # Global long-lived importance traces
     q_neg: float = 0.0
     q_pos: float = 0.0
 
-    # Debug metadata (не часть core state, для логирования)
+    # Source-local appetitive traces
+    q_pos_local: Dict[str, float] = field(default_factory=dict)
+    h_opp_local: Dict[str, float] = field(default_factory=dict)
+
+    # Debug metadata
     one_shot_pending: bool = False
     one_shot_amplitude: float = 0.0
     one_shot_type: str = "none"
-    
+
     def __post_init__(self):
-        """Валидация: trace должны быть numeric."""
         if not isinstance(self.h_risk, (int, float, np.number)):
             raise ValueError(f"TemporalState.h_risk must be numeric: {self.h_risk}")
         if not isinstance(self.h_opp, (int, float, np.number)):
@@ -213,12 +232,27 @@ class TemporalState:
             raise ValueError(f"TemporalState.q_neg must be numeric: {self.q_neg}")
         if not isinstance(self.q_pos, (int, float, np.number)):
             raise ValueError(f"TemporalState.q_pos must be numeric: {self.q_pos}")
+
+        if not isinstance(self.q_pos_local, dict):
+            raise ValueError(f"TemporalState.q_pos_local must be dict: {type(self.q_pos_local)}")
+        if not isinstance(self.h_opp_local, dict):
+            raise ValueError(f"TemporalState.h_opp_local must be dict: {type(self.h_opp_local)}")
+
+        for field_name, mapping in [
+            ("q_pos_local", self.q_pos_local),
+            ("h_opp_local", self.h_opp_local),
+        ]:
+            for k, v in mapping.items():
+                if not isinstance(k, str):
+                    raise ValueError(f"TemporalState.{field_name} keys must be str: {k}")
+                if not isinstance(v, (int, float, np.number)):
+                    raise ValueError(f"TemporalState.{field_name}[{k}] must be numeric: {v}")
+
         if self.one_shot_type not in ("none", "negative", "positive"):
             raise ValueError(f"TemporalState.one_shot_type invalid: {self.one_shot_type}")
-    
+
     @classmethod
     def zeros(cls) -> 'TemporalState':
-        """Возвращает нулевое состояние (для инициализации / backward compatibility)."""
         return cls()
 
 

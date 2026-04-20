@@ -650,6 +650,10 @@ def run_condition(
                 'h_time': temporal_state.get('h_time', np.nan),
                 'q_neg': temporal_state.get('q_neg', np.nan),
                 'q_pos': temporal_state.get('q_pos', np.nan),
+                'q_pos_local': temporal_state.get('q_pos_local', {}),
+                'h_opp_local': temporal_state.get('h_opp_local', {}),
+                'local_bonus_values': metadata.get('local_bonus_values', []),
+                'q_values_with_local_bonus': metadata.get('q_values_with_local_bonus', []),
 
                 'one_shot_fired': temporal_state.get('one_shot_pending', False),
                 'one_shot_type': metadata.get('one_shot_type', 'none'),
@@ -778,6 +782,10 @@ def run_condition(
 
                 'q_neg': metadata.get('temporal_state', {}).get('q_neg', np.nan),
                 'q_pos': metadata.get('temporal_state', {}).get('q_pos', np.nan),
+                'q_pos_local': metadata.get('temporal_state', {}).get('q_pos_local', {}),
+                'h_opp_local': metadata.get('temporal_state', {}).get('h_opp_local', {}),
+                'local_bonus_values': metadata.get('local_bonus_values', []),
+                'q_values_with_local_bonus': metadata.get('q_values_with_local_bonus', []),
                 'one_shot_type': metadata.get('one_shot_type', 'none'),
 
                 'safe_drive': metadata.get('safe_drive', np.nan),
@@ -879,6 +887,7 @@ def run_condition(
                     f"Hr={fmt3(debug_row.get('h_risk'))} "
                     f"Qn={fmt3(debug_row.get('q_neg'))} "
                     f"Qp={fmt3(debug_row.get('q_pos'))} "
+                    f"lb={debug_row.get('local_bonus_values', [])} "
                     f"safe={fmt3(debug_row.get('safe_drive'))} "
                     f"unc={fmt3(debug_row.get('uncertainty_signal'))} "
                     f"p={probs_str} "
