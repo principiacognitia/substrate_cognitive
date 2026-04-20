@@ -263,22 +263,39 @@ class TemporalStateUpdater:
                 except (TypeError, ValueError):
                     continue
 
+        # --------------------------------------------------------------
+        # STRICT source-local rule:
+        # only sources with an actual positive event trace may receive
+        # ongoing local appetitive input.
+        #
+        # This prevents ordinary option_reward_values at junction from
+        # seeding h_opp_local on every visible option.
+        # --------------------------------------------------------------
+        active_local_keys = set(q_pos_local_new.keys())
+        if event_source_id_str:
+            active_local_keys.add(event_source_id_str)
+
         h_opp_local_new: Dict[str, float] = {}
-        local_h_keys = (
-            set(state.h_opp_local.keys())
-            | set(q_pos_local_new.keys())
-            | set(source_input_map_clean.keys())
-        )
+
+        # Existing local traces may decay even if no longer active.
+        local_h_keys = set(state.h_opp_local.keys()) | active_local_keys
 
         for sid in local_h_keys:
             prev_local_h = float(state.h_opp_local.get(sid, 0.0))
-            prev_local_q = float(state.q_pos_local.get(sid, 0.0))
+            local_q = float(q_pos_local_new.get(sid, state.q_pos_local.get(sid, 0.0)))
 
-            lambda_opp_local_eff = self.config.lambda_opp / (1.0 + self.config.w_pos_to_opp * prev_local_q)
+            lambda_opp_local_eff = self.config.lambda_opp / (1.0 + self.config.w_pos_to_opp * local_q)
             lambda_opp_local_eff = float(np.clip(lambda_opp_local_eff, 1e-6, 1.0))
 
-            local_gain = 1.0 + self.config.w_qpos_input * (prev_local_q / (1.0 + prev_local_q))
-            local_input = float(source_input_map_clean.get(sid, 0.0))
+            local_gain = 1.0 + self.config.w_qpos_input * (local_q / (1.0 + local_q))
+
+            # Only active event-tagged sources receive ongoing input.
+            # All non-active sources simply decay toward zero.
+            if sid in active_local_keys:
+                local_input = float(source_input_map_clean.get(sid, 0.0))
+            else:
+                local_input = 0.0
+
             local_input_eff = float(np.clip(local_input * local_gain, 0.0, 1.0))
 
             new_local_h = (
@@ -287,7 +304,7 @@ class TemporalStateUpdater:
             )
             new_local_h = float(np.clip(new_local_h, 0.0, 1.0))
 
-            if new_local_h > 1e-9 or q_pos_local_new.get(sid, 0.0) > 1e-9:
+            if new_local_h > 1e-9 or local_q > 1e-9:
                 h_opp_local_new[sid] = new_local_h
 
         # ------------------------------------------------------------------
