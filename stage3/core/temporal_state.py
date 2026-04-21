@@ -82,6 +82,13 @@ class TemporalStateConfig:
     w_qneg_input: float = 1.0
     w_qpos_input: float = 0.0
 
+    # Immediate source-local positive carryover.
+    # Purpose:
+    # - make positive one-shot produce an immediate branch-specific bias
+    #   on the first post-event junction encounter
+    # - keep the mechanism policy-side and source-local
+    # - do not introduce source_id into Gate routing
+    local_opp_immediate_seed_weight: float = 1.0
 
     # Existing
     salience_threshold: float = 0.5
@@ -110,6 +117,7 @@ class TemporalStateConfig:
             ("w_pos_to_opp", self.w_pos_to_opp),
             ("w_qneg_input", self.w_qneg_input),
             ("w_qpos_input", self.w_qpos_input),
+            ("local_opp_immediate_seed_weight", self.local_opp_immediate_seed_weight),
             ("salience_threshold", self.salience_threshold),
             ("q_clip", self.q_clip),
         ]:
@@ -308,6 +316,17 @@ class TemporalStateUpdater:
                 lambda_opp_local_eff * local_input_eff
             )
             new_local_h = float(np.clip(new_local_h, 0.0, 1.0))
+
+            # Minimal immediate-switch patch:
+            # on a positive one-shot, seed h_opp_local immediately for the
+            # event-tagged source instead of waiting for later junction ticks.
+            if event_created_local_trace and sid == event_source_id_str:
+                immediate_local_seed = (
+                    self.config.local_opp_immediate_seed_weight *
+                    (local_q / (1.0 + local_q))
+                )
+                immediate_local_seed = float(np.clip(immediate_local_seed, 0.0, 1.0))
+                new_local_h = max(new_local_h, immediate_local_seed)
 
             if new_local_h > 1e-9 or local_q > 1e-9:
                 h_opp_local_new[sid] = new_local_h
@@ -869,6 +888,44 @@ def test_q_pos_input_gain_increases_posttreat_carryover():
     print("✓ PASS: q_pos input gain increases post-treat carryover")
     return True
 
+
+def test_positive_one_shot_immediately_seeds_local_h_opp():
+    """
+    Positive source-local one-shot should create an immediate local carryover
+    even before later source_input_map accumulation.
+    """
+    updater = TemporalStateUpdater(
+        TemporalStateConfig(
+            w_qpos_input=0.0,
+            local_opp_immediate_seed_weight=1.0,
+        )
+    )
+    state = TemporalState.zeros()
+
+    state = updater.update(
+        state=state,
+        X_risk=0.0,
+        X_opp=1.0,
+        salience=0.9,
+        stakes=10.0,
+        event_X_risk=0.0,
+        event_X_opp=1.0,
+        event_source_id="path_covered",
+        source_input_map={},
+    )
+
+    assert state.q_pos_local.get("path_covered", 0.0) > 0.0, (
+        f"q_pos_local[path_covered] should be > 0, got {state.q_pos_local}"
+    )
+    assert state.h_opp_local.get("path_covered", 0.0) > 0.0, (
+        f"h_opp_local[path_covered] should be seeded immediately, got {state.h_opp_local}"
+    )
+    assert state.h_opp_local.get("path_open", 0.0) == 0.0, (
+        f"non-event source should remain zero, got {state.h_opp_local}"
+    )
+    print("✓ PASS: positive one-shot immediately seeds local h_opp")
+    return True
+
 def test_q_traces_stay_quiet_without_extreme_events():
     updater = TemporalStateUpdater()
     state = TemporalState.zeros()
@@ -960,6 +1017,7 @@ if __name__ == "__main__":
     test_q_neg_input_gain_increases_postshock_carryover()
     test_q_pos_slows_opp_relaxation()
     test_q_pos_input_gain_increases_posttreat_carryover()
+    test_positive_one_shot_immediately_seeds_local_h_opp()
     test_q_traces_stay_quiet_without_extreme_events()
     test_backward_compatibility()
     test_event_override_blocks_false_positive_q_pos()

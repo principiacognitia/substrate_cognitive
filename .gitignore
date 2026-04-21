@@ -75,3 +75,4 @@ temp/
 *.pem
 stage2/reversal/run_reversal.patch
 stage3/tests/Failures.txt
+*.diff

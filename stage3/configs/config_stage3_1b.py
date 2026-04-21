@@ -432,6 +432,10 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
         'w_qneg_input': 1.0,
         'w_qpos_input': 0.0,
 
+        # Immediate source-local positive carryover amplitude.
+        # Used only for positive one-shot source-specific switch.
+        'local_opp_immediate_seed_weight': 1.0,
+
         # Existing
         'salience_threshold': 0.5,
         'q_clip': 10.0,
