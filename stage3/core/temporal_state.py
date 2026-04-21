@@ -272,7 +272,12 @@ class TemporalStateUpdater:
         # seeding h_opp_local on every visible option.
         # --------------------------------------------------------------
         active_local_keys = set(q_pos_local_new.keys())
-        if event_source_id_str:
+
+        # Only sources that already have a positive local trace, or receive
+        # a positive one-shot injection right now, may accept local appetitive input.
+        event_created_local_trace = bool(event_source_id_str) and (shot_pos > 0.0)
+
+        if event_created_local_trace:
             active_local_keys.add(event_source_id_str)
 
         h_opp_local_new: Dict[str, float] = {}
