@@ -50,13 +50,17 @@ def main():
             continue
         if args.trial_max is not None and tr > args.trial_max:
             continue
-        if args.real_junction_only and not bool(r.get('real_junction_choice_row', False)):
-            continue
 
+        # сначала включаем latch post-shot
         if bool(r.get('step_one_shot_from_pending', False)):
             post_shot_seen = True
 
+        # потом отрезаем все pre-shot
         if not args.show_all_post_shot and not post_shot_seen:
+            continue
+
+        # и только потом, если нужно, оставляем только реальные junction rows
+        if args.real_junction_only and not bool(r.get('real_junction_choice_row', False)):
             continue
 
         qpl = r.get('q_pos_local', {}) or {}
