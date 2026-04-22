@@ -434,7 +434,7 @@ AGENT_CONFIG_3_1B: Dict[str, Any] = {
 
         # Immediate source-local positive carryover amplitude.
         # Used only for positive one-shot source-specific switch.
-        'local_opp_immediate_seed_weight': 1.0,
+        'local_opp_immediate_seed_weight': 0.75, # Fixed based on sweep run
 
         # Existing
         'salience_threshold': 0.5,

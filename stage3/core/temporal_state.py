@@ -88,7 +88,7 @@ class TemporalStateConfig:
     #   on the first post-event junction encounter
     # - keep the mechanism policy-side and source-local
     # - do not introduce source_id into Gate routing
-    local_opp_immediate_seed_weight: float = 1.0
+    local_opp_immediate_seed_weight: float = 0.75 # Fixed based on sweep run
 
     # Existing
     salience_threshold: float = 0.5
