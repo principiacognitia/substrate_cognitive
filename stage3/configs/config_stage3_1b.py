@@ -570,68 +570,68 @@ LOGGING_CONFIG_3_1B: Dict[str, Any] = {
 # =============================================================================
 
 ABLATION_CONFIG_3_1B: Dict[str, Dict[str, Any]] = {
-    "full": {
-        "label": "full",
-        "description": "Full Stage 3.1B model",
-        "modifications": {},
+    'full': {
+        'name': 'Full',
+        'description': 'Все компоненты активны',
+        'modifications': {}
     },
 
-    "novg": {
-        "label": "NoVG",
-        "description": "Remove temporal contribution from Gate arbitration",
-        "modifications": {
-            "agent": {
-                "gate": {
-                    "safe_drive_weight_temporal": 0.0,
-                    "safe_drive_weight_current": 1.0,
-                    "v_g_weight_hrisk": 0.0,
-                    "v_g_weight_xrisk": 1.0,
+    'novg': {
+        'name': 'NoVG',
+        'description': 'Gate-level temporal rigidity removed',
+        'modifications': {
+            'agent': {
+                'gate_thresholds': {
+                    'safe_drive_weight_temporal': 0.0,
+                    'safe_drive_weight_current': 1.0,
+                    'v_g_weight_hrisk': 0.0,
+                    'v_g_weight_xrisk': 1.0,
                 }
             }
-        },
+        }
     },
 
-    "novp": {
-        "label": "NoVp",
-        "description": "Remove policy-level branch bias / local carryover",
-        "modifications": {
-            "agent": {
-                "action_policy": {
-                    "local_opp_bonus_weight": 0.0,
+    'novp': {
+        'name': 'NoVp',
+        'description': 'Policy-level branch bias removed',
+        'modifications': {
+            'agent': {
+                'action_policy': {
+                    'local_opp_bonus_weight': 0.0
                 }
             }
-        },
+        }
     },
 
-    "nox": {
-        "label": "NoX",
-        "description": "Block exposure channel from environment",
-        "modifications": {
-            "agent": {
-                "exposure_field": {
-                    "zero_output": True,
+    'nox': {
+        'name': 'NoX-to-Gate',
+        'description': 'Exposure field output blocked',
+        'modifications': {
+            'agent': {
+                'exposure_field': {
+                    'zero_output': True
                 }
             }
-        },
+        }
     },
 
-    "one_shot_off": {
-        "label": "OneShotOff",
-        "description": "Disable one-shot formation and downstream influence",
-        "modifications": {
-            "agent": {
-                "temporal_state": {
-                    "theta_shot": 999.0,
-                    "k_neg": 0.0,
-                    "k_pos": 0.0,
-                    "w_neg_to_risk": 0.0,
-                    "w_pos_to_opp": 0.0,
-                    "w_qneg_input": 0.0,
-                    "w_qpos_input": 0.0,
-                    "local_opp_immediate_seed_weight": 0.0,
+    'one_shot_off': {
+        'name': 'One-Shot-Off',
+        'description': 'One-shot formation and downstream influence disabled',
+        'modifications': {
+            'agent': {
+                'temporal_state': {
+                    'theta_shot': 999.0,
+                    'k_neg': 0.0,
+                    'k_pos': 0.0,
+                    'w_neg_to_risk': 0.0,
+                    'w_pos_to_opp': 0.0,
+                    'w_qneg_input': 0.0,
+                    'w_qpos_input': 0.0,
+                    'local_opp_immediate_seed_weight': 0.0,
                 }
             }
-        },
+        }
     },
 }
 

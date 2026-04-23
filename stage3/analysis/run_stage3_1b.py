@@ -276,10 +276,9 @@ def _deep_update(dst: Dict[str, Any], src: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str, Any]:
-    """Apply Stage 3.1B ablation by deep-merging config modifications."""
     from stage3.configs.config_stage3_1b import ABLATION_CONFIG_3_1B
 
-    if ablation_name == "full":
+    if ablation_name == 'full':
         return json.loads(json.dumps(agent_config))
 
     ablation = ABLATION_CONFIG_3_1B.get(ablation_name)
@@ -287,12 +286,8 @@ def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str
         raise ValueError(f"Unknown ablation: {ablation_name}")
 
     modified_config = json.loads(json.dumps(agent_config))
-    modifications = ablation.get("modifications", {})
-
-    # In our ablation config, agent-level changes live under "agent"
-    agent_mods = modifications.get("agent", {})
+    agent_mods = ablation.get('modifications', {}).get('agent', {})
     _deep_update(modified_config, agent_mods)
-
     return modified_config
 
 
