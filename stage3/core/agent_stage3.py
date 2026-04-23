@@ -194,7 +194,9 @@ class AgentStage3:
             self.seed = 0
         
         # Инициализация компонентов
-        self.exposure_field = ExposureField(**self.config.exposure_field_config)
+        exp_cfg = dict(self.config.exposure_field_config)
+        self.exposure_zero_output = bool(exp_cfg.pop('zero_output', False))
+        self.exposure_field = ExposureField(**exp_cfg)
         
         temporal_config = TemporalStateConfig(**self.config.temporal_state_config)
         self.temporal_updater = TemporalStateUpdater(temporal_config)
@@ -268,6 +270,10 @@ class AgentStage3:
                 reward=reward,
                 trial=self.trial_count
             )
+        # Для ablation: если конфиг включает zero_output, то форсируем нулевые экспозиции 
+        # (для проверки влияния экспозиции на Gate и политику).
+        if self.exposure_zero_output:
+            node_exposure_aggregates = ExposureAggregates.zeros()
 
         gate_exposure_source = 'node_exposure'
 
@@ -276,7 +282,10 @@ class AgentStage3:
 
         at_junction = float(observation.get('at_junction', 0.0)) > 0.5
 
-        if (
+        if self.exposure_zero_output:
+            gate_exposure_aggregates = ExposureAggregates.zeros()
+            gate_exposure_source = 'ablation_zero'
+        elif (
             at_junction and
             isinstance(option_risk_values, (list, tuple)) and
             len(option_risk_values) >= 2
