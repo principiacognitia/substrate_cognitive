@@ -266,53 +266,33 @@ def normalize_one_shot_source_id(
 
     return ""
 
+def _deep_update(dst: Dict[str, Any], src: Dict[str, Any]) -> Dict[str, Any]:
+    for k, v in src.items():
+        if isinstance(v, dict) and isinstance(dst.get(k), dict):
+            _deep_update(dst[k], v)
+        else:
+            dst[k] = v
+    return dst
+
+
 def apply_ablation(agent_config: Dict[str, Any], ablation_name: str) -> Dict[str, Any]:
-    """Applies ablation modifications to agent config."""
+    """Apply Stage 3.1B ablation by deep-merging config modifications."""
     from stage3.configs.config_stage3_1b import ABLATION_CONFIG_3_1B
-    
-    if ablation_name == 'full':
-        return agent_config
-    
-    ablation = ABLATION_CONFIG_3_1B.get(ablation_name, {})
-    modifications = ablation.get('modifications', {})
-    
-    # Deep copy config
+
+    if ablation_name == "full":
+        return json.loads(json.dumps(agent_config))
+
+    ablation = ABLATION_CONFIG_3_1B.get(ablation_name)
+    if ablation is None:
+        raise ValueError(f"Unknown ablation: {ablation_name}")
+
     modified_config = json.loads(json.dumps(agent_config))
-    
-    # Apply modifications
-    if 'agent' in modifications:
-        agent_mods = modifications['agent']
-        
-        # NoVG: zero out temporal state
-        if 'temporal_state' in agent_mods:
-            ts_mods = agent_mods['temporal_state']
-            if 'h_risk' in ts_mods:
-                modified_config['temporal_state']['h_risk'] = ts_mods['h_risk']
-            if 'h_opp' in ts_mods:
-                modified_config['temporal_state']['h_opp'] = ts_mods['h_opp']
-        
-        # NoVp: zero out viscosity
-        if 'viscosity' in agent_mods:
-            vis_mods = agent_mods['viscosity']
-            if 'k_use' in vis_mods:
-                modified_config.setdefault('viscosity', {})['k_use'] = vis_mods['k_use']
-            if 'k_melt' in vis_mods:
-                modified_config.setdefault('viscosity', {})['k_melt'] = vis_mods['k_melt']
-        
-        # NoX: zero out exposure field output
-        if 'exposure_field' in agent_mods:
-            ef_mods = agent_mods['exposure_field']
-            if 'zero_output' in ef_mods:
-                modified_config.setdefault('exposure_field', {})['zero_output'] = ef_mods['zero_output']
-        
-        # One-shot off
-        if 'temporal_state' in agent_mods:
-            ts_mods = agent_mods['temporal_state']
-            if 'one_shot_threshold' in ts_mods:
-                modified_config['temporal_state']['one_shot_threshold'] = ts_mods['one_shot_threshold']
-            if 'one_shot_boost' in ts_mods:
-                modified_config['temporal_state']['one_shot_boost'] = ts_mods['one_shot_boost']
-    
+    modifications = ablation.get("modifications", {})
+
+    # In our ablation config, agent-level changes live under "agent"
+    agent_mods = modifications.get("agent", {})
+    _deep_update(modified_config, agent_mods)
+
     return modified_config
 
 
