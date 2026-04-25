@@ -73,6 +73,12 @@ temp/
 .env
 *.key
 *.pem
+
+# --- Ad hoc ---
 stage2/reversal/run_reversal.patch
 stage3/tests/Failures.txt
 *.diff
+
+# --- Curated paper-grade results ---
+!docs/results/
+!docs/results/**
