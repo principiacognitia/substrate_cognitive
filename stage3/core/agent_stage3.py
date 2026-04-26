@@ -198,7 +198,43 @@ class AgentStage3:
         self.exposure_zero_output = bool(exp_cfg.pop('zero_output', False))
         self.exposure_field = ExposureField(**exp_cfg)
         
-        temporal_config = TemporalStateConfig(**self.config.temporal_state_config)
+        # Миграция и валидация temporal_state_config 
+        # (включая backward compatibility с ранними версиями config_stage3_1a.py)
+        temporal_cfg = dict(self.config.temporal_state_config)
+
+        # Backward-compatible aliases from Stage 3.1A / early 3.1B.
+        if "one_shot_threshold" in temporal_cfg and "theta_shot" not in temporal_cfg:
+            temporal_cfg["theta_shot"] = temporal_cfg.pop("one_shot_threshold")
+        else:
+            temporal_cfg.pop("one_shot_threshold", None)
+
+        # Early one_shot_boost was a direct amplitude multiplier.
+        # The rebuilt architecture uses q-trace gains instead. There is no exact
+        # one-to-one mapping, so preserve compatibility by dropping the old key.
+        temporal_cfg.pop("one_shot_boost", None)
+
+        # Older experimental names.
+        if "lambda_risk_in" in temporal_cfg and "lambda_input_risk" not in temporal_cfg:
+            temporal_cfg["lambda_input_risk"] = temporal_cfg.pop("lambda_risk_in")
+        else:
+            temporal_cfg.pop("lambda_risk_in", None)
+
+        if "lambda_opp_in" in temporal_cfg and "lambda_input_opp" not in temporal_cfg:
+            temporal_cfg["lambda_input_opp"] = temporal_cfg.pop("lambda_opp_in")
+        else:
+            temporal_cfg.pop("lambda_opp_in", None)
+
+        # Removed scheduler/window-style keys. Stage 3.1B closure explicitly
+        # forbids hidden persistence windows.
+        for deprecated_key in [
+            "one_shot_decay_override",
+            "one_shot_persistence_window",
+            "one_shot_floor",
+        ]:
+            temporal_cfg.pop(deprecated_key, None)
+
+        temporal_config = TemporalStateConfig(**temporal_cfg)
+        
         self.temporal_updater = TemporalStateUpdater(temporal_config)
         
         gate_thresholds = GateThresholds(**self.config.gate_thresholds)

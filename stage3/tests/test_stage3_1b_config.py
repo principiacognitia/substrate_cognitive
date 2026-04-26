@@ -303,7 +303,11 @@ class TestConfigIntegrity:
     def test_agent_config_same_as_3_1a(self):
         """Test that agent config preserves 3.1A parameters."""
         # Key frozen parameters
-        assert AGENT_CONFIG_3_1B['temporal_state']['one_shot_threshold'] == 5.0
+        assert AGENT_CONFIG_3_1B['temporal_state']['theta_shot'] == 5.0
+        assert AGENT_CONFIG_3_1B['temporal_state']['rho_neg'] == 0.98
+        assert AGENT_CONFIG_3_1B['temporal_state']['rho_pos'] == 0.95
+        assert AGENT_CONFIG_3_1B['temporal_state']['k_neg'] == 1.0
+        assert AGENT_CONFIG_3_1B['temporal_state']['k_pos'] == 0.7
         assert AGENT_CONFIG_3_1B['temporal_state']['one_shot_boost'] == 2.0
         assert AGENT_CONFIG_3_1B['gate_thresholds']['critical_risk_threshold'] == 0.37
     

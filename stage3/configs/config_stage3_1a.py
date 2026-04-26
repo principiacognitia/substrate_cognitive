@@ -170,11 +170,36 @@ AGENT_CONFIG: Dict[str, Any] = {
     
     # === Stage 3 Core: Temporal State ===
     'temporal_state': {
-        'lambda_risk': 0.9,                # Decay rate для h_risk
-        'lambda_opp': 0.9,                 # Decay rate для h_opp
-        'salience_threshold': 0.5,         # Порог для сброса h_time
-        'one_shot_threshold': 5.0,         # Порог амплитуды для one-shot
-        'one_shot_boost': 2.0,             # Множитель для one-shot update
+        # Rebuild semantics: update-rate, not retention coefficient
+        'lambda_risk': 0.10, # Decay/update rate for risk trace
+        'lambda_opp': 0.10, # Decay/update rate for opportunity trace
+        'lambda_input_risk': 0.10, # Gain for new risk evidence (e.g. shock)
+        'lambda_input_opp': 0.10, # Gain for new opportunity evidence (e.g. treat)
+
+        # Importance trace dynamics
+        'rho_neg': 0.98, # Retention for negative carryover (e.g. post-shock)
+        'rho_pos': 0.95, # Retention for positive carryover (e.g. post-treat)
+        'k_neg': 1.0, # Scaling for negative carryover (e.g. shock impact)
+        'k_pos': 0.7, # Scaling for positive carryover (e.g. treat impact)
+
+        # Event ranking thresholds
+        'theta_baseline': 0.25, #   Baseline threshold for event salience (for one-shot)
+        'theta_shot': 5.0, #     Threshold for one-shot triggering (in terms of salience)
+
+        # Coupling from q traces to effective update rates
+        'w_neg_to_risk': 2.0, # Scaling for how negative q inputs increase risk update rate
+        'w_pos_to_opp': 1.0, # Scaling for how positive q inputs increase opportunity update rate
+        'w_qneg_input': 1.0, # Scaling for negative q input to salience (e.g. shock detection)
+        'w_qpos_input': 0.0, # Scaling for positive q input to salience (e.g. treat detection) - 
+        # disabled in 3.1A, can be re-enabled for testing in 3.1B
+
+        # Source-local positive carryover
+        'local_opp_immediate_seed_weight': 0.75, # Weight for immediate seeding of local h_opp from positive 
+        # one-shot events (e.g. treat) - fixed based on sweep run, can be set to 1.0 for full carryover in testing
+
+        # Existing
+        'salience_threshold': 0.5, # Threshold for event salience (for one-shot triggering)
+        'q_clip': 10.0, # Clip for q values to prevent extreme updates
     },
     
     # === Stage 3 Core: Exposure Field ===

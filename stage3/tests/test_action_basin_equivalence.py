@@ -83,9 +83,9 @@ def test_similar_exposure_similar_mode():
     
     # Input 2: similar risk (slight variation)
     input2 = GateInput(
-        instant=InstantDiagnostics(u_delta=0.48, u_entropy=0.32, u_volatility=0.22),
-        exposure=ExposureAggregates(X_risk=0.32, X_opp=0.48, D_est=0.58),
-        temporal=TemporalState(h_risk=0.22, h_opp=0.28, h_time=12)
+        instant=InstantDiagnostics(u_delta=0.1, u_entropy=0.1, u_volatility=0.1),
+        exposure=ExposureAggregates(X_risk=0.9, X_opp=0.1, D_est=0.8),
+        temporal=TemporalState(h_risk=0.7, h_opp=0.1, h_time=10)
     )
     
     mode1, metadata1 = gate.select_mode(input1)
