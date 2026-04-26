@@ -82,3 +82,4 @@ stage3/tests/Failures.txt
 # --- Curated paper-grade results ---
 !docs/results/
 !docs/results/**
+*.rar
