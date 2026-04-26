@@ -300,15 +300,17 @@ class TestConfigIntegrity:
         assert 'canonical' in CONFIG_3_1B
         assert 'one_shot_protocol' in CONFIG_3_1B
     
-    def test_agent_config_same_as_3_1a(self):
+    def test_agent_config_preserves_rebuilt_temporal_contract(self):
         """Test that agent config preserves 3.1A parameters."""
+
+        assert 'one_shot_threshold' not in AGENT_CONFIG_3_1B['temporal_state']
+        assert 'one_shot_boost' not in AGENT_CONFIG_3_1B['temporal_state']
         # Key frozen parameters
         assert AGENT_CONFIG_3_1B['temporal_state']['theta_shot'] == 5.0
         assert AGENT_CONFIG_3_1B['temporal_state']['rho_neg'] == 0.98
         assert AGENT_CONFIG_3_1B['temporal_state']['rho_pos'] == 0.95
         assert AGENT_CONFIG_3_1B['temporal_state']['k_neg'] == 1.0
         assert AGENT_CONFIG_3_1B['temporal_state']['k_pos'] == 0.7
-        assert AGENT_CONFIG_3_1B['temporal_state']['one_shot_boost'] == 2.0
         assert AGENT_CONFIG_3_1B['gate_thresholds']['critical_risk_threshold'] == 0.37
     
     def test_ablation_configs_present(self):

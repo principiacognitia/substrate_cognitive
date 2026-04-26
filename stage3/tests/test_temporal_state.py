@@ -179,10 +179,10 @@ def test_one_shot_amplitude_dependent():
         # surprise_amplitude = 9.0 > 5.0 → one-shot!
     )
     
-    assert state_high.one_shot_pending == True, "High amplitude should trigger one-shot"
+    assert state_high.one_shot_pending is True, "High amplitude should trigger one-shot"
     assert state_high.one_shot_amplitude > 5.0, "Amplitude should be recorded"
-    assert state_high.h_risk > state_low.h_risk, "One-shot should boost h_risk"
-    assert state_high.h_opp > state_low.h_opp, "One-shot should boost h_opp"
+    assert state_high.q_neg > state_low.q_neg, "Negative one-shot should raise q_neg"
+    assert state_high.one_shot_type == "negative"
     
     print("✓ PASS: One-shot as amplitude-dependent update regime")
 
