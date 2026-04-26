@@ -21,6 +21,7 @@ Author: Alex Snow (Aleksey L. Snigirov)
 License: MIT
 """
 
+from importlib.metadata import metadata
 from turtle import done
 
 import pytest
@@ -157,7 +158,10 @@ def test_exposure_aggregates_flow():
     action, metadata = agent.step(observation=observation, reward=0.0)
     
     # Проверяем что agent получил exposure
-    agent_exposure = metadata['exposure']
+    agent_exposure = metadata['node_exposure']
+    
+    assert 'gate_exposure' in metadata
+    assert 'gate_exposure_source' in metadata
     
     assert abs(agent_exposure['X_risk'] - env_exposure['X_risk']) < 0.01
     assert abs(agent_exposure['X_opp'] - env_exposure['X_opp']) < 0.01
