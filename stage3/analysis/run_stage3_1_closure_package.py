@@ -426,6 +426,7 @@ def run_stage3_1b(
         suite_dir = latest_suite_dir(suite_base, before)
 
     analysis_dir = suite_dir / "analysis"
+    publication_analysis_dir = suite_dir / "analysis_publication"
 
     # If analyze-only points to a suite without analysis, run the analyzer.
     suite_manifest = suite_dir / "manifest.json"
@@ -444,7 +445,23 @@ def run_stage3_1b(
             manifest,
         )
 
+    if not publication_analysis_dir.exists():
+        run_cmd(
+            "Stage 3.1B one-shot publication analysis",
+            [
+                sys.executable,
+                "-m",
+                "stage3.analysis.analyze_stage3_1b_one_shot_publication",
+                "--manifest",
+                str(suite_manifest),
+                "--output-dir",
+                str(publication_analysis_dir),
+            ],
+            manifest,
+        )
+
     copied = copy_artifacts_flat(analysis_dir, curated_stage)
+    copied.extend(copy_artifacts_flat(publication_analysis_dir, curated_stage))
 
     if suite_manifest.exists():
         dest = copy_one_file(
@@ -513,11 +530,13 @@ allocentric spatial cognition, or rodent-level VTE equivalence.
         source={
             "suite_dir": str(suite_dir),
             "analysis_dir": str(analysis_dir),
+            "publication_analysis_dir": str(publication_analysis_dir),
             "curated_dir": str(curated_stage),
             "suite_manifest": str(suite_manifest),
             "source_scripts": [
                 "stage3.analysis.run_stage3_1b_ablation_suite",
                 "stage3.analysis.analyze_stage3_1b_ablation_suite",
+                "stage3.analysis.analyze_stage3_1b_one_shot_publication",
                 "stage3.analysis.run_stage3_1_closure_package",
             ],
         },
@@ -530,6 +549,7 @@ allocentric spatial cognition, or rodent-level VTE equivalence.
     manifest["stage3_1b"] = {
         "suite_dir": str(suite_dir),
         "analysis_dir": str(analysis_dir),
+        "publication_analysis_dir": str(publication_analysis_dir),
         "curated_dir": str(curated_stage),
         "copied_artifacts": copied,
         "artifact_registry": str(registry_path.relative_to(PROJECT_ROOT)),

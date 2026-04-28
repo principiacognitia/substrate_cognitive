@@ -1,20 +1,20 @@
 # Artifact Registry: 3.1A
 
-- Package ID: `stage3_1a_20260429_001747`
+- Package ID: `stage3_1a_20260429_003107`
 - Schema: `stage3_1_closure_artifact_registry_v1`
-- Created: `2026-04-29T00:17:56.759332`
+- Created: `2026-04-29T00:31:16.188519`
 - Artifact count: `17`
 
 ## Git
 
 - Branch: `stage3_1b_closure`
-- Commit: `e543c8c6c8b8cc2aceedd5c6e74d57118a3d25ef`
+- Commit: `5b071571b80cfbc9337bef52fb4b6d1c1eb184dc`
 - Working tree clean: `False`
 
 ## Source
 
-- run_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_compat_20260429_001749`
-- analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_analysis_20260429_001749`
+- run_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_compat_20260429_003109`
+- analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_analysis_20260429_003109`
 - curated_dir: `E:\CRS-1\substrate_cognitive\docs\results\stage3_1a`
 - source_scripts: `['stage3.analysis.run_stage3_1a', 'stage3.analysis.analyze_stage3_1a_baseline', 'stage3.analysis.run_stage3_1_closure_package']`
 
