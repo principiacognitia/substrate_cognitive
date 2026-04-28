@@ -208,7 +208,7 @@ def plot_latency_by_commit_reason(all_trials: pd.DataFrame, output_dir: Path):
     ax.set_title("Stage 3.1A: Mean Commit Latency by Commit Reason")
     ax.set_xlabel("commit_reason")
     ax.set_ylabel("mean commit latency")
-    save_plot(fig, output_dir / "FigureE_3_1A_Latency_by_Commit_Reason.png")
+    save_plot(fig, output_dir / "Figure_3_1A_Latency_by_Commit_Reason.png")
 
 
 def plot_reorientation_by_path(all_trials: pd.DataFrame, output_dir: Path):

@@ -83,6 +83,16 @@ def validate_one_package(stage_dir: Path, expected_stage: str) -> Tuple[List[str
     for rel in sorted(actual_files):
         name = Path(rel).name
 
+        if name.startswith("Figure") and not name.startswith("Figure_"):
+            errors.append(
+                f"{stage_dir}: malformed figure prefix; expected Figure_: {rel}"
+            )
+
+        if name.startswith("Table") and not name.startswith("Table_"):
+            errors.append(
+                f"{stage_dir}: malformed table prefix; expected Table_: {rel}"
+            )
+
         if name.startswith("Figure_") and not name.startswith(f"Figure_{expected_token}_"):
             errors.append(
                 f"{stage_dir}: figure has wrong stage token for {expected_stage}: {rel}"

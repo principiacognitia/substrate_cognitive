@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-04-29T00:17:57.408160",
+  "condition": "balanced_conflict",
+  "condition_id": "R1_T2",
+  "shock_trial": 30,
+  "shock_target_path": "open",
+  "treat_target_path": "covered",
+  "ablations": [
+    "full"
+  ],
+  "balanced_runs": [
+    {
+      "ablation": "full",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_001757\\balanced\\full"
+    }
+  ],
+  "shock_runs": [
+    {
+      "ablation": "full",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_001757\\shock\\full"
+    }
+  ],
+  "treat_runs": [
+    {
+      "ablation": "full",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_001757\\treat\\full"
+    }
+  ]
+}

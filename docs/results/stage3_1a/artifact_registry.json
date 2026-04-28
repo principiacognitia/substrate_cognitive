@@ -1,0 +1,455 @@
+{
+  "package_id": "stage3_1a_20260429_001747",
+  "schema_version": "stage3_1_closure_artifact_registry_v1",
+  "stage": "3.1A",
+  "created_at": "2026-04-29T00:17:56.759332",
+  "curated_stage_root": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+  "git": {
+    "branch": "stage3_1b_closure",
+    "commit": "e543c8c6c8b8cc2aceedd5c6e74d57118a3d25ef",
+    "working_tree_clean": false,
+    "status_porcelain": "M stage3/analysis/analyze_stage3_1a_baseline.py\n M stage3/analysis/validate_stage3_1_artifacts.py\n?? docs/results/"
+  },
+  "profile": {
+    "stage3_1a_seeds": 3,
+    "stage3_1a_trials": 20,
+    "stage3_1b_balanced_seeds": 3,
+    "stage3_1b_balanced_trials": 20,
+    "stage3_1b_one_shot_seeds": 3,
+    "stage3_1b_one_shot_trials": 40,
+    "ablations": "full"
+  },
+  "source": {
+    "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+    "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+    "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+    "source_scripts": [
+      "stage3.analysis.run_stage3_1a",
+      "stage3.analysis.analyze_stage3_1a_baseline",
+      "stage3.analysis.run_stage3_1_closure_package"
+    ]
+  },
+  "artifact_count": 17,
+  "artifacts": [
+    {
+      "id": "3_1a_figures_figure_3_1a_block_commit_latency_png",
+      "file": "figures/Figure_3_1A_Block_Commit_Latency.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "commit_latency"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_figures_figure_3_1a_block_covered_rate_png",
+      "file": "figures/Figure_3_1A_Block_Covered_Rate.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "p_covered"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_figures_figure_3_1a_block_reorientation_png",
+      "file": "figures/Figure_3_1A_Block_Reorientation.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "reorientation_count"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_figures_figure_3_1a_commit_reason_overall_png",
+      "file": "figures/Figure_3_1A_commit_reason_overall.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "commit_reason"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_figures_figure_3_1a_latency_by_commit_reason_png",
+      "file": "figures/Figure_3_1A_Latency_by_Commit_Reason.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "commit_latency",
+        "commit_reason"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_figures_figure_3_1a_path_choice_by_commit_reason_png",
+      "file": "figures/Figure_3_1A_path_choice_by_commit_reason.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "commit_reason",
+        "path_choice"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_figures_figure_3_1a_reorientation_by_path_choice_png",
+      "file": "figures/Figure_3_1A_Reorientation_by_Path_Choice.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "path_choice",
+        "reorientation_count"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_figures_figure_3_1a_seed_covered_rate_png",
+      "file": "figures/Figure_3_1A_seed_covered_rate.png",
+      "type": "figure",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "p_covered",
+        "seed"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_readme_md",
+      "file": "README.md",
+      "type": "report",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_reports_stage3_1a_baseline_report_md",
+      "file": "reports/Stage3_1A_Baseline_Report.md",
+      "type": "report",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_stats_stage3_1a_metadata_json",
+      "file": "stats/stage3_1a_metadata.json",
+      "type": "stats",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_stats_stage3_1a_run_summary_json",
+      "file": "stats/stage3_1a_run_summary.json",
+      "type": "stats",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_tables_stage3_1a_seed_summary_csv",
+      "file": "tables/stage3_1a_seed_summary.csv",
+      "type": "table",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "seed"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_tables_table_3_1a_block_dynamics_csv",
+      "file": "tables/Table_3_1A_Block_Dynamics.csv",
+      "type": "table",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_tables_table_3_1a_commit_reason_x_path_choice_csv",
+      "file": "tables/Table_3_1A_Commit_Reason_x_Path_Choice.csv",
+      "type": "table",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "commit_reason",
+        "path_choice"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_tables_table_3_1a_path_choice_x_metrics_csv",
+      "file": "tables/Table_3_1A_Path_Choice_x_Metrics.csv",
+      "type": "table",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "path_choice"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    },
+    {
+      "id": "3_1a_tables_table_3_1a_seed_summary_csv",
+      "file": "tables/Table_3_1A_Seed_Summary.csv",
+      "type": "table",
+      "stage": "3.1A",
+      "condition": "baseline",
+      "protocol": "stage3_1a_baseline",
+      "branch_semantics": "none",
+      "primary_variables": [
+        "seed"
+      ],
+      "source": {
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_001749",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_001749",
+        "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
+        "source_scripts": [
+          "stage3.analysis.run_stage3_1a",
+          "stage3.analysis.analyze_stage3_1a_baseline",
+          "stage3.analysis.run_stage3_1_closure_package"
+        ]
+      },
+      "paper_role": "Stage 3.1A compatibility / baseline artifact",
+      "interpretation": "Documents the calibrated open/covered baseline preserved under the Stage 3.1B closure branch.",
+      "status": "publication_candidate"
+    }
+  ]
+}
