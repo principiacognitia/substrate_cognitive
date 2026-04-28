@@ -26,6 +26,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from stage3.analysis.artifact_registry import (
+    build_artifact_registry,
+    render_registry_markdown,
+)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -348,11 +353,35 @@ agent/kernel still preserves the calibrated Stage 3.1A baseline behavior.
 """
     write_text(curated_stage / "README.md", readme)
 
+    registry = build_artifact_registry(
+        curated_stage_root=curated_stage,
+        stage="3.1A",
+        package_id=f"stage3_1a_{manifest.get('run_id', 'unknown')}",
+        git_info=manifest.get("git", {}),
+        profile=profile,
+        source={
+            "run_dir": str(run_dir),
+            "analysis_dir": str(raw_analysis_dir),
+            "curated_dir": str(curated_stage),
+            "source_scripts": [
+                "stage3.analysis.run_stage3_1a",
+                "stage3.analysis.analyze_stage3_1a_baseline",
+                "stage3.analysis.run_stage3_1_closure_package",
+            ],
+        },
+    )
+    registry_path = curated_stage / "artifact_registry.json"
+    registry_md_path = curated_stage / "ARTIFACT_REGISTRY.md"
+    write_json(registry_path, registry)
+    write_text(registry_md_path, render_registry_markdown(registry))
+
     manifest["stage3_1a"] = {
         "run_dir": str(run_dir),
         "analysis_dir": str(raw_analysis_dir),
         "curated_dir": str(curated_stage),
         "copied_artifacts": copied,
+        "artifact_registry": str(registry_path.relative_to(PROJECT_ROOT)),
+        "artifact_registry_md": str(registry_md_path.relative_to(PROJECT_ROOT)),
     }
 
 
@@ -475,11 +504,36 @@ allocentric spatial cognition, or rodent-level VTE equivalence.
 """
     write_text(curated_stage / "reports" / "STAGE3_1B_CLOSURE_REPORT.md", report)
 
+    registry = build_artifact_registry(
+        curated_stage_root=curated_stage,
+        stage="3.1B",
+        package_id=f"stage3_1b_closure_{manifest.get('run_id', 'unknown')}",
+        git_info=manifest.get("git", {}),
+        profile=profile,
+        source={
+            "suite_dir": str(suite_dir),
+            "analysis_dir": str(analysis_dir),
+            "curated_dir": str(curated_stage),
+            "suite_manifest": str(suite_manifest),
+            "source_scripts": [
+                "stage3.analysis.run_stage3_1b_ablation_suite",
+                "stage3.analysis.analyze_stage3_1b_ablation_suite",
+                "stage3.analysis.run_stage3_1_closure_package",
+            ],
+        },
+    )
+    registry_path = curated_stage / "artifact_registry.json"
+    registry_md_path = curated_stage / "ARTIFACT_REGISTRY.md"
+    write_json(registry_path, registry)
+    write_text(registry_md_path, render_registry_markdown(registry))
+
     manifest["stage3_1b"] = {
         "suite_dir": str(suite_dir),
         "analysis_dir": str(analysis_dir),
         "curated_dir": str(curated_stage),
         "copied_artifacts": copied,
+        "artifact_registry": str(registry_path.relative_to(PROJECT_ROOT)),
+        "artifact_registry_md": str(registry_md_path.relative_to(PROJECT_ROOT)),
     }
 
 
