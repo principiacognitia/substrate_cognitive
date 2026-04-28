@@ -26,6 +26,24 @@ REGISTRY_FILENAMES = {
     "ARTIFACT_REGISTRY.md",
 }
 
+REQUIRED_STAGE3_1B_PUBLICATION_ARTIFACTS = {
+    "tables/Table_3_1B_one_shot_schema_validation.csv",
+    "tables/Table_3_1B_one_shot_trial_series.csv",
+    "tables/Table_3_1B_one_shot_window_seed_metrics.csv",
+    "tables/Table_3_1B_one_shot_window_summary.csv",
+    "tables/Table_3_1B_one_shot_effect_stats.csv",
+    "tables/Table_3_1B_one_shot_first_post_junction.csv",
+    "tables/Table_3_1B_one_shot_acceptance_summary.csv",
+    "figures/Figure_3_1B_Shock_Risk_Carrier_Around_Event_Zoom.png",
+    "figures/Figure_3_1B_Treat_Opportunity_Carrier_Around_Event_Zoom.png",
+    "figures/Figure_3_1B_Shock_Target_Choice_Around_Event_Zoom.png",
+    "figures/Figure_3_1B_Treat_Target_Choice_Around_Event_Zoom.png",
+    "figures/Figure_3_1B_OneShot_Effect_By_Ablation.png",
+    "figures/Figure_3_1B_OneShot_Carryover_Decay_By_Window.png",
+    "reports/Stage3_1B_OneShot_Publication_Report.md",
+    "stats/one_shot_publication_analysis_meta.json",
+    "stats/one_shot_acceptance_summary.json",
+}
 
 def load_registry(stage_dir: Path) -> Dict[str, Any]:
     path = stage_dir / "artifact_registry.json"
@@ -71,6 +89,11 @@ def validate_one_package(stage_dir: Path, expected_stage: str) -> Tuple[List[str
 
     missing_from_registry = sorted(actual_files - registered_files)
     missing_on_disk = sorted(registered_files - actual_files)
+
+    if expected_stage == "3.1B":
+        missing_required = sorted(REQUIRED_STAGE3_1B_PUBLICATION_ARTIFACTS - actual_files)
+        for rel in missing_required:
+            errors.append(f"{stage_dir}: missing required Stage 3.1B publication artifact: {rel}")
 
     for rel in missing_from_registry:
         errors.append(f"{stage_dir}: file exists but is not registered: {rel}")

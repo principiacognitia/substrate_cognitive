@@ -1,23 +1,23 @@
 # Artifact Registry: 3.1B
 
-- Package ID: `stage3_1b_closure_20260429_003107`
+- Package ID: `stage3_1b_closure_20260429_012842`
 - Schema: `stage3_1_closure_artifact_registry_v1`
-- Created: `2026-04-29T00:31:30.610844`
-- Artifact count: `31`
+- Created: `2026-04-29T01:29:07.963192`
+- Artifact count: `33`
 
 ## Git
 
 - Branch: `stage3_1b_closure`
-- Commit: `5b071571b80cfbc9337bef52fb4b6d1c1eb184dc`
+- Commit: `0f536916ceda5dc951f72b742268951fbfe4352e`
 - Working tree clean: `False`
 
 ## Source
 
-- suite_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_003116`
-- analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_003116\analysis`
-- publication_analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_003116\analysis_publication`
+- suite_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_012853`
+- analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_012853\analysis`
+- publication_analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_012853\analysis_publication`
 - curated_dir: `E:\CRS-1\substrate_cognitive\docs\results\stage3_1b_closure`
-- suite_manifest: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_003116\manifest.json`
+- suite_manifest: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_012853\manifest.json`
 - source_scripts: `['stage3.analysis.run_stage3_1b_ablation_suite', 'stage3.analysis.analyze_stage3_1b_ablation_suite', 'stage3.analysis.analyze_stage3_1b_one_shot_publication', 'stage3.analysis.run_stage3_1_closure_package']`
 
 ## Artifacts
@@ -44,11 +44,13 @@
 | `reports/STAGE3_1B_CLOSURE_REPORT.md` | report | baseline | stage3_1b_closure | none |  | Curated Stage 3.1 artifact |
 | `reports/Stage3_1B_OneShot_Publication_Report.md` | report | baseline | stage3_1b_closure | none |  | Curated Stage 3.1 artifact |
 | `stats/analysis_meta.json` | stats | baseline | stage3_1b_closure | none |  | Curated Stage 3.1 artifact |
+| `stats/one_shot_acceptance_summary.json` | stats | one_shot | one_shot | mixed |  | Curated Stage 3.1 artifact |
 | `stats/one_shot_publication_analysis_meta.json` | stats | one_shot | one_shot | mixed |  | Curated Stage 3.1 artifact |
 | `stats/stage3_1b_suite_manifest.json` | stats | baseline | stage3_1b_closure | none |  | Curated Stage 3.1 artifact |
 | `tables/Table_3_1B_ablation_seed_metrics.csv` | table | ablation_suite | ablation_suite | mixed | seed | Stage 3.1B ablation-localization artifact |
 | `tables/Table_3_1B_ablation_summary_long.csv` | table | ablation_suite | ablation_suite | mixed |  | Stage 3.1B ablation-localization artifact |
 | `tables/Table_3_1B_ablation_summary_wide.csv` | table | ablation_suite | ablation_suite | mixed |  | Stage 3.1B ablation-localization artifact |
+| `tables/Table_3_1B_one_shot_acceptance_summary.csv` | table | one_shot | one_shot | mixed |  | Curated Stage 3.1 artifact |
 | `tables/Table_3_1B_one_shot_effect_stats.csv` | table | one_shot | one_shot | mixed |  | Curated Stage 3.1 artifact |
 | `tables/Table_3_1B_one_shot_first_post_junction.csv` | table | one_shot | one_shot | mixed |  | Curated Stage 3.1 artifact |
 | `tables/Table_3_1B_one_shot_schema_validation.csv` | table | one_shot | one_shot | mixed |  | Curated Stage 3.1 artifact |

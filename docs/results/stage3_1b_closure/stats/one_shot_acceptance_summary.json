@@ -1,0 +1,92 @@
+[
+  {
+    "protocol": "shock",
+    "ablation": "full",
+    "check": "schema_required_columns",
+    "status": "pass",
+    "value": 1.0,
+    "threshold_or_expectation": "all required protocol-specific columns present",
+    "note": ""
+  },
+  {
+    "protocol": "treat",
+    "ablation": "full",
+    "check": "schema_required_columns",
+    "status": "pass",
+    "value": 1.0,
+    "threshold_or_expectation": "all required protocol-specific columns present",
+    "note": ""
+  },
+  {
+    "protocol": "shock",
+    "ablation": "full",
+    "check": "p_target_delta_post_11_30",
+    "status": "direction_ok",
+    "value": -0.24827586206896549,
+    "threshold_or_expectation": "delta < 0 for shock/negative; delta > 0 for treat/positive; pass requires directional p<=0.05 and CI excluding zero",
+    "note": "ci=[-0.3017, -0.2138], directional_p=0.222222, sign_consistency=1.0000"
+  },
+  {
+    "protocol": "shock",
+    "ablation": "full",
+    "check": "p_target_delta_post_31_plus",
+    "status": "fail",
+    "value": 0.010057471264367845,
+    "threshold_or_expectation": "delta < 0 for shock/negative; delta > 0 for treat/positive; pass requires directional p<=0.05 and CI excluding zero",
+    "note": "ci=[-0.1767, 0.1707], directional_p=0.666667, sign_consistency=0.3333"
+  },
+  {
+    "protocol": "shock",
+    "ablation": "full",
+    "check": "p_target_delta_post_all",
+    "status": "direction_ok",
+    "value": -0.1244663382594417,
+    "threshold_or_expectation": "delta < 0 for shock/negative; delta > 0 for treat/positive; pass requires directional p<=0.05 and CI excluding zero",
+    "note": "ci=[-0.2660, -0.0079], directional_p=0.222222, sign_consistency=1.0000"
+  },
+  {
+    "protocol": "treat",
+    "ablation": "full",
+    "check": "p_target_delta_post_11_30",
+    "status": "direction_ok",
+    "value": 0.1482758620689655,
+    "threshold_or_expectation": "delta < 0 for shock/negative; delta > 0 for treat/positive; pass requires directional p<=0.05 and CI excluding zero",
+    "note": "ci=[0.0293, 0.3017], directional_p=0.222222, sign_consistency=1.0000"
+  },
+  {
+    "protocol": "treat",
+    "ablation": "full",
+    "check": "p_target_delta_post_31_plus",
+    "status": "direction_ok",
+    "value": 0.13160919540229887,
+    "threshold_or_expectation": "delta < 0 for shock/negative; delta > 0 for treat/positive; pass requires directional p<=0.05 and CI excluding zero",
+    "note": "ci=[0.0293, 0.3017], directional_p=0.222222, sign_consistency=1.0000"
+  },
+  {
+    "protocol": "treat",
+    "ablation": "full",
+    "check": "p_target_delta_post_all",
+    "status": "direction_ok",
+    "value": 0.13399014778325122,
+    "threshold_or_expectation": "delta < 0 for shock/negative; delta > 0 for treat/positive; pass requires directional p<=0.05 and CI excluding zero",
+    "note": "ci=[0.0365, 0.2803], directional_p=0.222222, sign_consistency=1.0000"
+  },
+  {
+    "protocol": "shock",
+    "ablation": "full",
+    "check": "first_post_target_probability",
+    "status": "direction_ok",
+    "value": 0.4663011645670992,
+    "threshold_or_expectation": "shock/negative expects target_prob < 0.5; treat/positive expects target_prob > 0.5",
+    "note": "target_choice_rate=0.6667, target_prob_wins_rate=0.0000"
+  },
+  {
+    "protocol": "treat",
+    "ablation": "full",
+    "check": "first_post_target_probability",
+    "status": "direction_ok",
+    "value": 0.6568917050780784,
+    "threshold_or_expectation": "shock/negative expects target_prob < 0.5; treat/positive expects target_prob > 0.5",
+    "note": "target_choice_rate=0.6667, target_prob_wins_rate=1.0000"
+  }
+]

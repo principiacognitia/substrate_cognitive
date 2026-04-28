@@ -558,6 +558,141 @@ def build_effect_stats(
 
     return pd.DataFrame(rows)
 
+def expected_sign_ok(value: float, expected_direction: str) -> bool:
+    if pd.isna(value):
+        return False
+    if expected_direction == "negative":
+        return float(value) < 0.0
+    if expected_direction == "positive":
+        return float(value) > 0.0
+    return False
+
+
+def expected_prob_ok(value: float, expected_direction: str) -> bool:
+    if pd.isna(value):
+        return False
+    if expected_direction == "negative":
+        return float(value) < 0.5
+    if expected_direction == "positive":
+        return float(value) > 0.5
+    return False
+
+
+def status_for_direction(sign_ok: bool, p_value: float, ci_low: float, ci_high: float, expected_direction: str) -> str:
+    if not sign_ok:
+        return "fail"
+
+    ci_supports = False
+    if expected_direction == "negative":
+        ci_supports = pd.notna(ci_high) and float(ci_high) < 0.0
+    elif expected_direction == "positive":
+        ci_supports = pd.notna(ci_low) and float(ci_low) > 0.0
+
+    p_supports = pd.notna(p_value) and float(p_value) <= 0.05
+
+    if ci_supports and p_supports:
+        return "pass"
+    return "direction_ok"
+
+
+def build_acceptance_summary(
+    schema_df: pd.DataFrame,
+    effect_df: pd.DataFrame,
+    first_post_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Compact, paper-facing acceptance summary.
+
+    This table is intentionally descriptive. It does not crash smoke runs if
+    n=3 is underpowered. The full paper-grade run should be judged using these
+    rows plus the detailed effect/window tables.
+    """
+    rows: List[Dict[str, Any]] = []
+
+    if len(schema_df):
+        for (protocol, ablation), sdf in schema_df.groupby(["protocol", "ablation"], dropna=False):
+            ok = bool(sdf["ok"].astype(bool).all())
+            missing = "; ".join([x for x in sdf["missing_columns"].astype(str).tolist() if x and x != "nan"])
+            rows.append(
+                {
+                    "protocol": protocol,
+                    "ablation": ablation,
+                    "check": "schema_required_columns",
+                    "status": "pass" if ok else "fail",
+                    "value": 1.0 if ok else 0.0,
+                    "threshold_or_expectation": "all required protocol-specific columns present",
+                    "note": "" if ok else f"missing: {missing}",
+                }
+            )
+
+    if len(effect_df):
+        for _, row in effect_df.iterrows():
+            post_window = str(row["post_window"])
+            if post_window not in {"post_all", "post_11_30", "post_31_plus"}:
+                continue
+
+            expected_direction = str(row["expected_direction"])
+            delta = float(row["delta_post_minus_pre_mean"])
+            p_value = float(row["directional_sign_flip_p"])
+            ci_low = float(row["delta_ci_low"])
+            ci_high = float(row["delta_ci_high"])
+            sign_ok = expected_sign_ok(delta, expected_direction)
+
+            rows.append(
+                {
+                    "protocol": row["protocol"],
+                    "ablation": row["ablation"],
+                    "check": f"p_target_delta_{post_window}",
+                    "status": status_for_direction(sign_ok, p_value, ci_low, ci_high, expected_direction),
+                    "value": delta,
+                    "threshold_or_expectation": (
+                        "delta < 0 for shock/negative; delta > 0 for treat/positive; "
+                        "pass requires directional p<=0.05 and CI excluding zero"
+                    ),
+                    "note": (
+                        f"ci=[{ci_low:.4f}, {ci_high:.4f}], "
+                        f"directional_p={p_value:.6f}, "
+                        f"sign_consistency={float(row['directional_sign_consistency']):.4f}"
+                    ),
+                }
+            )
+
+    if len(first_post_df):
+        grouped = first_post_df.groupby(["protocol", "ablation", "expected_direction"], dropna=False)
+        for (protocol, ablation, expected_direction), sdf in grouped:
+            mean_prob = float(sdf["target_prob"].mean())
+            prob_ok = expected_prob_ok(mean_prob, str(expected_direction))
+            choice_rate = float(sdf["target_choice"].astype(float).mean()) if "target_choice" in sdf.columns else float("nan")
+            wins_rate = float(sdf["target_prob_wins"].astype(float).mean()) if "target_prob_wins" in sdf.columns else float("nan")
+
+            rows.append(
+                {
+                    "protocol": protocol,
+                    "ablation": ablation,
+                    "check": "first_post_target_probability",
+                    "status": "direction_ok" if prob_ok else "warn",
+                    "value": mean_prob,
+                    "threshold_or_expectation": (
+                        "shock/negative expects target_prob < 0.5; "
+                        "treat/positive expects target_prob > 0.5"
+                    ),
+                    "note": f"target_choice_rate={choice_rate:.4f}, target_prob_wins_rate={wins_rate:.4f}",
+                }
+            )
+    else:
+        rows.append(
+            {
+                "protocol": "all",
+                "ablation": "all",
+                "check": "first_post_target_probability",
+                "status": "warn",
+                "value": float("nan"),
+                "threshold_or_expectation": "first post-event junction rows should be available",
+                "note": "No first-post junction rows found.",
+            }
+        )
+
+    return pd.DataFrame(rows)
 
 def save_table(df: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -689,6 +824,7 @@ def write_report(
     schema_df: pd.DataFrame,
     effect_df: pd.DataFrame,
     first_post_df: pd.DataFrame,
+    acceptance_df: pd.DataFrame,
 ) -> None:
     path = output_dir / "Stage3_1B_OneShot_Publication_Report.md"
 
@@ -713,6 +849,27 @@ def write_report(
         lines.append("```")
     else:
         lines.append("No schema rows.")
+    lines.append("")
+
+    lines.append("## Compact acceptance summary")
+    lines.append("")
+    if len(acceptance_df):
+        compact = acceptance_df[
+            [
+                "protocol",
+                "ablation",
+                "check",
+                "status",
+                "value",
+                "threshold_or_expectation",
+                "note",
+            ]
+        ].copy()
+        lines.append("```")
+        lines.append(compact.to_string(index=False))
+        lines.append("```")
+    else:
+        lines.append("No acceptance summary rows.")
     lines.append("")
 
     lines.append("## Directional effect statistics")
@@ -819,12 +976,26 @@ def main() -> None:
         rng=rng,
     )
 
+    acceptance_df = build_acceptance_summary(
+        schema_df=schema_df,
+        effect_df=effect_df,
+        first_post_df=first_post_df,
+    )
+
     save_table(schema_df, output_dir / "Table_3_1B_one_shot_schema_validation.csv")
     save_table(trial_series_df, output_dir / "Table_3_1B_one_shot_trial_series.csv")
     save_table(seed_window_df, output_dir / "Table_3_1B_one_shot_window_seed_metrics.csv")
     save_table(window_summary_df, output_dir / "Table_3_1B_one_shot_window_summary.csv")
     save_table(effect_df, output_dir / "Table_3_1B_one_shot_effect_stats.csv")
     save_table(first_post_df, output_dir / "Table_3_1B_one_shot_first_post_junction.csv")
+    save_table(acceptance_df, output_dir / "Table_3_1B_one_shot_acceptance_summary.csv")
+
+    acceptance_json_path = output_dir / "one_shot_acceptance_summary.json"
+    acceptance_json_path.write_text(
+        json.dumps(acceptance_df.to_dict(orient="records"), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(f"✓ Stats saved: {acceptance_json_path}")
 
     plot_zoom(
         trial_series_df,
@@ -900,6 +1071,7 @@ def main() -> None:
         schema_df=schema_df,
         effect_df=effect_df,
         first_post_df=first_post_df,
+        acceptance_df=acceptance_df,
     )
 
 
