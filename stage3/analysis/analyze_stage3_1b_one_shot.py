@@ -702,51 +702,51 @@ def main():
     plot_pre_post(
         overall_package["pre_post_df"],
         "Stage 3.1B: One-shot pre / shock / post",
-        output_dir / "Figure_3_1E_OneShot_PrePost.png"
+        output_dir / "Figure_3_1B_One_Shot_Pre_Post.png"
     )
     plot_hrisk_by_trial(
         overall_package["hrisk_df"],
         shock_trial,
         "Stage 3.1B: h_risk around shock",
-        output_dir / "Figure_3_1F_hRisk_AroundShock.png"
+        output_dir / "Figure_3_1B_h_Risk_Around_Shock.png"
     )
     plot_popen_by_trial(
         overall_package["trial_df"],
         shock_trial,
         args.rolling_window,
         "Stage 3.1B: P(open) by trial",
-        output_dir / "Figure_3_1G_POpen_ByTrial.png"
+        output_dir / "Figure_3_1B_P_Open_By_Trial.png"
     )
     plot_mode_pre_post(
         overall_package["mode_df"],
         "Stage 3.1B: mode_at_junction pre vs post",
-        output_dir / "Figure_3_1H_ModeAtJunction_PrePost.png"
+        output_dir / "Figure_3_1B_Mode_At_Junction_Pre_Post.png"
     )
     plot_latency_pre_post(
         overall_package["latency_df"],
         "Stage 3.1B: pre vs post metrics",
-        output_dir / "Figure_3_1I_Latency_PrePost.png"
+        output_dir / "Figure_3_1B_Latency_Pre_Post.png"
     )
 
     # Subgroup plots
     plot_pre_post_by_subgroup(
         group_packages,
-        output_dir / "Figure_3_1E2_OneShot_PrePost_BySubgroup.png"
+        output_dir / "Figure_3_1B_One_Shot_Pre_Post_By_Subgroup.png"
     )
     plot_hrisk_by_subgroup(
         group_packages,
         shock_trial,
-        output_dir / "Figure_3_1F2_hRisk_AroundShock_BySubgroup.png"
+        output_dir / "Figure_3_1B_h_Risk_Around_Shock_By_Subgroup.png"
     )
     plot_popen_by_subgroup(
         group_packages,
         shock_trial,
         args.rolling_window,
-        output_dir / "Figure_3_1G2_POpen_ByTrial_BySubgroup.png"
+        output_dir / "Figure_3_1B_P_Open_By_Trial_By_Subgroup.png"
     )
     plot_seed_delta(
         seed_effect_df,
-        output_dir / "Figure_3_1J_SeedDelta_ByShockStatus.png"
+        output_dir / "Figure_3_1B_SeedDelta_By_Shock_Status.png"
     )
 
     write_report(

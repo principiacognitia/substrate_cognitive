@@ -84,7 +84,7 @@ def build_bias_sweep_table(run_specs):
 
 def save_bias_sweep_table(df: pd.DataFrame, output_dir: Path):
     output_dir.mkdir(parents=True, exist_ok=True)
-    out_csv = output_dir / "Table_3_1C_BiasSweep.csv"
+    out_csv = output_dir / "Table_3_1A_Bias_Sweep.csv"
     df.to_csv(out_csv, index=False)
     print(f"✓ Bias sweep table saved: {out_csv}")
 
@@ -109,7 +109,7 @@ def plot_bias_sweep(df: pd.DataFrame, output_dir: Path):
         df=df,
         x_col="exposure_q_bias",
         y_col="p_covered_total",
-        output_path=output_dir / "Figure_3_1F_BiasSweep_CoveredRate.png",
+        output_path=output_dir / "Figure_3_1A_Bias_Sweep_Covered_Rate.png",
         title="Stage 3.1A: Covered Preference vs exposure_q_bias",
         ylabel="P(covered)"
     )
@@ -118,7 +118,7 @@ def plot_bias_sweep(df: pd.DataFrame, output_dir: Path):
         df=df,
         x_col="exposure_q_bias",
         y_col="mean_commit_latency",
-        output_path=output_dir / "Figure_3_1G_BiasSweep_CommitLatency.png",
+        output_path=output_dir / "Figure_3_1A_Bias_Sweep_Commit_Latency.png",
         title="Stage 3.1A: Commit Latency vs exposure_q_bias",
         ylabel="Mean commit latency"
     )
@@ -127,7 +127,7 @@ def plot_bias_sweep(df: pd.DataFrame, output_dir: Path):
         df=df,
         x_col="exposure_q_bias",
         y_col="p_commit_timeout_total",
-        output_path=output_dir / "Figure_3_1H_BiasSweep_TimeoutRate.png",
+        output_path=output_dir / "Figure_3_1A_Bias_Sweep_Timeout_Rate.png",
         title="Stage 3.1A: Timeout Rate vs exposure_q_bias",
         ylabel="P(timeout)"
     )

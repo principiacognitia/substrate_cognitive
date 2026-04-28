@@ -161,7 +161,7 @@ def plot_seed_covered_rate(seed_summary: pd.DataFrame, output_dir: Path):
     ax.set_xlabel("Seeds (sorted)")
     ax.set_ylabel("P(covered)")
     ax.set_ylim(0, 1)
-    save_plot(fig, output_dir / "Figure_3_1B_Seed_CoveredRate.png")
+    save_plot(fig, output_dir / "Figure_3_1A_seed_covered_rate.png")
 
 
 def plot_commit_reason_overall(all_trials: pd.DataFrame, output_dir: Path):
@@ -172,7 +172,7 @@ def plot_commit_reason_overall(all_trials: pd.DataFrame, output_dir: Path):
     ax.set_title("Stage 3.1A: Commit Reason Overall")
     ax.set_xlabel("commit_reason")
     ax.set_ylabel("count")
-    save_plot(fig, output_dir / "Figure_3_1C_CommitReason_Overall.png")
+    save_plot(fig, output_dir / "Figure_3_1A_commit_reason_overall.png")
 
 
 def plot_path_by_commit_reason(all_trials: pd.DataFrame, output_dir: Path):
@@ -191,7 +191,7 @@ def plot_path_by_commit_reason(all_trials: pd.DataFrame, output_dir: Path):
     ax.set_xlabel("commit_reason")
     ax.set_ylabel("proportion")
     ax.legend()
-    save_plot(fig, output_dir / "Figure_3_1D_PathChoice_by_CommitReason.png")
+    save_plot(fig, output_dir / "Figure_3_1A_path_choice_by_commit_reason.png")
 
 
 def plot_latency_by_commit_reason(all_trials: pd.DataFrame, output_dir: Path):
@@ -208,7 +208,7 @@ def plot_latency_by_commit_reason(all_trials: pd.DataFrame, output_dir: Path):
     ax.set_title("Stage 3.1A: Mean Commit Latency by Commit Reason")
     ax.set_xlabel("commit_reason")
     ax.set_ylabel("mean commit latency")
-    save_plot(fig, output_dir / "Figure_3_1E_Latency_by_CommitReason.png")
+    save_plot(fig, output_dir / "FigureE_3_1A_Latency_by_Commit_Reason.png")
 
 
 def plot_reorientation_by_path(all_trials: pd.DataFrame, output_dir: Path):
@@ -224,7 +224,7 @@ def plot_reorientation_by_path(all_trials: pd.DataFrame, output_dir: Path):
     ax.set_title("Stage 3.1A: Mean Reorientation by Path Choice")
     ax.set_xlabel("path_choice")
     ax.set_ylabel("mean reorientation_count")
-    save_plot(fig, output_dir / "Figure_3_1F_Reorientation_by_PathChoice.png")
+    save_plot(fig, output_dir / "Figure_3_1A_Reorientation_by_Path_Choice.png")
 
 
 def plot_block_dynamics(block_table: pd.DataFrame, output_dir: Path):
@@ -237,7 +237,7 @@ def plot_block_dynamics(block_table: pd.DataFrame, output_dir: Path):
     ax.set_ylabel("P(covered)")
     ax.set_ylim(0, 1)
     ax.grid(True, alpha=0.3)
-    save_plot(fig, output_dir / "Figure_3_1G_Block_CoveredRate.png")
+    save_plot(fig, output_dir / "Figure_3_1A_Block_Covered_Rate.png")
 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(x, block_table["mean_commit_latency"], marker="o")
@@ -245,7 +245,7 @@ def plot_block_dynamics(block_table: pd.DataFrame, output_dir: Path):
     ax.set_xlabel("trial block")
     ax.set_ylabel("mean commit latency")
     ax.grid(True, alpha=0.3)
-    save_plot(fig, output_dir / "Figure_3_1H_Block_CommitLatency.png")
+    save_plot(fig, output_dir / "Figure_3_1A_Block_Commit_Latency.png")
 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(x, block_table["mean_reorientation_count"], marker="o")
@@ -253,7 +253,7 @@ def plot_block_dynamics(block_table: pd.DataFrame, output_dir: Path):
     ax.set_xlabel("trial block")
     ax.set_ylabel("mean reorientation_count")
     ax.grid(True, alpha=0.3)
-    save_plot(fig, output_dir / "Figure_3_1I_Block_Reorientation.png")
+    save_plot(fig, output_dir / "Figure_3_1A_Block_Reorientation.png")
 
 
 # =============================================================================
@@ -349,15 +349,15 @@ def save_tables(
 ):
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    seed_summary.to_csv(output_dir / "Table_3_1A_SeedSummary.csv", index=False)
-    commit_reason_table.to_csv(output_dir / "Table_3_1B_CommitReason_x_PathChoice.csv", index=False)
-    block_table.to_csv(output_dir / "Table_3_1C_BlockDynamics.csv", index=False)
-    path_metrics_table.to_csv(output_dir / "Table_3_1D_PathChoice_x_Metrics.csv", index=False)
+    seed_summary.to_csv(output_dir / "Table_3_1A_Seed_Summary.csv", index=False)
+    commit_reason_table.to_csv(output_dir / "Table_3_1A_Commit_Reason_x_Path_Choice.csv", index=False)
+    block_table.to_csv(output_dir / "Table_3_1A_Block_Dynamics.csv", index=False)
+    path_metrics_table.to_csv(output_dir / "Table_3_1A_Path_Choice_x_Metrics.csv", index=False)
 
-    print(f"✓ Table saved: {output_dir / 'Table_3_1A_SeedSummary.csv'}")
-    print(f"✓ Table saved: {output_dir / 'Table_3_1B_CommitReason_x_PathChoice.csv'}")
-    print(f"✓ Table saved: {output_dir / 'Table_3_1C_BlockDynamics.csv'}")
-    print(f"✓ Table saved: {output_dir / 'Table_3_1D_PathChoice_x_Metrics.csv'}")
+    print(f"✓ Table saved: {output_dir / 'Table_3_1A_Seed_Summary.csv'}")
+    print(f"✓ Table saved: {output_dir / 'Table_3_1A_Commit_Reason_x_Path_Choice.csv'}")
+    print(f"✓ Table saved: {output_dir / 'Table_3_1A_Block_Dynamics.csv'}")
+    print(f"✓ Table saved: {output_dir / 'Table_3_1A_Path_Choice_x_Metrics.csv'}")
 
 
 # =============================================================================

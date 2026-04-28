@@ -11,7 +11,7 @@
 Контрольная конфигурация для сравнения:
 - `exposure_q_bias = 0.40`
 
-Основания: калибровочный sweep по `exposure_q_bias` и полный baseline-анализ для `0.25 / 0.30 / 0.35 / 0.40`. (Table_3_1C_BiasSweep.csv), (Stage3_1A_Baseline_Report 0.25.md), (Stage3_1A_Baseline_Report 0.30.md), (Stage3_1A_Baseline_Report 0.35.md), (Stage3_1A_Baseline_Report 0.40.md)
+Основания: калибровочный sweep по `exposure_q_bias` и полный baseline-анализ для `0.25 / 0.30 / 0.35 / 0.40`. (Table_3_1A_Bias_Sweep.csv), (Stage3_1A_Baseline_Report 0.25.md), (Stage3_1A_Baseline_Report 0.30.md), (Stage3_1A_Baseline_Report 0.35.md), (Stage3_1A_Baseline_Report 0.40.md)
 
 ---
 
@@ -75,9 +75,9 @@ Stage 3.1A решал не задачу обучения карте лабири
 
 Был проведён sweep по `exposure_q_bias`.
 
-Полный sweep: `0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6`. (Table_3_1C_BiasSweep.csv)
+Полный sweep: `0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6`. (Table_3_1A_Bias_Sweep.csv)
 
-Уточняющий sweep после введения `eps = 0.05`: `0.20, 0.25, 0.30, 0.35, 0.40`. (Table_3_1C_BiasSweep.csv)
+Уточняющий sweep после введения `eps = 0.05`: `0.20, 0.25, 0.30, 0.35, 0.40`. (Table_3_1A_Bias_Sweep.csv)
 
 Ключевой результат: между `0.25` и `0.30` обнаружен **переход режима**. До `0.25` система остаётся более медленной и timeout-heavy; начиная с `0.30` covered-bias становится устойчивым, а deliberation-показатели выходят на почти плоское плато. (Stage3_1A_Baseline_Report 0.25.md), (Stage3_1A_Baseline_Report 0.30.md), (Stage3_1A_Baseline_Report 0.35.md), (Stage3_1A_Baseline_Report 0.40.md)
 
