@@ -2,6 +2,500 @@ protocol,ablation,seed,target_path,expected_direction,first_post_trial,first_pos
 shock,full,42,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3102650037574794,0.2791096387635591,1.3719999999999999,0.0,0.36410600150299177,none
 shock,full,43,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28617331019944253,0.2791086784931042,1.3719999999999999,0.0,0.354469324079777,none
 shock,full,44,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28697914098339594,0.27980964734285824,1.3719999999999999,0.0,0.35479165639335836,none
+shock,full,45,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29398338998686746,0.2794283397787376,1.3719999999999999,0.0,0.35759335599474695,none
+shock,full,46,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3054780772139492,0.2780169982870883,1.3719999999999999,0.0,0.3621912308855797,none
+shock,full,47,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3002076627741936,0.27725067152106353,1.3719999999999999,0.0,0.3600830651096774,none
+shock,full,48,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.31581958390887355,0.27863071983782706,1.3719999999999999,0.0,0.3663278335635494,none
+shock,full,49,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3015307715553131,0.2779192479819448,1.3719999999999999,0.0,0.36061230862212523,none
+shock,full,50,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2937950150043237,0.2782349068989082,1.3719999999999999,0.0,0.35751800600172945,none
+shock,full,51,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3034267615142059,0.2773652920285188,1.3719999999999999,0.0,0.3613707046056823,none
+shock,full,52,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.297872756474136,0.27896849001059915,1.3719999999999999,0.0,0.3591491025896544,none
+shock,full,53,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2904081535204309,0.2796865547418874,1.3719999999999999,0.0,0.35616326140817234,none
+shock,full,54,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2911019015494602,0.2791890716903955,1.3719999999999999,0.0,0.3564407606197841,none
+shock,full,55,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29722025362240523,0.27845651489845996,1.3719999999999999,0.0,0.3588881014489621,none
+shock,full,56,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.30885916850443423,0.2782088166110386,1.3719999999999999,0.0,0.3635436674017737,none
+shock,full,57,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2907542872292867,0.2789767794901349,1.3719999999999999,0.0,0.3563017148917147,none
+shock,full,58,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2932286514713886,0.2794466008459507,1.3719999999999999,0.0,0.35729146058855543,none
+shock,full,59,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3134644284696528,0.27898882770771566,1.3719999999999999,0.0,0.3653857713878611,none
+shock,full,60,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28960615511461035,0.27887791618394947,1.3719999999999999,0.0,0.35584246204584413,none
+shock,full,61,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.31347856427051185,0.27782902060389414,1.3719999999999999,0.0,0.3653914257082047,none
+shock,full,62,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3047069050166903,0.2790751456472727,1.3719999999999999,0.0,0.36188276200667613,none
+shock,full,63,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3083889698602347,0.2779674611153662,1.3719999999999999,0.0,0.36335558794409384,none
+shock,full,64,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.305232802989037,0.2796482554328379,1.3719999999999999,0.0,0.36209312119561476,none
+shock,full,65,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2829131419881759,0.2781759162369146,1.3719999999999999,0.0,0.35316525679527033,none
+shock,full,66,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3059207026758661,0.2795640434108917,1.3719999999999999,0.0,0.3623682810703464,none
+shock,full,67,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2970526328269625,0.2789563976842703,1.3719999999999999,0.0,0.358821053130785,none
+shock,full,68,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.31183395093184324,0.2791019351552901,1.3719999999999999,0.0,0.3647335803727373,none
+shock,full,69,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28486963252237657,0.2787713545360718,1.3719999999999999,0.0,0.3539478530089506,none
+shock,full,70,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.31597997658506244,0.2789186433065113,1.3719999999999999,0.0,0.36639199063402494,none
+shock,full,71,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2946723004022771,0.2781960106732351,1.3719999999999999,0.0,0.3578689201609108,none
+shock,full,72,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2953051621232707,0.27707279441590216,1.3719999999999999,0.0,0.35812206484930825,none
+shock,full,73,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2982717109824643,0.27826592570081976,1.3719999999999999,0.0,0.3593086843929857,none
+shock,full,74,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3031936226925531,0.2788813506826043,1.3719999999999999,0.0,0.36127744907702125,none
+shock,full,75,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.30571692928264504,0.2795682653281967,1.3719999999999999,0.0,0.362286771713058,none
+shock,full,76,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29523694757228425,0.2784214654509435,1.3719999999999999,0.0,0.3580947790289137,none
+shock,full,77,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.30609178503050366,0.278223412922566,1.3719999999999999,0.0,0.36243671401220146,none
+shock,full,78,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28922359637336514,0.27955403605087714,1.3719999999999999,0.0,0.35568943854934604,none
+shock,full,79,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.30189801672928634,0.2775605334225364,1.3719999999999999,0.0,0.3607592066917145,none
+shock,full,80,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3085227778007691,0.27914922267157016,1.3719999999999999,0.0,0.3634091111203076,none
+shock,full,81,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28591427928747093,0.27820438487349664,1.3719999999999999,0.0,0.3543657117149884,none
+shock,full,82,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.31811592519436804,0.2783128905490674,1.3719999999999999,0.0,0.3672463700777472,none
+shock,full,83,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29917827884757336,0.27836699047684765,1.3719999999999999,0.0,0.3596713115390293,none
+shock,full,84,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28591819531266066,0.27942611905209835,1.3719999999999999,0.0,0.35436727812506424,none
+shock,full,85,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29669161928534366,0.2796174771542482,1.3719999999999999,0.0,0.35867664771413743,none
+shock,full,86,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3052682592210755,0.2795878413834716,1.3719999999999999,0.0,0.3621073036884302,none
+shock,full,87,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28625007125056684,0.2782172183793955,1.3719999999999999,0.0,0.3545000285002267,none
+shock,full,88,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2905461166186435,0.27924703063784573,1.3719999999999999,0.0,0.3562184466474574,none
+shock,full,89,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3040190234621917,0.2772149149533727,1.3719999999999999,0.0,0.3616076093848767,none
+shock,full,90,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29359458760474527,0.2791950658838812,1.3719999999999999,0.0,0.3574378350418981,none
+shock,full,91,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.283779178605701,0.27804374206008764,1.3719999999999999,0.0,0.3535116714422804,none
+shock,novg,42,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,43,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,44,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,45,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,46,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,47,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,48,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,49,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,50,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,51,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,52,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,53,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,54,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,55,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,56,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,57,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,58,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25755095525813965,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,59,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.2576958654363065,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,60,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,61,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.26034555993714104,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,62,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,63,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,64,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,65,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,66,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,67,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,68,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,69,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,70,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,71,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,72,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754970872048005,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,73,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,74,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,75,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,76,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,77,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,78,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,79,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,80,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,81,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,82,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,83,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,84,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,85,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,86,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,87,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.2575528327592041,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,88,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,89,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,90,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754993698077844,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novg,91,open,negative,31,2,0.00923936322372885,False,False,0.0,exploit_safe,threat_override (safe_drive from current + temporal risk),0.25754953619560433,0.2685947514704173,1.3719999999999999,0.0,0.4,none
+shock,novp,42,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3102650037574794,0.2791096387635591,1.3719999999999999,0.0,0.36410600150299177,none
+shock,novp,43,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28617331019944253,0.2791086784931042,1.3719999999999999,0.0,0.354469324079777,none
+shock,novp,44,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28697914098339594,0.27980964734285824,1.3719999999999999,0.0,0.35479165639335836,none
+shock,novp,45,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29398338998686746,0.2794283397787376,1.3719999999999999,0.0,0.35759335599474695,none
+shock,novp,46,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3054780772139492,0.2780169982870883,1.3719999999999999,0.0,0.3621912308855797,none
+shock,novp,47,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3002076627741936,0.27725067152106353,1.3719999999999999,0.0,0.3600830651096774,none
+shock,novp,48,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.31581958390887355,0.27863071983782706,1.3719999999999999,0.0,0.3663278335635494,none
+shock,novp,49,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3015307715553131,0.2779192479819448,1.3719999999999999,0.0,0.36061230862212523,none
+shock,novp,50,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2937950150043237,0.2782349068989082,1.3719999999999999,0.0,0.35751800600172945,none
+shock,novp,51,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3034267615142059,0.2773652920285188,1.3719999999999999,0.0,0.3613707046056823,none
+shock,novp,52,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.297872756474136,0.27896849001059915,1.3719999999999999,0.0,0.3591491025896544,none
+shock,novp,53,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2904081535204309,0.2796865547418874,1.3719999999999999,0.0,0.35616326140817234,none
+shock,novp,54,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2911019015494602,0.2791890716903955,1.3719999999999999,0.0,0.3564407606197841,none
+shock,novp,55,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29722025362240523,0.27845651489845996,1.3719999999999999,0.0,0.3588881014489621,none
+shock,novp,56,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.30885916850443423,0.2782088166110386,1.3719999999999999,0.0,0.3635436674017737,none
+shock,novp,57,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2907542872292867,0.2789767794901349,1.3719999999999999,0.0,0.3563017148917147,none
+shock,novp,58,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2932286514713886,0.2794466008459507,1.3719999999999999,0.0,0.35729146058855543,none
+shock,novp,59,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3134644284696528,0.27898882770771566,1.3719999999999999,0.0,0.3653857713878611,none
+shock,novp,60,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28960615511461035,0.27887791618394947,1.3719999999999999,0.0,0.35584246204584413,none
+shock,novp,61,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.31347856427051185,0.27782902060389414,1.3719999999999999,0.0,0.3653914257082047,none
+shock,novp,62,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3047069050166903,0.2790751456472727,1.3719999999999999,0.0,0.36188276200667613,none
+shock,novp,63,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3083889698602347,0.2779674611153662,1.3719999999999999,0.0,0.36335558794409384,none
+shock,novp,64,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.305232802989037,0.2796482554328379,1.3719999999999999,0.0,0.36209312119561476,none
+shock,novp,65,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2829131419881759,0.2781759162369146,1.3719999999999999,0.0,0.35316525679527033,none
+shock,novp,66,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3059207026758661,0.2795640434108917,1.3719999999999999,0.0,0.3623682810703464,none
+shock,novp,67,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2970526328269625,0.2789563976842703,1.3719999999999999,0.0,0.358821053130785,none
+shock,novp,68,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.31183395093184324,0.2791019351552901,1.3719999999999999,0.0,0.3647335803727373,none
+shock,novp,69,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28486963252237657,0.2787713545360718,1.3719999999999999,0.0,0.3539478530089506,none
+shock,novp,70,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.31597997658506244,0.2789186433065113,1.3719999999999999,0.0,0.36639199063402494,none
+shock,novp,71,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2946723004022771,0.2781960106732351,1.3719999999999999,0.0,0.3578689201609108,none
+shock,novp,72,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2953051621232707,0.27707279441590216,1.3719999999999999,0.0,0.35812206484930825,none
+shock,novp,73,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2982717109824643,0.27826592570081976,1.3719999999999999,0.0,0.3593086843929857,none
+shock,novp,74,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3031936226925531,0.2788813506826043,1.3719999999999999,0.0,0.36127744907702125,none
+shock,novp,75,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.30571692928264504,0.2795682653281967,1.3719999999999999,0.0,0.362286771713058,none
+shock,novp,76,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29523694757228425,0.2784214654509435,1.3719999999999999,0.0,0.3580947790289137,none
+shock,novp,77,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.30609178503050366,0.278223412922566,1.3719999999999999,0.0,0.36243671401220146,none
+shock,novp,78,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28922359637336514,0.27955403605087714,1.3719999999999999,0.0,0.35568943854934604,none
+shock,novp,79,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.30189801672928634,0.2775605334225364,1.3719999999999999,0.0,0.3607592066917145,none
+shock,novp,80,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3085227778007691,0.27914922267157016,1.3719999999999999,0.0,0.3634091111203076,none
+shock,novp,81,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28591427928747093,0.27820438487349664,1.3719999999999999,0.0,0.3543657117149884,none
+shock,novp,82,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.31811592519436804,0.2783128905490674,1.3719999999999999,0.0,0.3672463700777472,none
+shock,novp,83,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29917827884757336,0.27836699047684765,1.3719999999999999,0.0,0.3596713115390293,none
+shock,novp,84,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28591819531266066,0.27942611905209835,1.3719999999999999,0.0,0.35436727812506424,none
+shock,novp,85,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29669161928534366,0.2796174771542482,1.3719999999999999,0.0,0.35867664771413743,none
+shock,novp,86,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3052682592210755,0.2795878413834716,1.3719999999999999,0.0,0.3621073036884302,none
+shock,novp,87,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28625007125056684,0.2782172183793955,1.3719999999999999,0.0,0.3545000285002267,none
+shock,novp,88,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2905461166186435,0.27924703063784573,1.3719999999999999,0.0,0.3562184466474574,none
+shock,novp,89,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3040190234621917,0.2772149149533727,1.3719999999999999,0.0,0.3616076093848767,none
+shock,novp,90,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29359458760474527,0.2791950658838812,1.3719999999999999,0.0,0.3574378350418981,none
+shock,novp,91,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.283779178605701,0.27804374206008764,1.3719999999999999,0.0,0.3535116714422804,none
+shock,nox,42,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,43,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,44,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,45,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,46,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,47,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,48,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,49,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,50,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,51,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,52,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,53,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,54,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,55,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,56,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,57,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,58,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,59,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,60,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,61,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,62,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,63,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,64,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,65,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,66,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,67,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,68,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,69,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,70,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,71,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,72,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,73,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,74,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,75,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,76,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,77,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,78,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,79,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,80,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,81,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,82,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,83,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,84,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,85,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,86,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,87,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,88,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,89,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,90,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,nox,91,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.0,0.0,1.3719999999999999,0.0,0.0,none
+shock,one_shot_off,42,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.30552101677515475,0.28184412665863456,0.0,0.0,0.3622084067100619,none
+shock,one_shot_off,43,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.25289660778213086,0.2801178106437938,0.0,0.0,0.3411586431128523,none
+shock,one_shot_off,44,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2837077465305984,0.27980964734285824,0.0,0.0,0.35348309861223937,none
+shock,one_shot_off,45,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2577819442581316,0.2794283397787376,0.0,0.0,0.34311277770325266,none
+shock,one_shot_off,46,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3022954304184524,0.28104759175128735,0.0,0.0,0.360918172167381,none
+shock,one_shot_off,47,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.26634405423658486,0.28048893953885534,0.0,0.0,0.3465376216946339,none
+shock,one_shot_off,48,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.30995910250581427,0.2796876478540444,0.0,0.0,0.3639836410023257,none
+shock,one_shot_off,49,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2672356078449394,0.28097633177883785,0.0,0.0,0.34689424313797573,none
+shock,one_shot_off,50,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.262023004191481,0.2812064471293041,0.0,0.0,0.3448092016765924,none
+shock,one_shot_off,51,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3009131873708075,0.28057249788879024,0.0,0.0,0.360365274948323,none
+shock,one_shot_off,52,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2971707186449152,0.2817412292177268,0.0,0.0,0.35886828745796606,none
+shock,one_shot_off,53,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.25641953960429353,0.28063789926769867,0.0,0.0,0.3425678158417174,none
+shock,one_shot_off,54,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2551185144051767,0.2791890716903955,0.0,0.0,0.34204740576207066,none
+shock,one_shot_off,55,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2643310410611645,0.28136799936097734,0.0,0.0,0.3457324164244658,none
+shock,one_shot_off,56,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.27153198818517976,0.2782088166110386,0.0,0.0,0.3486127952740719,none
+shock,one_shot_off,57,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2871972060335569,0.2789767794901349,0.0,0.0,0.35487888241342275,none
+shock,one_shot_off,58,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2616413700744423,0.28208977201669805,0.0,0.0,0.3446565480297769,none
+shock,one_shot_off,59,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.30799986779178146,0.2800099449369441,0.0,0.0,0.36319994711671255,none
+shock,one_shot_off,60,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2557523636331812,0.27991012456555453,0.0,0.0,0.3423009454532725,none
+shock,one_shot_off,61,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.27528641807242027,0.28091055602023884,0.0,0.0,0.3501145672289681,none
+shock,one_shot_off,62,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2693757895809492,0.28181898117686177,0.0,0.0,0.3477503158323797,none
+shock,one_shot_off,63,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.3037776349269736,0.27909071500382954,0.0,0.0,0.3615110539707894,none
+shock,one_shot_off,64,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3011520452973664,0.2806034298895541,0.0,0.0,0.36046081811894654,none
+shock,one_shot_off,65,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.24754944475663826,0.2781759162369146,0.0,0.0,0.3390197779026553,none
+shock,one_shot_off,66,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2693243034692745,0.2805276390698025,0.0,0.0,0.3477297213877098,none
+shock,one_shot_off,67,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29301892007248964,0.2789563976842703,0.0,0.0,0.35720756802899584,none
+shock,one_shot_off,68,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.27424348674816584,0.28011174163976105,0.0,0.0,0.3496973946992663,none
+shock,one_shot_off,69,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28840879200328073,0.2815975174567964,0.0,0.0,0.3553635168013123,none
+shock,one_shot_off,70,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.27697195081685033,0.2817048909704467,0.0,0.0,0.3507887803267401,none
+shock,one_shot_off,71,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2923668488211375,0.2792964096059115,0.0,0.0,0.356946739528455,none
+shock,one_shot_off,72,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2954405902979719,0.2803592671291927,0.0,0.0,0.35817623611918875,none
+shock,one_shot_off,73,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2953611692983852,0.27935933313073785,0.0,0.0,0.35814446771935404,none
+shock,one_shot_off,74,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.26705566774261585,0.2799132156143438,0.0,0.0,0.34682226709704633,none
+shock,one_shot_off,75,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.30245637668889325,0.2821784654242554,0.0,0.0,0.3609825506755573,none
+shock,one_shot_off,76,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29539462512115344,0.2813424483137379,0.0,0.0,0.35815785004846135,none
+shock,one_shot_off,77,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.30270896664928404,0.2811980680205507,0.0,0.0,0.36108358665971363,none
+shock,one_shot_off,78,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2533823512424077,0.27955403605087714,0.0,0.0,0.3413529404969631,none
+shock,one_shot_off,79,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.29988306955381683,0.2807148288650291,0.0,0.0,0.3599532278215267,none
+shock,one_shot_off,80,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.2719470484208978,0.2818729833275746,0.0,0.0,0.3487788193683591,none
+shock,one_shot_off,81,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.25671270887403697,0.28118419657277904,0.0,0.0,0.3426850835496148,none
+shock,one_shot_off,82,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.27946941020223376,0.27940160149416066,0.0,0.0,0.3517877640808935,none
+shock,one_shot_off,83,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.2637153357548191,0.2794502914291629,0.0,0.0,0.34548613430192765,none
+shock,one_shot_off,84,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.25671534761881604,0.2820748407889797,0.0,0.0,0.34268613904752643,none
+shock,one_shot_off,85,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.29268522647456086,0.2796174771542482,0.0,0.0,0.3570740905898243,none
+shock,one_shot_off,86,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.26821282338812924,0.2795878413834716,0.0,0.0,0.3472851293552517,none
+shock,one_shot_off,87,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.25063384964241586,0.2782172183793955,0.0,0.0,0.3402535398569663,none
+shock,one_shot_off,88,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.25653430998707694,0.2802423275740611,0.0,0.0,0.34261372399483075,none
+shock,one_shot_off,89,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.30131227267985594,0.2804628730010087,0.0,0.0,0.36052490907194235,none
+shock,one_shot_off,90,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.25742256475898073,0.2791950658838812,0.0,0.0,0.3429690259035923,none
+shock,one_shot_off,91,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28767400878815175,0.2810670879618039,0.0,0.0,0.3550696035152607,none
 treat,full,42,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.272831435905562,0.27753724598232166,0.0,1.9949999999999997,0.3491325743622248,none
 treat,full,43,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25056289753570093,0.2775362134334454,0.0,1.9949999999999997,0.34022515901428035,none
 treat,full,44,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2513077465305984,0.2782899433794175,0.0,1.9949999999999997,0.34052309861223934,none
+treat,full,45,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2577819442581316,0.27787993524595445,0.0,1.9949999999999997,0.34311277770325266,none
+treat,full,46,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2684067632626233,0.27636236374955736,0.0,1.9949999999999997,0.3473627053050493,none
+treat,full,47,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26353519099668704,0.2755383564742619,0.0,1.9949999999999997,0.34541407639867483,none
+treat,full,48,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.27796566945090473,0.277022279395513,0.0,1.9949999999999997,0.3511862677803619,none
+treat,full,49,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2647581726268029,0.2762572558945643,0.0,1.9949999999999997,0.34590326905072116,none
+treat,full,50,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2576078246796722,0.27659667408484756,0.0,1.9949999999999997,0.34304312987186886,none
+treat,full,51,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26651068226448227,0.2756616043317407,0.0,1.9949999999999997,0.3466042729057929,none
+treat,full,52,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26137698030852574,0.27738547312967654,0.0,1.9949999999999997,0.3445507921234103,none
+treat,full,53,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2544772662269929,0.278157585743965,0.0,1.9949999999999997,0.34179090649079713,none
+treat,full,54,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2551185144051767,0.27762265773160805,0.0,1.9949999999999997,0.34204740576207066,none
+treat,full,55,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2607738560509799,0.2768349622564086,0.0,1.9949999999999997,0.34430954242039197,none
+treat,full,56,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.27153198818517976,0.2765686200118695,0.0,1.9949999999999997,0.3486127952740719,none
+treat,full,57,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2547972060335568,0.27739438654853216,0.0,1.9949999999999997,0.3419188824134227,none
+treat,full,58,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25708432108977,0.27789957080209754,0.0,1.9949999999999997,0.342833728435908,none
+treat,full,59,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2757887419908682,0.2774073416211996,0.0,1.9949999999999997,0.35031549679634727,none
+treat,full,60,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25373595959242357,0.27728808191822524,0.0,1.9949999999999997,0.3414943838369694,none
+treat,full,61,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2758018080554461,0.2761602372084883,0.0,1.9949999999999997,0.35032072322217844,none
+treat,full,62,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2676939500424543,0.2775001566099707,0.0,1.9949999999999997,0.3470775800169817,none
+treat,full,63,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.27109737214108176,0.27630909797351205,0.0,1.9949999999999997,0.3484389488564327,none
+treat,full,64,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26818005033040715,0.2781164036912236,0.0,1.9949999999999997,0.34727202013216285,none
+treat,full,65,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.24754944475663826,0.2765332432654996,0.0,1.9949999999999997,0.3390197779026553,none
+treat,full,66,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2688158927436384,0.27802585312999106,0.0,1.9949999999999997,0.34752635709745533,none
+treat,full,67,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26061892007248955,0.27737247062824766,0.0,1.9949999999999997,0.3442475680289958,none
+treat,full,68,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2742816519424065,0.27752896253257,0.0,1.9949999999999997,0.3497126607769626,none
+treat,full,69,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.24935787654771016,0.27717349950115255,0.0,1.9949999999999997,0.33974315061908406,none
+treat,full,70,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2781139243029496,0.27733187452313046,0.0,1.9949999999999997,0.3512455697211798,none
+treat,full,71,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.258418720912375,0.2765548501862743,0.0,1.9949999999999997,0.34336748836495,none
+treat,full,72,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2590036903950232,0.27534709076978725,0.0,1.9949999999999997,0.3436014761580093,none
+treat,full,73,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2617457436648724,0.2766300276352901,0.0,1.9949999999999997,0.34469829746594893,none
+treat,full,74,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2662951863806843,0.27729177492753154,0.0,1.9949999999999997,0.3465180745522737,none
+treat,full,75,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26862754003963407,0.27803039282601794,0.0,1.9949999999999997,0.3474510160158536,none
+treat,full,76,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25894063802627354,0.2767972746784339,0.0,1.9949999999999997,0.3435762552105094,none
+treat,full,77,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26897402832549255,0.2765843149705011,0.0,1.9949999999999997,0.347589611330197,none
+treat,full,78,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2533823512424077,0.2780150925278249,0.0,1.9949999999999997,0.3413529404969631,none
+treat,full,79,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26509762627409716,0.27587154131455527,0.0,1.9949999999999997,0.34603905050963885,none
+treat,full,80,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2712210540753055,0.277579809324269,0.0,1.9949999999999997,0.34848842163012217,none
+treat,full,81,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25032346896301366,0.2765638547026846,0.0,1.9949999999999997,0.34012938758520544,none
+treat,full,82,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.28008823355803747,0.2766805274721155,0.0,1.9949999999999997,0.352035293423215,none
+treat,full,83,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26258370639424344,0.2767386994374706,0.0,1.9949999999999997,0.3450334825576974,none
+treat,full,84,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2503270886403512,0.2778775473678477,0.0,1.9949999999999997,0.3401308354561405,none
+treat,full,85,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26028522647456087,0.2780833087680088,0.0,1.9949999999999997,0.34411409058982434,none
+treat,full,86,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26821282338812924,0.2780514423478189,0.0,1.9949999999999997,0.3472851293552517,none
+treat,full,87,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25063384964241586,0.2765776541713931,0.0,1.9949999999999997,0.3402535398569663,none
+treat,full,88,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25460478887453,0.27768497918047924,0.0,1.9949999999999997,0.34184191554981197,none
+treat,full,89,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.26705812438937715,0.2754999085520137,0.0,1.9949999999999997,0.34682324975575085,none
+treat,full,90,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25742256475898073,0.27762910310094757,0.0,1.9949999999999997,0.3429690259035923,none
+treat,full,91,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.24834994346797226,0.27639112049471787,0.0,1.9949999999999997,0.3393399773871889,none
+treat,novg,42,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,43,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,44,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,45,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,46,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,47,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,48,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,49,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,50,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,51,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,52,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,53,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,54,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,55,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,56,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,57,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,58,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.2241065586440102,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,59,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.224240502646532,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,60,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,61,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22668967972568174,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,62,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,63,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,64,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,65,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,66,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,67,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,68,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,69,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,70,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,71,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,72,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410540643893026,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,73,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,74,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,75,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,76,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,77,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,78,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,79,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,80,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,81,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,82,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,83,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,84,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,85,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,86,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,87,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410829406391297,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,88,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,89,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,90,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.2241056174254763,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novg,91,covered,positive,31,2,0.9992884586510837,True,True,0.5144730464753083,exploit_safe,threat_override (safe_drive from current + temporal risk),0.22410524696999107,0.2662309155595885,0.0,1.9949999999999997,0.4,none
+treat,novp,42,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.272831435905562,0.27753724598232166,0.0,1.9949999999999997,0.3491325743622248,none
+treat,novp,43,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25056289753570093,0.2775362134334454,0.0,1.9949999999999997,0.34022515901428035,none
+treat,novp,44,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2513077465305984,0.2782899433794175,0.0,1.9949999999999997,0.34052309861223934,none
+treat,novp,45,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2577819442581316,0.27787993524595445,0.0,1.9949999999999997,0.34311277770325266,none
+treat,novp,46,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2684067632626233,0.27636236374955736,0.0,1.9949999999999997,0.3473627053050493,none
+treat,novp,47,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.26353519099668704,0.2755383564742619,0.0,1.9949999999999997,0.34541407639867483,none
+treat,novp,48,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.27796566945090473,0.277022279395513,0.0,1.9949999999999997,0.3511862677803619,none
+treat,novp,49,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2647581726268029,0.2762572558945643,0.0,1.9949999999999997,0.34590326905072116,none
+treat,novp,50,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2576078246796722,0.27659667408484756,0.0,1.9949999999999997,0.34304312987186886,none
+treat,novp,51,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.26651068226448227,0.2756616043317407,0.0,1.9949999999999997,0.3466042729057929,none
+treat,novp,52,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26137698030852574,0.27738547312967654,0.0,1.9949999999999997,0.3445507921234103,none
+treat,novp,53,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2544772662269929,0.278157585743965,0.0,1.9949999999999997,0.34179090649079713,none
+treat,novp,54,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2551185144051767,0.27762265773160805,0.0,1.9949999999999997,0.34204740576207066,none
+treat,novp,55,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2607738560509799,0.2768349622564086,0.0,1.9949999999999997,0.34430954242039197,none
+treat,novp,56,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.27153198818517976,0.2765686200118695,0.0,1.9949999999999997,0.3486127952740719,none
+treat,novp,57,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2547972060335568,0.27739438654853216,0.0,1.9949999999999997,0.3419188824134227,none
+treat,novp,58,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25708432108977,0.27789957080209754,0.0,1.9949999999999997,0.342833728435908,none
+treat,novp,59,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2757887419908682,0.2774073416211996,0.0,1.9949999999999997,0.35031549679634727,none
+treat,novp,60,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25373595959242357,0.27728808191822524,0.0,1.9949999999999997,0.3414943838369694,none
+treat,novp,61,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2758018080554461,0.2761602372084883,0.0,1.9949999999999997,0.35032072322217844,none
+treat,novp,62,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2676939500424543,0.2775001566099707,0.0,1.9949999999999997,0.3470775800169817,none
+treat,novp,63,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.27109737214108176,0.27630909797351205,0.0,1.9949999999999997,0.3484389488564327,none
+treat,novp,64,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26818005033040715,0.2781164036912236,0.0,1.9949999999999997,0.34727202013216285,none
+treat,novp,65,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.24754944475663826,0.2765332432654996,0.0,1.9949999999999997,0.3390197779026553,none
+treat,novp,66,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2688158927436384,0.27802585312999106,0.0,1.9949999999999997,0.34752635709745533,none
+treat,novp,67,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26061892007248955,0.27737247062824766,0.0,1.9949999999999997,0.3442475680289958,none
+treat,novp,68,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2742816519424065,0.27752896253257,0.0,1.9949999999999997,0.3497126607769626,none
+treat,novp,69,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.24935787654771016,0.27717349950115255,0.0,1.9949999999999997,0.33974315061908406,none
+treat,novp,70,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2781139243029496,0.27733187452313046,0.0,1.9949999999999997,0.3512455697211798,none
+treat,novp,71,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.258418720912375,0.2765548501862743,0.0,1.9949999999999997,0.34336748836495,none
+treat,novp,72,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2590036903950232,0.27534709076978725,0.0,1.9949999999999997,0.3436014761580093,none
+treat,novp,73,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2617457436648724,0.2766300276352901,0.0,1.9949999999999997,0.34469829746594893,none
+treat,novp,74,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2662951863806843,0.27729177492753154,0.0,1.9949999999999997,0.3465180745522737,none
+treat,novp,75,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.26862754003963407,0.27803039282601794,0.0,1.9949999999999997,0.3474510160158536,none
+treat,novp,76,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25894063802627354,0.2767972746784339,0.0,1.9949999999999997,0.3435762552105094,none
+treat,novp,77,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26897402832549255,0.2765843149705011,0.0,1.9949999999999997,0.347589611330197,none
+treat,novp,78,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2533823512424077,0.2780150925278249,0.0,1.9949999999999997,0.3413529404969631,none
+treat,novp,79,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.26509762627409716,0.27587154131455527,0.0,1.9949999999999997,0.34603905050963885,none
+treat,novp,80,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2712210540753055,0.277579809324269,0.0,1.9949999999999997,0.34848842163012217,none
+treat,novp,81,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25032346896301366,0.2765638547026846,0.0,1.9949999999999997,0.34012938758520544,none
+treat,novp,82,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.28008823355803747,0.2766805274721155,0.0,1.9949999999999997,0.352035293423215,none
+treat,novp,83,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26258370639424344,0.2767386994374706,0.0,1.9949999999999997,0.3450334825576974,none
+treat,novp,84,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2503270886403512,0.2778775473678477,0.0,1.9949999999999997,0.3401308354561405,none
+treat,novp,85,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26028522647456087,0.2780833087680088,0.0,1.9949999999999997,0.34411409058982434,none
+treat,novp,86,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.26821282338812924,0.2780514423478189,0.0,1.9949999999999997,0.3472851293552517,none
+treat,novp,87,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25063384964241586,0.2765776541713931,0.0,1.9949999999999997,0.3402535398569663,none
+treat,novp,88,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25460478887453,0.27768497918047924,0.0,1.9949999999999997,0.34184191554981197,none
+treat,novp,89,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26705812438937715,0.2754999085520137,0.0,1.9949999999999997,0.34682324975575085,none
+treat,novp,90,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25742256475898073,0.27762910310094757,0.0,1.9949999999999997,0.3429690259035923,none
+treat,novp,91,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.24834994346797226,0.27639112049471787,0.0,1.9949999999999997,0.3393399773871889,none
+treat,nox,42,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,43,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,44,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,45,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,46,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,47,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,48,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,49,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,50,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,51,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,52,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,53,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,54,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,55,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,56,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,57,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,58,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,59,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,60,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,61,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,62,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,63,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,64,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,65,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,66,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,67,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,68,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,69,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,70,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,71,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,72,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,73,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,74,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,75,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,76,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,77,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,78,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,79,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,80,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,81,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,82,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,83,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,84,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,85,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,86,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,87,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,88,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,89,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,90,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,nox,91,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.0,0.0,0.0,1.9949999999999997,0.0,none
+treat,one_shot_off,42,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.30552101677515475,0.28184412665863456,0.0,0.0,0.3622084067100619,none
+treat,one_shot_off,43,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.25289660778213086,0.2801178106437938,0.0,0.0,0.3411586431128523,none
+treat,one_shot_off,44,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2837077465305984,0.27980964734285824,0.0,0.0,0.35348309861223937,none
+treat,one_shot_off,45,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2577819442581316,0.2794283397787376,0.0,0.0,0.34311277770325266,none
+treat,one_shot_off,46,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.3022954304184524,0.28104759175128735,0.0,0.0,0.360918172167381,none
+treat,one_shot_off,47,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26634405423658486,0.28048893953885534,0.0,0.0,0.3465376216946339,none
+treat,one_shot_off,48,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.30995910250581427,0.2796876478540444,0.0,0.0,0.3639836410023257,none
+treat,one_shot_off,49,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2672356078449394,0.28097633177883785,0.0,0.0,0.34689424313797573,none
+treat,one_shot_off,50,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.262023004191481,0.2812064471293041,0.0,0.0,0.3448092016765924,none
+treat,one_shot_off,51,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.3009131873708075,0.28057249788879024,0.0,0.0,0.360365274948323,none
+treat,one_shot_off,52,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2971707186449152,0.2817412292177268,0.0,0.0,0.35886828745796606,none
+treat,one_shot_off,53,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25641953960429353,0.28063789926769867,0.0,0.0,0.3425678158417174,none
+treat,one_shot_off,54,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2551185144051767,0.2791890716903955,0.0,0.0,0.34204740576207066,none
+treat,one_shot_off,55,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2643310410611645,0.28136799936097734,0.0,0.0,0.3457324164244658,none
+treat,one_shot_off,56,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.27153198818517976,0.2782088166110386,0.0,0.0,0.3486127952740719,none
+treat,one_shot_off,57,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2871972060335569,0.2789767794901349,0.0,0.0,0.35487888241342275,none
+treat,one_shot_off,58,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2616413700744423,0.28208977201669805,0.0,0.0,0.3446565480297769,none
+treat,one_shot_off,59,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.30799986779178146,0.2800099449369441,0.0,0.0,0.36319994711671255,none
+treat,one_shot_off,60,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2557523636331812,0.27991012456555453,0.0,0.0,0.3423009454532725,none
+treat,one_shot_off,61,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.27528641807242027,0.28091055602023884,0.0,0.0,0.3501145672289681,none
+treat,one_shot_off,62,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2693757895809492,0.28181898117686177,0.0,0.0,0.3477503158323797,none
+treat,one_shot_off,63,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.3037776349269736,0.27909071500382954,0.0,0.0,0.3615110539707894,none
+treat,one_shot_off,64,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.3011520452973664,0.2806034298895541,0.0,0.0,0.36046081811894654,none
+treat,one_shot_off,65,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.24754944475663826,0.2781759162369146,0.0,0.0,0.3390197779026553,none
+treat,one_shot_off,66,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2693243034692745,0.2805276390698025,0.0,0.0,0.3477297213877098,none
+treat,one_shot_off,67,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.29301892007248964,0.2789563976842703,0.0,0.0,0.35720756802899584,none
+treat,one_shot_off,68,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.27424348674816584,0.28011174163976105,0.0,0.0,0.3496973946992663,none
+treat,one_shot_off,69,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.28840879200328073,0.2815975174567964,0.0,0.0,0.3553635168013123,none
+treat,one_shot_off,70,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.27697195081685033,0.2817048909704467,0.0,0.0,0.3507887803267401,none
+treat,one_shot_off,71,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2923668488211375,0.2792964096059115,0.0,0.0,0.356946739528455,none
+treat,one_shot_off,72,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2954405902979719,0.2803592671291927,0.0,0.0,0.35817623611918875,none
+treat,one_shot_off,73,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2953611692983852,0.27935933313073785,0.0,0.0,0.35814446771935404,none
+treat,one_shot_off,74,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.26705566774261585,0.2799132156143438,0.0,0.0,0.34682226709704633,none
+treat,one_shot_off,75,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.30245637668889325,0.2821784654242554,0.0,0.0,0.3609825506755573,none
+treat,one_shot_off,76,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.29539462512115344,0.2813424483137379,0.0,0.0,0.35815785004846135,none
+treat,one_shot_off,77,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.30270896664928404,0.2811980680205507,0.0,0.0,0.36108358665971363,none
+treat,one_shot_off,78,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2533823512424077,0.27955403605087714,0.0,0.0,0.3413529404969631,none
+treat,one_shot_off,79,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.29988306955381683,0.2807148288650291,0.0,0.0,0.3599532278215267,none
+treat,one_shot_off,80,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.2719470484208978,0.2818729833275746,0.0,0.0,0.3487788193683591,none
+treat,one_shot_off,81,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.25671270887403697,0.28118419657277904,0.0,0.0,0.3426850835496148,none
+treat,one_shot_off,82,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.27946941020223376,0.27940160149416066,0.0,0.0,0.3517877640808935,none
+treat,one_shot_off,83,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.2637153357548191,0.2794502914291629,0.0,0.0,0.34548613430192765,none
+treat,one_shot_off,84,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.25671534761881604,0.2820748407889797,0.0,0.0,0.34268613904752643,none
+treat,one_shot_off,85,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.29268522647456086,0.2796174771542482,0.0,0.0,0.3570740905898243,none
+treat,one_shot_off,86,covered,positive,31,2,0.5336988354329008,True,False,0.0,explore,standard_arbitration (high uncertainty),0.26821282338812924,0.2795878413834716,0.0,0.0,0.3472851293552517,none
+treat,one_shot_off,87,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25063384964241586,0.2782172183793955,0.0,0.0,0.3402535398569663,none
+treat,one_shot_off,88,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25653430998707694,0.2802423275740611,0.0,0.0,0.34261372399483075,none
+treat,one_shot_off,89,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.30131227267985594,0.2804628730010087,0.0,0.0,0.36052490907194235,none
+treat,one_shot_off,90,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.25742256475898073,0.2791950658838812,0.0,0.0,0.3429690259035923,none
+treat,one_shot_off,91,covered,positive,31,2,0.5336988354329008,True,True,0.0,explore,standard_arbitration (high uncertainty),0.28767400878815175,0.2810670879618039,0.0,0.0,0.3550696035152607,none

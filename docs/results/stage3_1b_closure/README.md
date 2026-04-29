@@ -8,10 +8,10 @@ effects.
 
 ## Source
 
-- Raw suite dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938`
-- Raw analysis dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\analysis`
-- Ablations: full
-- Balanced seeds: 3
-- Balanced trials per seed: 20
-- One-shot seeds: 3
-- One-shot trials per seed: 40
+- Raw suite dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_231025`
+- Raw analysis dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_231025\analysis`
+- Ablations: all
+- Balanced seeds: 50
+- Balanced trials per seed: 100
+- One-shot seeds: 50
+- One-shot trials per seed: 100

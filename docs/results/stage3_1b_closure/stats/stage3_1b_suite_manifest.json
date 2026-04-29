@@ -1,29 +1,81 @@
 {
-  "timestamp": "2026-04-29T20:59:38.083327",
+  "timestamp": "2026-04-29T23:10:25.911922",
   "condition": "balanced_conflict",
   "condition_id": "R1_T2",
   "shock_trial": 30,
   "shock_target_path": "open",
   "treat_target_path": "covered",
   "ablations": [
-    "full"
+    "full",
+    "novg",
+    "novp",
+    "nox",
+    "one_shot_off"
   ],
   "balanced_runs": [
     {
       "ablation": "full",
-      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_205938\\balanced\\full"
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\balanced\\full"
+    },
+    {
+      "ablation": "novg",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\balanced\\novg"
+    },
+    {
+      "ablation": "novp",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\balanced\\novp"
+    },
+    {
+      "ablation": "nox",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\balanced\\nox"
+    },
+    {
+      "ablation": "one_shot_off",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\balanced\\one_shot_off"
     }
   ],
   "shock_runs": [
     {
       "ablation": "full",
-      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_205938\\shock\\full"
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\shock\\full"
+    },
+    {
+      "ablation": "novg",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\shock\\novg"
+    },
+    {
+      "ablation": "novp",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\shock\\novp"
+    },
+    {
+      "ablation": "nox",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\shock\\nox"
+    },
+    {
+      "ablation": "one_shot_off",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\shock\\one_shot_off"
     }
   ],
   "treat_runs": [
     {
       "ablation": "full",
-      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_205938\\treat\\full"
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\treat\\full"
+    },
+    {
+      "ablation": "novg",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\treat\\novg"
+    },
+    {
+      "ablation": "novp",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\treat\\novp"
+    },
+    {
+      "ablation": "nox",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\treat\\nox"
+    },
+    {
+      "ablation": "one_shot_off",
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_231025\\treat\\one_shot_off"
     }
   ]
 }

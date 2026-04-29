@@ -1,23 +1,23 @@
 # Artifact Registry: 3.1B
 
-- Package ID: `stage3_1b_closure_20260429_205928`
+- Package ID: `stage3_1b_closure_20260429_231006`
 - Schema: `stage3_1_closure_artifact_registry_v1`
-- Created: `2026-04-29T21:01:14.497288`
+- Created: `2026-04-30T01:30:57.815625`
 - Artifact count: `39`
 
 ## Git
 
 - Branch: `stage3_1b_closure`
-- Commit: `bb4c2740d03b966ca286288a3cb67055e9ca0caa`
+- Commit: `55852b25e8e09b2319f5eceede6fe22755c25d90`
 - Working tree clean: `True`
 
 ## Source
 
-- suite_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938`
-- analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\analysis`
-- publication_analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\analysis_publication`
+- suite_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_231025`
+- analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_231025\analysis`
+- publication_analysis_dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_231025\analysis_publication`
 - curated_dir: `E:\CRS-1\substrate_cognitive\docs\results\stage3_1b_closure`
-- suite_manifest: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\manifest.json`
+- suite_manifest: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_231025\manifest.json`
 - source_scripts: `['stage3.analysis.run_stage3_1b_ablation_suite', 'stage3.analysis.analyze_stage3_1b_ablation_suite', 'stage3.analysis.analyze_stage3_1b_one_shot_publication', 'stage3.analysis.run_stage3_1_closure_package']`
 
 ## Artifacts
