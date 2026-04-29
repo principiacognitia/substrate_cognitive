@@ -601,6 +601,7 @@ def build_acceptance_summary(
     effect_df: pd.DataFrame,
     first_post_df: pd.DataFrame,
     placebo_df: pd.DataFrame,
+    carrier_effect_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Compact, paper-facing acceptance summary.
@@ -693,6 +694,45 @@ def build_acceptance_summary(
                 "note": "No first-post junction rows found.",
             }
         )
+    if len(carrier_effect_df):
+        for _, row in carrier_effect_df.iterrows():
+            post_window = str(row["post_window"])
+            if post_window not in {"post_1_3", "post_4_10", "post_11_30", "post_all"}:
+                continue
+
+            delta = float(row["delta_post_minus_pre_mean"])
+            p_value = float(row["directional_sign_flip_p"])
+            ci_low = float(row["delta_ci_low"])
+            ci_high = float(row["delta_ci_high"])
+            sign_ok = delta > 0.0
+
+            status = status_for_direction(
+                sign_ok=sign_ok,
+                p_value=p_value,
+                ci_low=ci_low,
+                ci_high=ci_high,
+                expected_direction="positive",
+            )
+
+            rows.append(
+                {
+                    "protocol": row["protocol"],
+                    "ablation": row["ablation"],
+                    "check": f"carrier_delta_{row['carrier_metric']}_{post_window}",
+                    "status": status,
+                    "value": delta,
+                    "threshold_or_expectation": (
+                        "carrier delta must be > 0; pass requires directional "
+                        "p<=0.05 and CI excluding zero"
+                    ),
+                    "note": (
+                        f"carrier={row['carrier_metric']}, "
+                        f"ci=[{ci_low:.4f}, {ci_high:.4f}], "
+                        f"directional_p={p_value:.6f}, "
+                        f"sign_consistency={float(row['directional_sign_consistency']):.4f}"
+                    ),
+                }
+            )
     if len(placebo_df):
         for _, row in placebo_df.iterrows():
             p_value = float(row["directional_placebo_p"])
@@ -716,6 +756,99 @@ def build_acceptance_summary(
                     ),
                 }
             )
+    return pd.DataFrame(rows)
+
+def carrier_metrics_for_protocol(protocol: str) -> List[str]:
+    if protocol == "shock":
+        return ["h_risk", "q_neg"]
+    if protocol == "treat":
+        return ["h_opp", "q_pos"]
+    return []
+
+
+def build_carrier_effect_stats(
+    seed_window_df: pd.DataFrame,
+    *,
+    n_boot: int,
+    n_signflip: int,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """
+    Carrier-level mechanistic guard.
+
+    Behavioral target-choice effects are not sufficient for Stage 3.1B closure.
+    The negative protocol must move through h_risk/q_neg; the positive protocol
+    must move through h_opp/q_pos.
+
+    Carrier deltas are always expected to be positive:
+    post-window carrier mean minus pre-window carrier mean > 0.
+    """
+    rows: List[Dict[str, Any]] = []
+
+    if seed_window_df.empty:
+        return pd.DataFrame()
+
+    grouped = seed_window_df.groupby(
+        ["protocol", "ablation", "target_path"],
+        dropna=False,
+    )
+
+    for (protocol, ablation, target_path), sdf in grouped:
+        protocol = str(protocol)
+        carriers = carrier_metrics_for_protocol(protocol)
+        if not carriers:
+            continue
+
+        for metric in carriers:
+            mdf = sdf[sdf["metric"].astype(str) == metric].copy()
+            if mdf.empty:
+                continue
+
+            pivot = mdf.pivot_table(
+                index="seed",
+                columns="window",
+                values="metric_value",
+                aggfunc="mean",
+            )
+
+            if "pre" not in pivot.columns:
+                continue
+
+            for post_window in ["post_1_3", "post_4_10", "post_11_30", "post_31_plus", "post_all"]:
+                if post_window not in pivot.columns:
+                    continue
+
+                delta = (pivot[post_window] - pivot["pre"]).dropna()
+                if len(delta) == 0:
+                    continue
+
+                mean, lo, hi = bootstrap_ci(delta.tolist(), n_boot, rng)
+                p_value = sign_flip_pvalue(
+                    delta.tolist(),
+                    expected_direction="positive",
+                    n_samples=n_signflip,
+                    rng=rng,
+                )
+                sign_consistency = float((delta > 0).mean())
+
+                rows.append(
+                    {
+                        "protocol": protocol,
+                        "ablation": ablation,
+                        "target_path": target_path,
+                        "carrier_metric": metric,
+                        "post_window": post_window,
+                        "n_seeds": int(len(delta)),
+                        "pre_mean": float(pivot["pre"].mean()),
+                        "post_mean": float(pivot[post_window].mean()),
+                        "delta_post_minus_pre_mean": mean,
+                        "delta_ci_low": lo,
+                        "delta_ci_high": hi,
+                        "directional_sign_consistency": sign_consistency,
+                        "directional_sign_flip_p": p_value,
+                    }
+                )
+
     return pd.DataFrame(rows)
 
 def compute_target_delta_for_event(
@@ -949,6 +1082,44 @@ def build_placebo_window_stats(
             )
 
     return pd.DataFrame(rows)
+
+def plot_carrier_effect_by_window(carrier_df: pd.DataFrame, output_path: Path) -> None:
+    if carrier_df.empty:
+        return
+
+    windows = ["post_1_3", "post_4_10", "post_11_30", "post_all"]
+    sdf = carrier_df[carrier_df["post_window"].isin(windows)].copy()
+    if sdf.empty:
+        return
+
+    sdf["post_window"] = pd.Categorical(sdf["post_window"], categories=windows, ordered=True)
+
+    fig, ax = plt.subplots(figsize=(11, 5))
+
+    for (protocol, ablation, metric), gdf in sdf.groupby(
+        ["protocol", "ablation", "carrier_metric"],
+        dropna=False,
+    ):
+        gdf = gdf.sort_values("post_window")
+        ax.plot(
+            gdf["post_window"].astype(str),
+            gdf["delta_post_minus_pre_mean"],
+            marker="o",
+            label=f"{protocol}:{ablation}:{metric}",
+        )
+
+    ax.axhline(0.0, linestyle="--")
+    ax.set_title("Stage 3.1B: carrier-specific post-event deltas")
+    ax.set_xlabel("Post-event window")
+    ax.set_ylabel("Delta carrier value: window - pre")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+    print(f"✓ Figure saved: {output_path}")
 
 def plot_placebo_window_null(placebo_df: pd.DataFrame, output_path: Path) -> None:
     if placebo_df.empty:
@@ -1270,6 +1441,13 @@ def main() -> None:
         rng=rng,
     )
 
+    carrier_effect_df = build_carrier_effect_stats(
+        seed_window_df,
+        n_boot=args.bootstrap_samples,
+        n_signflip=args.signflip_samples,
+        rng=rng,
+    )
+
     placebo_df = build_placebo_window_stats(
         specs=specs,
         trials_by_key=trials_by_key,
@@ -1284,6 +1462,7 @@ def main() -> None:
         effect_df=effect_df,
         first_post_df=first_post_df,
         placebo_df=placebo_df,
+        carrier_effect_df=carrier_effect_df,
     )
 
     save_table(schema_df, output_dir / "Table_3_1B_one_shot_schema_validation.csv")
@@ -1292,6 +1471,7 @@ def main() -> None:
     save_table(window_summary_df, output_dir / "Table_3_1B_one_shot_window_summary.csv")
     save_table(effect_df, output_dir / "Table_3_1B_one_shot_effect_stats.csv")
     save_table(first_post_df, output_dir / "Table_3_1B_one_shot_first_post_junction.csv")
+    save_table(carrier_effect_df, output_dir / "Table_3_1B_one_shot_carrier_effect_stats.csv")
     save_table(placebo_df, output_dir / "Table_3_1B_one_shot_placebo_window_stats.csv")
     save_table(acceptance_df, output_dir / "Table_3_1B_one_shot_acceptance_summary.csv")
 
@@ -1354,6 +1534,10 @@ def main() -> None:
         effect_df,
         output_path=output_dir / "Figure_3_1B_OneShot_Carryover_Decay_By_Window.png",
     )
+    plot_carrier_effect_by_window(
+        carrier_effect_df,
+        output_path=output_dir / "Figure_3_1B_OneShot_Carrier_Effect_By_Window.png",
+    )
     plot_placebo_window_null(
         placebo_df,
         output_path=output_dir / "Figure_3_1B_OneShot_Placebo_Window_Null.png",
@@ -1369,6 +1553,7 @@ def main() -> None:
         "n_trial_series_rows": int(len(trial_series_df)),
         "n_seed_window_rows": int(len(seed_window_df)),
         "n_first_post_rows": int(len(first_post_df)),
+        "n_carrier_effect_rows": int(len(carrier_effect_df)),
         "n_placebo_rows": int(len(placebo_df)),
         "placebo_samples": int(args.placebo_samples),
     }

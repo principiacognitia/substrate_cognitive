@@ -11,6 +11,8 @@ Smoke mode:
 - requires placebo-null rows to exist;
 - requires shock placebo-null to pass;
 - allows treat placebo-null to remain diagnostic;
+- requires protocol-specific carrier checks:
+  shock through h_risk/q_neg, treat through h_opp/q_pos;
 - does not require post_31_plus to pass.
 
 Full mode:
@@ -18,6 +20,8 @@ Full mode:
 - requires post_all and post_11_30 to be full pass for the selected ablation;
 - requires shock placebo-null to pass;
 - allows treat placebo-null to remain diagnostic;
+- requires at least one protocol-specific carrier metric to fully pass
+  for each core carrier window;
 - still treats post_31_plus as diagnostic only.
 
 Rationale:
@@ -58,6 +62,16 @@ PLACEBO_CORE_CHECKS = {
     "placebo_window_null_post_all",
 }
 
+CARRIER_CORE_WINDOWS = {
+    "post_1_3",
+    "post_4_10",
+    "post_11_30",
+}
+
+CARRIER_METRICS_BY_PROTOCOL = {
+    "shock": {"h_risk", "q_neg"},
+    "treat": {"h_opp", "q_pos"},
+}
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Validate Stage 3.1B one-shot acceptance summary")
@@ -102,6 +116,14 @@ def is_direction_ok(status: str) -> bool:
 
 def is_full_pass(status: str) -> bool:
     return status == "pass"
+
+def carrier_check_names_for_protocol(protocol: str) -> List[str]:
+    metrics = CARRIER_METRICS_BY_PROTOCOL.get(protocol, set())
+    out: List[str] = []
+    for metric in sorted(metrics):
+        for window in sorted(CARRIER_CORE_WINDOWS):
+            out.append(f"carrier_delta_{metric}_{window}")
+    return out
 
 def is_placebo_acceptable(protocol: str, status: str) -> bool:
     """
@@ -208,6 +230,49 @@ def validate(df: pd.DataFrame, mode: str, ablation: str) -> List[str]:
                     f"protocol={protocol}, check={check}, status={status}, "
                     f"value={row['value']}, note={row.get('note', '')}"
                 )
+
+        carrier_checks = carrier_check_names_for_protocol(protocol)
+
+        for check in carrier_checks:
+            rows = pdf[pdf["check"].astype(str) == check]
+            if rows.empty:
+                errors.append(f"missing carrier check: protocol={protocol}, check={check}")
+                continue
+
+            row = rows.iloc[0]
+            status = str(row["status"])
+
+            if mode == "smoke":
+                if not is_direction_ok(status):
+                    errors.append(
+                        f"carrier check lacks expected positive direction in smoke: "
+                        f"protocol={protocol}, check={check}, status={status}, "
+                        f"value={row['value']}, note={row.get('note', '')}"
+                    )
+            else:
+                # Full mode is stricter but not overdetermined:
+                # for each protocol/window, at least one carrier metric must be a full pass.
+                pass
+
+        if mode == "full":
+            for window in sorted(CARRIER_CORE_WINDOWS):
+                candidate_checks = [
+                    f"carrier_delta_{metric}_{window}"
+                    for metric in CARRIER_METRICS_BY_PROTOCOL.get(protocol, set())
+                ]
+                rows = pdf[pdf["check"].astype(str).isin(candidate_checks)]
+                if rows.empty:
+                    errors.append(
+                        f"missing carrier window checks: protocol={protocol}, window={window}"
+                    )
+                    continue
+
+                if not any(is_full_pass(str(status)) for status in rows["status"].tolist()):
+                    errors.append(
+                        f"no carrier metric is a full pass in full mode: "
+                        f"protocol={protocol}, window={window}, "
+                        f"statuses={rows[['check', 'status', 'value']].to_dict(orient='records')}"
+                    )
 
     return errors
 
