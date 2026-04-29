@@ -1,14 +1,14 @@
 {
   "stage": "stage3_1_closure",
   "mode": "smoke",
-  "run_id": "20260429_012842",
-  "created_at": "2026-04-29T01:28:42.957577",
+  "run_id": "20260429_030844",
+  "created_at": "2026-04-29T03:08:44.996110",
   "project_root": "E:\\CRS-1\\substrate_cognitive",
   "raw_output_root": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw",
   "curated_output_root": "E:\\CRS-1\\substrate_cognitive\\docs\\results",
   "git": {
     "branch": "stage3_1b_closure",
-    "commit": "0f536916ceda5dc951f72b742268951fbfe4352e",
+    "commit": "89ed6ae8ba94ab80c175a434e093a12ba15cff03",
     "working_tree_clean": false,
     "status_porcelain": "M stage3/analysis/analyze_stage3_1b_one_shot_publication.py\n M stage3/analysis/validate_stage3_1_artifacts.py"
   },
@@ -31,8 +31,8 @@
         "stage3/tests"
       ],
       "returncode": 0,
-      "started": "2026-04-29T01:28:42.977510",
-      "ended": "2026-04-29T01:28:45.248039"
+      "started": "2026-04-29T03:08:45.021224",
+      "ended": "2026-04-29T03:08:47.259245"
     },
     {
       "label": "Stage 3.1A compatibility rerun",
@@ -45,13 +45,13 @@
         "--n-trials",
         "20",
         "--output-dir",
-        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_012845",
+        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
         "--ablation",
         "full"
       ],
       "returncode": 0,
-      "started": "2026-04-29T01:28:45.250031",
-      "ended": "2026-04-29T01:28:46.132106"
+      "started": "2026-04-29T03:08:47.263232",
+      "ended": "2026-04-29T03:08:48.114150"
     },
     {
       "label": "Stage 3.1A baseline analysis",
@@ -60,13 +60,13 @@
         "-m",
         "stage3.analysis.analyze_stage3_1a_baseline",
         "--run-dir",
-        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_012845",
+        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
         "--output-dir",
-        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_012845"
+        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847"
       ],
       "returncode": 0,
-      "started": "2026-04-29T01:28:46.134098",
-      "ended": "2026-04-29T01:28:52.677235"
+      "started": "2026-04-29T03:08:48.115147",
+      "ended": "2026-04-29T03:08:54.550351"
     },
     {
       "label": "Stage 3.1B ablation suite",
@@ -88,8 +88,8 @@
         "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b"
       ],
       "returncode": 0,
-      "started": "2026-04-29T01:28:52.766934",
-      "ended": "2026-04-29T01:29:01.950146"
+      "started": "2026-04-29T03:08:54.632078",
+      "ended": "2026-04-29T03:09:03.475379"
     },
     {
       "label": "Stage 3.1B one-shot publication analysis",
@@ -98,18 +98,18 @@
         "-m",
         "stage3.analysis.analyze_stage3_1b_one_shot_publication",
         "--manifest",
-        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853\\manifest.json",
+        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\manifest.json",
         "--output-dir",
-        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853\\analysis_publication"
+        "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\analysis_publication"
       ],
       "returncode": 0,
-      "started": "2026-04-29T01:29:01.953137",
-      "ended": "2026-04-29T01:29:07.724993"
+      "started": "2026-04-29T03:09:03.479364",
+      "ended": "2026-04-29T03:10:31.610485"
     }
   ],
   "stage3_1a": {
-    "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_012845",
-    "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_012845",
+    "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
+    "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
     "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
     "copied_artifacts": [
       "docs\\results\\stage3_1a\\figures\\Figure_3_1A_Block_Commit_Latency.png",
@@ -133,9 +133,9 @@
     "artifact_registry_md": "docs\\results\\stage3_1a\\ARTIFACT_REGISTRY.md"
   },
   "stage3_1b": {
-    "suite_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853",
-    "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853\\analysis",
-    "publication_analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853\\analysis_publication",
+    "suite_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855",
+    "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\analysis",
+    "publication_analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\analysis_publication",
     "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1b_closure",
     "copied_artifacts": [
       "docs\\results\\stage3_1b_closure\\stats\\analysis_meta.json",
@@ -154,6 +154,7 @@
       "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_ablation_summary_wide.csv",
       "docs\\results\\stage3_1b_closure\\figures\\Figure_3_1B_OneShot_Carryover_Decay_By_Window.png",
       "docs\\results\\stage3_1b_closure\\figures\\Figure_3_1B_OneShot_Effect_By_Ablation.png",
+      "docs\\results\\stage3_1b_closure\\figures\\Figure_3_1B_OneShot_Placebo_Window_Null.png",
       "docs\\results\\stage3_1b_closure\\figures\\Figure_3_1B_Shock_Risk_Carrier_Around_Event_Zoom.png",
       "docs\\results\\stage3_1b_closure\\figures\\Figure_3_1B_Shock_Target_Choice_Around_Event_Zoom.png",
       "docs\\results\\stage3_1b_closure\\figures\\Figure_3_1B_Treat_Opportunity_Carrier_Around_Event_Zoom.png",
@@ -164,6 +165,7 @@
       "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_one_shot_acceptance_summary.csv",
       "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_one_shot_effect_stats.csv",
       "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_one_shot_first_post_junction.csv",
+      "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_one_shot_placebo_window_stats.csv",
       "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_one_shot_schema_validation.csv",
       "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_one_shot_trial_series.csv",
       "docs\\results\\stage3_1b_closure\\tables\\Table_3_1B_one_shot_window_seed_metrics.csv",
@@ -173,5 +175,5 @@
     "artifact_registry": "docs\\results\\stage3_1b_closure\\artifact_registry.json",
     "artifact_registry_md": "docs\\results\\stage3_1b_closure\\ARTIFACT_REGISTRY.md"
   },
-  "completed_at": "2026-04-29T01:29:07.967178"
+  "completed_at": "2026-04-29T03:10:31.869616"
 }

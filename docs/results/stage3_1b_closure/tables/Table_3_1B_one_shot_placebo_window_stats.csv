@@ -1,0 +1,5 @@
+protocol,ablation,target_path,expected_direction,post_window,n_seeds,n_placebo_samples,observed_delta,null_mean,null_ci_low,null_ci_high,directional_placebo_p,note
+shock,full,open,negative,post_11_30,3,5000,-0.24827586206896549,-0.01653355718085675,-0.2803781408808582,0.17941806382924066,0.04579084183163367,Placebo event-time null; conservative because fake events are sampled from the same realized sequence.
+shock,full,open,negative,post_all,3,5000,-0.1244663382594417,0.06168044405808778,-0.07778509454055363,0.16527062884485239,0.003599280143971206,Placebo event-time null; conservative because fake events are sampled from the same realized sequence.
+treat,full,covered,positive,post_11_30,3,5000,0.1482758620689655,0.07896722785527958,-0.046353491560636506,0.19575367647058817,0.13597280543891221,Placebo event-time null; conservative because fake events are sampled from the same realized sequence.
+treat,full,covered,positive,post_all,3,5000,0.13399014778325122,0.09932310003385406,0.009340610296068738,0.20793342104594534,0.24575084983003398,Placebo event-time null; conservative because fake events are sampled from the same realized sequence.

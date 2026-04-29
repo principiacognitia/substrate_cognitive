@@ -88,5 +88,41 @@
     "value": 0.6568917050780784,
     "threshold_or_expectation": "shock/negative expects target_prob < 0.5; treat/positive expects target_prob > 0.5",
     "note": "target_choice_rate=0.6667, target_prob_wins_rate=1.0000"
+  },
+  {
+    "protocol": "shock",
+    "ablation": "full",
+    "check": "placebo_window_null_post_11_30",
+    "status": "pass",
+    "value": 0.04579084183163367,
+    "threshold_or_expectation": "directional placebo p<=0.05 indicates real event-aligned effect is stronger than random fake event boundaries",
+    "note": "observed_delta=-0.2483, null_mean=-0.0165, null_ci=[-0.2804, 0.1794]"
+  },
+  {
+    "protocol": "shock",
+    "ablation": "full",
+    "check": "placebo_window_null_post_all",
+    "status": "pass",
+    "value": 0.003599280143971206,
+    "threshold_or_expectation": "directional placebo p<=0.05 indicates real event-aligned effect is stronger than random fake event boundaries",
+    "note": "observed_delta=-0.1245, null_mean=0.0617, null_ci=[-0.0778, 0.1653]"
+  },
+  {
+    "protocol": "treat",
+    "ablation": "full",
+    "check": "placebo_window_null_post_11_30",
+    "status": "diagnostic",
+    "value": 0.13597280543891221,
+    "threshold_or_expectation": "directional placebo p<=0.05 indicates real event-aligned effect is stronger than random fake event boundaries",
+    "note": "observed_delta=0.1483, null_mean=0.0790, null_ci=[-0.0464, 0.1958]"
+  },
+  {
+    "protocol": "treat",
+    "ablation": "full",
+    "check": "placebo_window_null_post_all",
+    "status": "diagnostic",
+    "value": 0.24575084983003398,
+    "threshold_or_expectation": "directional placebo p<=0.05 indicates real event-aligned effect is stronger than random fake event boundaries",
+    "note": "observed_delta=0.1340, null_mean=0.0993, null_ci=[0.0093, 0.2079]"
   }
 ]

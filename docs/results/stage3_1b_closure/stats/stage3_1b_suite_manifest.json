@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-29T01:28:53.433386",
+  "timestamp": "2026-04-29T03:08:55.249621",
   "condition": "balanced_conflict",
   "condition_id": "R1_T2",
   "shock_trial": 30,
@@ -11,19 +11,19 @@
   "balanced_runs": [
     {
       "ablation": "full",
-      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853\\balanced\\full"
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\balanced\\full"
     }
   ],
   "shock_runs": [
     {
       "ablation": "full",
-      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853\\shock\\full"
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\shock\\full"
     }
   ],
   "treat_runs": [
     {
       "ablation": "full",
-      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_012853\\treat\\full"
+      "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\treat\\full"
     }
   ]
 }

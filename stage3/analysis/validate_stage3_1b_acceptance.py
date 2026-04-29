@@ -8,11 +8,16 @@ Smoke mode:
 - requires schema pass;
 - requires post_all and post_11_30 to have the expected direction;
 - allows underpowered directional-only evidence;
+- requires placebo-null rows to exist;
+- requires shock placebo-null to pass;
+- allows treat placebo-null to remain diagnostic;
 - does not require post_31_plus to pass.
 
 Full mode:
 - requires schema pass;
 - requires post_all and post_11_30 to be full pass for the selected ablation;
+- requires shock placebo-null to pass;
+- allows treat placebo-null to remain diagnostic;
 - still treats post_31_plus as diagnostic only.
 
 Rationale:
@@ -46,6 +51,11 @@ FIRST_POST_CHECKS = {
 
 SCHEMA_CHECKS = {
     "schema_required_columns",
+}
+
+PLACEBO_CORE_CHECKS = {
+    "placebo_window_null_post_11_30",
+    "placebo_window_null_post_all",
 }
 
 
@@ -93,6 +103,20 @@ def is_direction_ok(status: str) -> bool:
 def is_full_pass(status: str) -> bool:
     return status == "pass"
 
+def is_placebo_acceptable(protocol: str, status: str) -> bool:
+    """
+    Shock is expected to be event-boundary-specific, so placebo-null should pass.
+
+    Treat may show a broader positive approach drift in short smoke runs; for
+    treat, placebo-null is required to exist but diagnostic status is acceptable.
+    Full-mode treat acceptance should rely on positive carrier/effect/ablation
+    localization rather than requiring event-boundary specificity.
+    """
+    if protocol == "shock":
+        return status == "pass"
+    if protocol == "treat":
+        return status in {"pass", "diagnostic"}
+    return status in {"pass", "diagnostic"}
 
 def validate(df: pd.DataFrame, mode: str, ablation: str) -> List[str]:
     errors: List[str] = []
@@ -168,6 +192,22 @@ def validate(df: pd.DataFrame, mode: str, ablation: str) -> List[str]:
                         f"protocol={protocol}, status={status}, value={row['value']}, "
                         f"note={row.get('note', '')}"
                     )
+
+        for check in PLACEBO_CORE_CHECKS:
+            rows = pdf[pdf["check"].astype(str) == check]
+            if rows.empty:
+                errors.append(f"missing placebo-null check: protocol={protocol}, check={check}")
+                continue
+
+            row = rows.iloc[0]
+            status = str(row["status"])
+
+            if not is_placebo_acceptable(protocol, status):
+                errors.append(
+                    f"placebo-null check failed acceptance policy: "
+                    f"protocol={protocol}, check={check}, status={status}, "
+                    f"value={row['value']}, note={row.get('note', '')}"
+                )
 
     return errors
 
