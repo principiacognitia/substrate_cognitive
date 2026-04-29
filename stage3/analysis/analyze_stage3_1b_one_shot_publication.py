@@ -54,6 +54,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--bootstrap-samples", type=int, default=5000)
     ap.add_argument("--bootstrap-seed", type=int, default=123)
     ap.add_argument("--signflip-samples", type=int, default=20000)
+    ap.add_argument("--placebo-samples", type=int, default=5000)
     ap.add_argument("--zoom-pre", type=int, default=5)
     ap.add_argument("--zoom-post", type=int, default=30)
     return ap.parse_args()
@@ -599,6 +600,7 @@ def build_acceptance_summary(
     schema_df: pd.DataFrame,
     effect_df: pd.DataFrame,
     first_post_df: pd.DataFrame,
+    placebo_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Compact, paper-facing acceptance summary.
@@ -691,8 +693,298 @@ def build_acceptance_summary(
                 "note": "No first-post junction rows found.",
             }
         )
+    if len(placebo_df):
+        for _, row in placebo_df.iterrows():
+            p_value = float(row["directional_placebo_p"])
+            status = "pass" if pd.notna(p_value) and p_value <= 0.05 else "diagnostic"
+
+            rows.append(
+                {
+                    "protocol": row["protocol"],
+                    "ablation": row["ablation"],
+                    "check": f"placebo_window_null_{row['post_window']}",
+                    "status": status,
+                    "value": p_value,
+                    "threshold_or_expectation": (
+                        "directional placebo p<=0.05 indicates real event-aligned "
+                        "effect is stronger than random fake event boundaries"
+                    ),
+                    "note": (
+                        f"observed_delta={float(row['observed_delta']):.4f}, "
+                        f"null_mean={float(row['null_mean']):.4f}, "
+                        f"null_ci=[{float(row['null_ci_low']):.4f}, {float(row['null_ci_high']):.4f}]"
+                    ),
+                }
+            )
+    return pd.DataFrame(rows)
+
+def compute_target_delta_for_event(
+    trials: pd.DataFrame,
+    *,
+    event_trial: int,
+    target_path: str,
+    post_window: str,
+) -> float:
+    target = target_choice_label(target_path)
+    df = trials.copy()
+    df["target_hit"] = (df["path_choice"] == target).astype(float)
+
+    pre = df[df["trial"].astype(int) < int(event_trial)]
+
+    if post_window == "post_11_30":
+        post = df[
+            (df["trial"].astype(int) >= int(event_trial) + 11)
+            & (df["trial"].astype(int) <= int(event_trial) + 30)
+        ]
+    elif post_window == "post_all":
+        post = df[df["trial"].astype(int) > int(event_trial)]
+    else:
+        raise ValueError(f"Unsupported placebo post window: {post_window}")
+
+    if len(pre) == 0 or len(post) == 0:
+        return float("nan")
+
+    return float(post["target_hit"].mean() - pre["target_hit"].mean())
+
+
+def valid_placebo_trials(
+    trials: pd.DataFrame,
+    *,
+    true_event_trial: int,
+    post_window: str,
+    exclusion_radius: int = 5,
+    min_pre_trials: int = 10,
+) -> List[int]:
+    trial_values = sorted(int(x) for x in trials["trial"].dropna().unique())
+    if not trial_values:
+        return []
+
+    min_trial = min(trial_values)
+    max_trial = max(trial_values)
+
+    candidates: List[int] = []
+
+    for event_trial in trial_values:
+        if event_trial - min_trial < min_pre_trials:
+            continue
+
+        if post_window == "post_11_30":
+            if event_trial + 30 > max_trial:
+                continue
+        elif post_window == "post_all":
+            if event_trial + 5 > max_trial:
+                continue
+        else:
+            continue
+
+        if abs(event_trial - int(true_event_trial)) <= exclusion_radius:
+            continue
+
+        candidates.append(event_trial)
+
+    # Fallback for very short smoke/debug runs.
+    if not candidates:
+        for event_trial in trial_values:
+            if event_trial - min_trial < max(3, min_pre_trials // 2):
+                continue
+            if post_window == "post_11_30" and event_trial + 30 > max_trial:
+                continue
+            if post_window == "post_all" and event_trial + 3 > max_trial:
+                continue
+            candidates.append(event_trial)
+
+    return candidates
+
+
+def directional_placebo_pvalue(
+    observed_delta: float,
+    null_deltas: Sequence[float],
+    expected_direction: str,
+) -> float:
+    arr = np.asarray([x for x in null_deltas if pd.notna(x)], dtype=float)
+    if arr.size == 0 or pd.isna(observed_delta):
+        return float("nan")
+
+    if expected_direction == "negative":
+        return float((np.sum(arr <= float(observed_delta)) + 1.0) / (arr.size + 1.0))
+
+    if expected_direction == "positive":
+        return float((np.sum(arr >= float(observed_delta)) + 1.0) / (arr.size + 1.0))
+
+    return float("nan")
+
+def build_placebo_window_stats(
+    specs: Sequence[OneShotRunSpec],
+    trials_by_key: Dict[Tuple[str, str], pd.DataFrame],
+    effect_df: pd.DataFrame,
+    *,
+    shock_trial: int,
+    n_samples: int,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """
+    Placebo event-time null.
+
+    This tests whether the observed pre/post delta is unusually aligned with
+    the real one-shot event boundary, compared with random fake event boundaries
+    inside the same realized sequence.
+
+    It is conservative because placebo events are sampled from the same runs,
+    which may already contain true post-event deformation.
+    """
+    rows: List[Dict[str, Any]] = []
+
+    core_windows = ["post_11_30", "post_all"]
+
+    for spec in specs:
+        trials = trials_by_key.get((spec.protocol, spec.ablation))
+        if trials is None or trials.empty:
+            continue
+
+        for post_window in core_windows:
+            obs_rows = effect_df[
+                (effect_df["protocol"].astype(str) == spec.protocol)
+                & (effect_df["ablation"].astype(str) == spec.ablation)
+                & (effect_df["post_window"].astype(str) == post_window)
+            ]
+
+            if obs_rows.empty:
+                continue
+
+            observed_delta = float(obs_rows.iloc[0]["delta_post_minus_pre_mean"])
+
+            seed_groups = {
+                int(seed): sdf.copy()
+                for seed, sdf in trials.groupby("seed", dropna=False)
+            }
+
+            candidates_by_seed = {
+                seed: valid_placebo_trials(
+                    sdf,
+                    true_event_trial=shock_trial,
+                    post_window=post_window,
+                )
+                for seed, sdf in seed_groups.items()
+            }
+
+            active_seeds = [
+                seed for seed, candidates in candidates_by_seed.items()
+                if len(candidates) > 0
+            ]
+
+            if not active_seeds:
+                rows.append(
+                    {
+                        "protocol": spec.protocol,
+                        "ablation": spec.ablation,
+                        "target_path": spec.target_path,
+                        "expected_direction": spec.expected_direction,
+                        "post_window": post_window,
+                        "n_seeds": 0,
+                        "n_placebo_samples": 0,
+                        "observed_delta": observed_delta,
+                        "null_mean": float("nan"),
+                        "null_ci_low": float("nan"),
+                        "null_ci_high": float("nan"),
+                        "directional_placebo_p": float("nan"),
+                        "note": "No valid placebo windows.",
+                    }
+                )
+                continue
+
+            null_values: List[float] = []
+
+            for _ in range(int(n_samples)):
+                sample_deltas: List[float] = []
+
+                for seed in active_seeds:
+                    candidates = candidates_by_seed[seed]
+                    fake_event = int(rng.choice(candidates))
+                    delta = compute_target_delta_for_event(
+                        seed_groups[seed],
+                        event_trial=fake_event,
+                        target_path=spec.target_path,
+                        post_window=post_window,
+                    )
+                    if pd.notna(delta):
+                        sample_deltas.append(float(delta))
+
+                if sample_deltas:
+                    null_values.append(float(np.mean(sample_deltas)))
+
+            arr = np.asarray(null_values, dtype=float)
+            if arr.size:
+                null_mean = float(arr.mean())
+                null_lo, null_hi = [float(x) for x in np.quantile(arr, [0.025, 0.975])]
+                p_value = directional_placebo_pvalue(
+                    observed_delta=observed_delta,
+                    null_deltas=arr,
+                    expected_direction=spec.expected_direction,
+                )
+            else:
+                null_mean = float("nan")
+                null_lo = float("nan")
+                null_hi = float("nan")
+                p_value = float("nan")
+
+            rows.append(
+                {
+                    "protocol": spec.protocol,
+                    "ablation": spec.ablation,
+                    "target_path": spec.target_path,
+                    "expected_direction": spec.expected_direction,
+                    "post_window": post_window,
+                    "n_seeds": int(len(active_seeds)),
+                    "n_placebo_samples": int(arr.size),
+                    "observed_delta": observed_delta,
+                    "null_mean": null_mean,
+                    "null_ci_low": null_lo,
+                    "null_ci_high": null_hi,
+                    "directional_placebo_p": p_value,
+                    "note": (
+                        "Placebo event-time null; conservative because fake "
+                        "events are sampled from the same realized sequence."
+                    ),
+                }
+            )
 
     return pd.DataFrame(rows)
+
+def plot_placebo_window_null(placebo_df: pd.DataFrame, output_path: Path) -> None:
+    if placebo_df.empty:
+        return
+
+    sdf = placebo_df.sort_values(["protocol", "ablation", "post_window"]).reset_index(drop=True)
+    labels = [
+        f"{r.protocol}:{r.ablation}:{r.post_window}"
+        for r in sdf.itertuples(index=False)
+    ]
+
+    x = np.arange(len(sdf))
+    observed = sdf["observed_delta"].to_numpy(dtype=float)
+    null_mean = sdf["null_mean"].to_numpy(dtype=float)
+
+    yerr = np.vstack([
+        null_mean - sdf["null_ci_low"].to_numpy(dtype=float),
+        sdf["null_ci_high"].to_numpy(dtype=float) - null_mean,
+    ])
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.errorbar(x, null_mean, yerr=yerr, fmt="o", capsize=4, label="placebo null mean ± 95% interval")
+    ax.scatter(x, observed, marker="x", s=80, label="observed real-event delta")
+    ax.axhline(0.0, linestyle="--")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=25, ha="right")
+    ax.set_ylabel("Delta P(target)")
+    ax.set_title("Stage 3.1B: one-shot real-event effect vs placebo event-time null")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+    print(f"✓ Figure saved: {output_path}")
 
 def save_table(df: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -941,11 +1233,13 @@ def main() -> None:
     trial_series_frames: List[pd.DataFrame] = []
     seed_window_frames: List[pd.DataFrame] = []
     first_post_frames: List[pd.DataFrame] = []
+    trials_by_key: Dict[Tuple[str, str], pd.DataFrame] = {}
 
     for spec in specs:
         trials = load_trials(spec.run_dir)
         steps = load_steps(spec.run_dir)
         debug_rows = load_debug_rows(spec.run_dir)
+        trials_by_key[(spec.protocol, spec.ablation)] = trials.copy()
 
         schema_records.extend(validate_schema(spec, trials, steps))
 
@@ -976,10 +1270,20 @@ def main() -> None:
         rng=rng,
     )
 
+    placebo_df = build_placebo_window_stats(
+        specs=specs,
+        trials_by_key=trials_by_key,
+        effect_df=effect_df,
+        shock_trial=shock_trial,
+        n_samples=args.placebo_samples,
+        rng=rng,
+    )
+
     acceptance_df = build_acceptance_summary(
         schema_df=schema_df,
         effect_df=effect_df,
         first_post_df=first_post_df,
+        placebo_df=placebo_df,
     )
 
     save_table(schema_df, output_dir / "Table_3_1B_one_shot_schema_validation.csv")
@@ -988,6 +1292,7 @@ def main() -> None:
     save_table(window_summary_df, output_dir / "Table_3_1B_one_shot_window_summary.csv")
     save_table(effect_df, output_dir / "Table_3_1B_one_shot_effect_stats.csv")
     save_table(first_post_df, output_dir / "Table_3_1B_one_shot_first_post_junction.csv")
+    save_table(placebo_df, output_dir / "Table_3_1B_one_shot_placebo_window_stats.csv")
     save_table(acceptance_df, output_dir / "Table_3_1B_one_shot_acceptance_summary.csv")
 
     acceptance_json_path = output_dir / "one_shot_acceptance_summary.json"
@@ -1049,6 +1354,10 @@ def main() -> None:
         effect_df,
         output_path=output_dir / "Figure_3_1B_OneShot_Carryover_Decay_By_Window.png",
     )
+    plot_placebo_window_null(
+        placebo_df,
+        output_path=output_dir / "Figure_3_1B_OneShot_Placebo_Window_Null.png",
+    )
 
     meta = {
         "manifest": str(manifest_path),
@@ -1060,6 +1369,8 @@ def main() -> None:
         "n_trial_series_rows": int(len(trial_series_df)),
         "n_seed_window_rows": int(len(seed_window_df)),
         "n_first_post_rows": int(len(first_post_df)),
+        "n_placebo_rows": int(len(placebo_df)),
+        "placebo_samples": int(args.placebo_samples),
     }
     meta_path = output_dir / "one_shot_publication_analysis_meta.json"
     meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
