@@ -602,6 +602,7 @@ def build_acceptance_summary(
     first_post_df: pd.DataFrame,
     placebo_df: pd.DataFrame,
     carrier_effect_df: pd.DataFrame,
+    ablation_localization_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Compact, paper-facing acceptance summary.
@@ -733,6 +734,49 @@ def build_acceptance_summary(
                     ),
                 }
             )
+    if len(ablation_localization_df):
+        for _, row in ablation_localization_df.iterrows():
+            metric_family = str(row["metric_family"])
+
+            if metric_family == "availability":
+                rows.append(
+                    {
+                        "protocol": row["protocol"],
+                        "ablation": row["ablation"],
+                        "check": "ablation_localization_available",
+                        "status": "diagnostic",
+                        "value": float("nan"),
+                        "threshold_or_expectation": (
+                            "non-full ablation runs should exist in paper-grade --ablations all mode"
+                        ),
+                        "note": row["note"],
+                    }
+                )
+                continue
+
+            status = str(row["status"])
+            rows.append(
+                {
+                    "protocol": row["protocol"],
+                    "ablation": row["ablation"],
+                    "check": (
+                        f"ablation_localization_{metric_family}_"
+                        f"{row['metric']}_{row['post_window']}_vs_{row['compared_ablation']}"
+                    ),
+                    "status": status,
+                    "value": float(row["directional_margin"]),
+                    "threshold_or_expectation": (
+                        "full directional magnitude should exceed the compared ablation"
+                    ),
+                    "note": (
+                        f"compared_ablation={row['compared_ablation']}, "
+                        f"full_delta={float(row['full_delta']):.4f}, "
+                        f"ablation_delta={float(row['ablation_delta']):.4f}, "
+                        f"full_mag={float(row['full_directional_magnitude']):.4f}, "
+                        f"ablation_mag={float(row['ablation_directional_magnitude']):.4f}"
+                    ),
+                }
+            )
     if len(placebo_df):
         for _, row in placebo_df.iterrows():
             p_value = float(row["directional_placebo_p"])
@@ -850,6 +894,187 @@ def build_carrier_effect_stats(
                 )
 
     return pd.DataFrame(rows)
+
+ABLATION_LOCALIZATION_COLUMNS = [
+    "protocol",
+    "ablation",
+    "compared_ablation",
+    "target_path",
+    "expected_direction",
+    "metric_family",
+    "metric",
+    "post_window",
+    "full_delta",
+    "ablation_delta",
+    "full_directional_magnitude",
+    "ablation_directional_magnitude",
+    "directional_margin",
+    "localized",
+    "status",
+    "note",
+]
+
+
+def directional_magnitude(delta: float, expected_direction: str) -> float:
+    if pd.isna(delta):
+        return float("nan")
+    if expected_direction == "negative":
+        return -float(delta)
+    if expected_direction == "positive":
+        return float(delta)
+    return float("nan")
+
+
+def localization_row(
+    *,
+    protocol: str,
+    compared_ablation: str,
+    target_path: str,
+    expected_direction: str,
+    metric_family: str,
+    metric: str,
+    post_window: str,
+    full_delta: float,
+    ablation_delta: float,
+) -> Dict[str, Any]:
+    full_mag = directional_magnitude(full_delta, expected_direction)
+    ablation_mag = directional_magnitude(ablation_delta, expected_direction)
+    margin = full_mag - ablation_mag
+
+    localized = bool(pd.notna(margin) and margin > 0.0)
+    status = "pass" if localized else "diagnostic"
+
+    return {
+        "protocol": protocol,
+        "ablation": "full",
+        "compared_ablation": compared_ablation,
+        "target_path": target_path,
+        "expected_direction": expected_direction,
+        "metric_family": metric_family,
+        "metric": metric,
+        "post_window": post_window,
+        "full_delta": float(full_delta),
+        "ablation_delta": float(ablation_delta),
+        "full_directional_magnitude": float(full_mag),
+        "ablation_directional_magnitude": float(ablation_mag),
+        "directional_margin": float(margin),
+        "localized": localized,
+        "status": status,
+        "note": "Full directional magnitude minus ablation directional magnitude.",
+    }
+
+
+def build_ablation_localization_stats(
+    effect_df: pd.DataFrame,
+    carrier_effect_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Diagnostic guard against overfitting to a single full-condition trace.
+
+    This compares the directional magnitude of full against each non-full
+    ablation. It is deliberately diagnostic at this stage: after a paper-grade
+    --ablations all run, the resulting rows can be promoted into hard acceptance
+    criteria if the pattern is stable.
+
+    Behavioral direction:
+    - shock: more negative delta is stronger
+    - treat: more positive delta is stronger
+
+    Carrier direction:
+    - carrier deltas should be positive for both shock and treat
+    """
+    rows: List[Dict[str, Any]] = []
+
+    behavior_windows = {"post_11_30", "post_all"}
+    carrier_windows = {"post_1_3", "post_4_10", "post_11_30", "post_all"}
+
+    if not effect_df.empty:
+        bdf = effect_df[effect_df["post_window"].isin(behavior_windows)].copy()
+
+        grouped = bdf.groupby(
+            ["protocol", "target_path", "expected_direction", "post_window"],
+            dropna=False,
+        )
+
+        for (protocol, target_path, expected_direction, post_window), gdf in grouped:
+            full = gdf[gdf["ablation"].astype(str) == "full"]
+            others = gdf[gdf["ablation"].astype(str) != "full"]
+
+            if full.empty or others.empty:
+                continue
+
+            full_delta = float(full.iloc[0]["delta_post_minus_pre_mean"])
+
+            for _, row in others.iterrows():
+                rows.append(
+                    localization_row(
+                        protocol=str(protocol),
+                        compared_ablation=str(row["ablation"]),
+                        target_path=str(target_path),
+                        expected_direction=str(expected_direction),
+                        metric_family="behavior",
+                        metric="p_target",
+                        post_window=str(post_window),
+                        full_delta=full_delta,
+                        ablation_delta=float(row["delta_post_minus_pre_mean"]),
+                    )
+                )
+
+    if not carrier_effect_df.empty:
+        cdf = carrier_effect_df[carrier_effect_df["post_window"].isin(carrier_windows)].copy()
+
+        grouped = cdf.groupby(
+            ["protocol", "target_path", "carrier_metric", "post_window"],
+            dropna=False,
+        )
+
+        for (protocol, target_path, carrier_metric, post_window), gdf in grouped:
+            full = gdf[gdf["ablation"].astype(str) == "full"]
+            others = gdf[gdf["ablation"].astype(str) != "full"]
+
+            if full.empty or others.empty:
+                continue
+
+            full_delta = float(full.iloc[0]["delta_post_minus_pre_mean"])
+
+            for _, row in others.iterrows():
+                rows.append(
+                    localization_row(
+                        protocol=str(protocol),
+                        compared_ablation=str(row["ablation"]),
+                        target_path=str(target_path),
+                        expected_direction="positive",
+                        metric_family="carrier",
+                        metric=str(carrier_metric),
+                        post_window=str(post_window),
+                        full_delta=full_delta,
+                        ablation_delta=float(row["delta_post_minus_pre_mean"]),
+                    )
+                )
+
+    if not rows:
+        rows.append(
+            {
+                "protocol": "all",
+                "ablation": "full",
+                "compared_ablation": "",
+                "target_path": "",
+                "expected_direction": "",
+                "metric_family": "availability",
+                "metric": "non_full_ablation_runs",
+                "post_window": "",
+                "full_delta": float("nan"),
+                "ablation_delta": float("nan"),
+                "full_directional_magnitude": float("nan"),
+                "ablation_directional_magnitude": float("nan"),
+                "directional_margin": float("nan"),
+                "localized": False,
+                "status": "diagnostic",
+                "note": "No non-full ablation rows found. Expected in smoke mode with --ablations full.",
+            }
+        )
+
+    return pd.DataFrame(rows, columns=ABLATION_LOCALIZATION_COLUMNS)
 
 def compute_target_delta_for_event(
     trials: pd.DataFrame,
@@ -1117,6 +1342,52 @@ def plot_carrier_effect_by_window(carrier_df: pd.DataFrame, output_path: Path) -
 
     fig.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+    print(f"✓ Figure saved: {output_path}")
+
+def plot_ablation_localization(ablation_df: pd.DataFrame, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if ablation_df.empty or set(ablation_df["metric_family"].astype(str)) == {"availability"}:
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.axis("off")
+        ax.text(
+            0.5,
+            0.5,
+            "No non-full ablation rows available.\nExpected in smoke mode with --ablations full.",
+            ha="center",
+            va="center",
+        )
+        fig.tight_layout()
+        fig.savefig(output_path, dpi=180)
+        plt.close(fig)
+        print(f"✓ Figure saved: {output_path}")
+        return
+
+    sdf = ablation_df[ablation_df["metric_family"].astype(str) != "availability"].copy()
+    sdf = sdf.sort_values(
+        ["protocol", "metric_family", "metric", "post_window", "compared_ablation"]
+    ).reset_index(drop=True)
+
+    labels = [
+        f"{r.protocol}:{r.metric}:{r.post_window}:vs_{r.compared_ablation}"
+        for r in sdf.itertuples(index=False)
+    ]
+
+    x = np.arange(len(sdf))
+    y = sdf["directional_margin"].to_numpy(dtype=float)
+
+    fig, ax = plt.subplots(figsize=(14, 5))
+    ax.bar(x, y)
+    ax.axhline(0.0, linestyle="--")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=35, ha="right")
+    ax.set_ylabel("Full directional magnitude - ablation magnitude")
+    ax.set_title("Stage 3.1B: one-shot ablation-localization diagnostics")
+    ax.grid(True, axis="y", alpha=0.3)
+
+    fig.tight_layout()
     fig.savefig(output_path, dpi=180)
     plt.close(fig)
     print(f"✓ Figure saved: {output_path}")
@@ -1447,7 +1718,10 @@ def main() -> None:
         n_signflip=args.signflip_samples,
         rng=rng,
     )
-
+    ablation_localization_df = build_ablation_localization_stats(
+        effect_df=effect_df,
+        carrier_effect_df=carrier_effect_df,
+    )
     placebo_df = build_placebo_window_stats(
         specs=specs,
         trials_by_key=trials_by_key,
@@ -1463,6 +1737,7 @@ def main() -> None:
         first_post_df=first_post_df,
         placebo_df=placebo_df,
         carrier_effect_df=carrier_effect_df,
+        ablation_localization_df=ablation_localization_df,
     )
 
     save_table(schema_df, output_dir / "Table_3_1B_one_shot_schema_validation.csv")
@@ -1472,6 +1747,7 @@ def main() -> None:
     save_table(effect_df, output_dir / "Table_3_1B_one_shot_effect_stats.csv")
     save_table(first_post_df, output_dir / "Table_3_1B_one_shot_first_post_junction.csv")
     save_table(carrier_effect_df, output_dir / "Table_3_1B_one_shot_carrier_effect_stats.csv")
+    save_table(ablation_localization_df, output_dir / "Table_3_1B_one_shot_ablation_localization.csv")
     save_table(placebo_df, output_dir / "Table_3_1B_one_shot_placebo_window_stats.csv")
     save_table(acceptance_df, output_dir / "Table_3_1B_one_shot_acceptance_summary.csv")
 
@@ -1538,6 +1814,10 @@ def main() -> None:
         carrier_effect_df,
         output_path=output_dir / "Figure_3_1B_OneShot_Carrier_Effect_By_Window.png",
     )
+    plot_ablation_localization(
+        ablation_localization_df,
+        output_path=output_dir / "Figure_3_1B_OneShot_Ablation_Localization.png",
+    )    
     plot_placebo_window_null(
         placebo_df,
         output_path=output_dir / "Figure_3_1B_OneShot_Placebo_Window_Null.png",
@@ -1554,6 +1834,7 @@ def main() -> None:
         "n_seed_window_rows": int(len(seed_window_df)),
         "n_first_post_rows": int(len(first_post_df)),
         "n_carrier_effect_rows": int(len(carrier_effect_df)),
+        "n_ablation_localization_rows": int(len(ablation_localization_df)),
         "n_placebo_rows": int(len(placebo_df)),
         "placebo_samples": int(args.placebo_samples),
     }

@@ -4,13 +4,13 @@
   "n_trials": 20,
   "ablation": "full",
   "config": "config_stage3_1a",
-  "start_time": "2026-04-29T03:08:47.895881",
+  "start_time": "2026-04-29T18:29:04.947680",
   "seed_range": [
     42,
     44
   ],
   "output_structure": "One folder per run, all seeds inside",
-  "end_time": "2026-04-29T03:08:48.028437",
+  "end_time": "2026-04-29T18:29:05.094696",
   "total_trials": 60,
   "files_created": 3
 }

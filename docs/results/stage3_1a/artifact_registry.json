@@ -1,14 +1,14 @@
 {
-  "package_id": "stage3_1a_20260429_030844",
+  "package_id": "stage3_1a_20260429_182901",
   "schema_version": "stage3_1_closure_artifact_registry_v1",
   "stage": "3.1A",
-  "created_at": "2026-04-29T03:08:54.628093",
+  "created_at": "2026-04-29T18:29:12.707518",
   "curated_stage_root": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
   "git": {
     "branch": "stage3_1b_closure",
-    "commit": "89ed6ae8ba94ab80c175a434e093a12ba15cff03",
-    "working_tree_clean": false,
-    "status_porcelain": "M stage3/analysis/analyze_stage3_1b_one_shot_publication.py\n M stage3/analysis/validate_stage3_1_artifacts.py"
+    "commit": "17028b8cbb77619fd1592a499b1692553af21152",
+    "working_tree_clean": true,
+    "status_porcelain": ""
   },
   "profile": {
     "stage3_1a_seeds": 3,
@@ -20,8 +20,8 @@
     "ablations": "full"
   },
   "source": {
-    "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-    "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+    "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+    "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
     "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
     "source_scripts": [
       "stage3.analysis.run_stage3_1a",
@@ -43,8 +43,8 @@
         "commit_latency"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -68,8 +68,8 @@
         "p_covered"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -93,8 +93,8 @@
         "reorientation_count"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -118,8 +118,8 @@
         "commit_reason"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -144,8 +144,8 @@
         "commit_reason"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -170,8 +170,8 @@
         "path_choice"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -196,8 +196,8 @@
         "reorientation_count"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -222,8 +222,8 @@
         "seed"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -245,8 +245,8 @@
       "branch_semantics": "none",
       "primary_variables": [],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -268,8 +268,8 @@
       "branch_semantics": "none",
       "primary_variables": [],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -291,8 +291,8 @@
       "branch_semantics": "none",
       "primary_variables": [],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -314,8 +314,8 @@
       "branch_semantics": "none",
       "primary_variables": [],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -339,8 +339,8 @@
         "seed"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -362,8 +362,8 @@
       "branch_semantics": "none",
       "primary_variables": [],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -388,8 +388,8 @@
         "path_choice"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -413,8 +413,8 @@
         "path_choice"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",
@@ -438,8 +438,8 @@
         "seed"
       ],
       "source": {
-        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_030847",
-        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_030847",
+        "run_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_compat_20260429_182904",
+        "analysis_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1a_analysis_20260429_182904",
         "curated_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\stage3_1a",
         "source_scripts": [
           "stage3.analysis.run_stage3_1a",

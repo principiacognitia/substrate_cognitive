@@ -1,5 +1,5 @@
 {
-  "manifest": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_030855\\manifest.json",
+  "manifest": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260429_182913\\manifest.json",
   "shock_trial": 30,
   "bootstrap_samples": 5000,
   "bootstrap_seed": 123,
@@ -8,6 +8,7 @@
   "n_trial_series_rows": 200,
   "n_seed_window_rows": 504,
   "n_first_post_rows": 6,
+  "n_carrier_effect_rows": 20,
   "n_placebo_rows": 4,
   "placebo_samples": 5000
 }
