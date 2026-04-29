@@ -73,6 +73,16 @@ CARRIER_METRICS_BY_PROTOCOL = {
     "treat": {"h_opp", "q_pos"},
 }
 
+EXPECTED_FULL_ABLATION_COMPARISONS = {
+    "novg",
+    "novp",
+    "nox",
+    "one_shot_off",
+}
+
+ABLATION_LOCALIZATION_PREFIX = "ablation_localization_"
+ABLATION_LOCALIZATION_AVAILABILITY_CHECK = "ablation_localization_available"
+
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Validate Stage 3.1B one-shot acceptance summary")
     ap.add_argument(
@@ -273,9 +283,69 @@ def validate(df: pd.DataFrame, mode: str, ablation: str) -> List[str]:
                         f"protocol={protocol}, window={window}, "
                         f"statuses={rows[['check', 'status', 'value']].to_dict(orient='records')}"
                     )
-
+    errors.extend(
+        validate_ablation_localization_availability(
+            df,
+            mode=mode,
+            ablation=ablation,
+        )
+    )
     return errors
 
+def validate_ablation_localization_availability(
+    df: pd.DataFrame,
+    *,
+    mode: str,
+    ablation: str,
+) -> List[str]:
+    errors: List[str] = []
+
+    main = df[df["ablation"].astype(str) == str(ablation)].copy()
+    if main.empty:
+        return [f"no rows found for ablation={ablation!r}"]
+
+    availability = main[
+        main["check"].astype(str) == ABLATION_LOCALIZATION_AVAILABILITY_CHECK
+    ]
+
+    localization_rows = main[
+        main["check"].astype(str).str.startswith(ABLATION_LOCALIZATION_PREFIX)
+        & (main["check"].astype(str) != ABLATION_LOCALIZATION_AVAILABILITY_CHECK)
+    ].copy()
+
+    if mode == "smoke":
+        # Smoke normally runs --ablations full only. Availability diagnostic is allowed.
+        return errors
+
+    if len(availability):
+        errors.append(
+            "full mode requires non-full ablation localization rows; "
+            "found only/also availability diagnostic placeholder"
+        )
+
+    if localization_rows.empty:
+        errors.append(
+            "full mode requires ablation-localization checks against non-full ablations"
+        )
+        return errors
+
+    check_text = " ".join(localization_rows["check"].astype(str).tolist())
+
+    missing = sorted(
+        ablation_name
+        for ablation_name in EXPECTED_FULL_ABLATION_COMPARISONS
+        if f"_vs_{ablation_name}" not in check_text
+    )
+
+    if missing:
+        errors.append(
+            f"full mode missing ablation-localization comparisons: {missing}"
+        )
+
+    # Do not require every localization row to pass yet.
+    # Some ablations may localize behavior, others carriers, and some are diagnostic.
+    # The paper-grade full run should first expose the pattern.
+    return errors
 
 def print_compact(df: pd.DataFrame, ablation: str) -> None:
     cols = ["protocol", "ablation", "check", "status", "value", "note"]

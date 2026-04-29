@@ -4,18 +4,18 @@
 
 This report summarizes protocol-aware one-shot analysis for Stage 3.1B closure. Shock is treated as the negative branch (`h_risk/q_neg`), while treat is treated as the positive branch (`h_opp/q_pos`).
 
-- Source manifest: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_182913\manifest.json`
+- Source manifest: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\manifest.json`
 
 ## Schema validation
 
 ```
 protocol ablation                                                                                                                     run_dir                check   ok missing_columns
-   shock     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_182913\shock\full               trials True                
-   shock     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_182913\shock\full         steps_common True                
-   shock     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_182913\shock\full steps_shock_semantic True                
-   treat     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_182913\treat\full               trials True                
-   treat     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_182913\treat\full         steps_common True                
-   treat     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_182913\treat\full steps_treat_semantic True                
+   shock     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\shock\full               trials True                
+   shock     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\shock\full         steps_common True                
+   shock     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\shock\full steps_shock_semantic True                
+   treat     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\treat\full               trials True                
+   treat     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\treat\full         steps_common True                
+   treat     full E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1b\stage3_1b_ablation_suite_20260429_205938\treat\full steps_treat_semantic True                
 ```
 
 ## Compact acceptance summary
@@ -48,6 +48,7 @@ protocol ablation                           check       status     value        
    treat     full   carrier_delta_q_pos_post_4_10 direction_ok  0.436977                                  carrier delta must be > 0; pass requires directional p<=0.05 and CI excluding zero  carrier=q_pos, ci=[0.4247, 0.4471], directional_p=0.222222, sign_consistency=1.0000
    treat     full  carrier_delta_q_pos_post_11_30 direction_ok  0.025652                                  carrier delta must be > 0; pass requires directional p<=0.05 and CI excluding zero  carrier=q_pos, ci=[0.0242, 0.0274], directional_p=0.222222, sign_consistency=1.0000
    treat     full    carrier_delta_q_pos_post_all direction_ok  0.110256                                  carrier delta must be > 0; pass requires directional p<=0.05 and CI excluding zero  carrier=q_pos, ci=[0.1082, 0.1117], directional_p=0.222222, sign_consistency=1.0000
+     all     full ablation_localization_available   diagnostic       NaN                                             non-full ablation runs should exist in paper-grade --ablations all mode       No non-full ablation rows found. Expected in smoke mode with --ablations full.
    shock     full  placebo_window_null_post_11_30         pass  0.046991       directional placebo p<=0.05 indicates real event-aligned effect is stronger than random fake event boundaries                 observed_delta=-0.2483, null_mean=-0.0198, null_ci=[-0.2881, 0.1804]
    shock     full    placebo_window_null_post_all         pass  0.003599       directional placebo p<=0.05 indicates real event-aligned effect is stronger than random fake event boundaries                  observed_delta=-0.1245, null_mean=0.0614, null_ci=[-0.0725, 0.1635]
    treat     full  placebo_window_null_post_11_30   diagnostic  0.134373       directional placebo p<=0.05 indicates real event-aligned effect is stronger than random fake event boundaries                   observed_delta=0.1483, null_mean=0.0784, null_ci=[-0.0466, 0.1952]

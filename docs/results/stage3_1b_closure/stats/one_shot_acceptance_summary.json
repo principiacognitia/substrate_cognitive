@@ -234,6 +234,15 @@
     "note": "carrier=q_pos, ci=[0.1082, 0.1117], directional_p=0.222222, sign_consistency=1.0000"
   },
   {
+    "protocol": "all",
+    "ablation": "full",
+    "check": "ablation_localization_available",
+    "status": "diagnostic",
+    "value": NaN,
+    "threshold_or_expectation": "non-full ablation runs should exist in paper-grade --ablations all mode",
+    "note": "No non-full ablation rows found. Expected in smoke mode with --ablations full."
+  },
+  {
     "protocol": "shock",
     "ablation": "full",
     "check": "placebo_window_null_post_11_30",

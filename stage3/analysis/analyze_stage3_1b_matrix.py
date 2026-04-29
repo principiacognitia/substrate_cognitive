@@ -394,7 +394,7 @@ def main():
     draw_numeric_heatmap(
         build_pivot(df, "p_open"),
         "Stage 3.1B: P(open)",
-        output_dir / "Figure_3_1B_ChoiceHeatmap.png",
+        output_dir / "Figure_3_1B_Choice_Heatmap.png",
         fmt=".3f",
         cmap="viridis",
     )
@@ -402,7 +402,7 @@ def main():
     draw_numeric_heatmap(
         build_pivot(df, "mean_junction_deliberation_proxy"),
         "Stage 3.1B: Deliberation proxy",
-        output_dir / "Figure_3_1C_DeliberationHeatmap.png",
+        output_dir / "Figure_3_1B_Deliberation_Heatmap.png",
         fmt=".3f",
         cmap="magma",
     )
@@ -410,7 +410,7 @@ def main():
     draw_numeric_heatmap(
         build_pivot(df, "mean_commit_latency"),
         "Stage 3.1B: Mean commit latency",
-        output_dir / "Figure_3_1C2_CommitLatencyHeatmap.png",
+        output_dir / "Figure_3_1B_Commit_Latency_Heatmap.png",
         fmt=".3f",
         cmap="plasma",
     )
@@ -418,7 +418,7 @@ def main():
     draw_numeric_heatmap(
         build_pivot(df, "p_commit_timeout"),
         "Stage 3.1B: P(commit timeout)",
-        output_dir / "Figure_3_1C3_TimeoutHeatmap.png",
+        output_dir / "Figure_3_1B_Timeout_Heatmap.png",
         fmt=".3f",
         cmap="cividis",
     )
@@ -426,7 +426,7 @@ def main():
     draw_numeric_heatmap(
         build_pivot(df, "explore_rate"),
         "Stage 3.1B: mode_at_junction = explore",
-        output_dir / "Figure_3_1D_ModeAtJunction_ExploreRate.png",
+        output_dir / "Figure_3_1B_Mode_At_Junction_Explore_Rate.png",
         fmt=".3f",
         cmap="Blues",
     )
@@ -434,14 +434,14 @@ def main():
     draw_numeric_heatmap(
         build_pivot(df, "exploit_rate"),
         "Stage 3.1B: mode_at_junction = exploit",
-        output_dir / "Figure_3_1D2_ModeAtJunction_ExploitRate.png",
+        output_dir / "Figure_3_1B_Mode_At_Junction_Exploit_Rate.png",
         fmt=".3f",
         cmap="Oranges",
     )
 
     draw_mode_label_heatmap(
         df,
-        output_dir / "Figure_3_1D3_ModeAtJunction_DominantLabel.png",
+        output_dir / "Figure_3_1B_Mode_At_Junction_Dominant_Label.png",
     )
 
     save_report(df, checks, output_dir)

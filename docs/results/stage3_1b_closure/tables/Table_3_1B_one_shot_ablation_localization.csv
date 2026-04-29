@@ -1,0 +1,2 @@
+protocol,ablation,compared_ablation,target_path,expected_direction,metric_family,metric,post_window,full_delta,ablation_delta,full_directional_magnitude,ablation_directional_magnitude,directional_margin,localized,status,note
+all,full,,,,availability,non_full_ablation_runs,,,,,,,False,diagnostic,No non-full ablation rows found. Expected in smoke mode with --ablations full.
