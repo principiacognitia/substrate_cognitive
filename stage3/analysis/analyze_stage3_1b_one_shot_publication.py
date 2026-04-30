@@ -321,6 +321,63 @@ def collect_trial_series(
     out["rel_trial"] = out["trial"].astype(int) - int(shock_trial)
     return out.sort_values(["protocol", "ablation", "trial"]).reset_index(drop=True)
 
+def collect_trial_seed_series(
+    spec: OneShotRunSpec,
+    trials: pd.DataFrame,
+    steps: pd.DataFrame,
+    shock_trial: int,
+) -> pd.DataFrame:
+    """
+    Seed-level trial series for publication plots.
+
+    For p_target, each seed contributes one binary observation per trial.
+    For carriers, steps are first averaged within seed/trial, then SEM is
+    computed across seeds. This avoids treating within-trial ticks as
+    independent observations.
+    """
+    target = target_choice_label(spec.target_path)
+
+    trial_df = (
+        trials.groupby(["seed", "trial"], dropna=False)
+        .agg(
+            p_open=("path_choice", lambda s: float((s == "open").mean())),
+            p_covered=("path_choice", lambda s: float((s == "covered").mean())),
+            p_target=("path_choice", lambda s: float((s == target).mean())),
+            p_timeout=("commit_reason", lambda s: float((s == "timeout").mean())),
+            commit_latency=("commit_latency", "mean"),
+            junction_pause_duration=("junction_pause_duration", "mean"),
+        )
+        .reset_index()
+    )
+
+    step_agg: Dict[str, Tuple[str, str]] = {}
+    for col in ["h_risk", "h_opp", "q_neg", "q_pos", "safe_drive", "X_risk", "X_opp"]:
+        if col in steps.columns:
+            step_agg[col] = (col, "mean")
+
+    step_df = (
+        steps.groupby(["seed", "trial"], dropna=False)
+        .agg(**step_agg)
+        .reset_index()
+        if step_agg
+        else pd.DataFrame({"seed": [], "trial": []})
+    )
+
+    out = trial_df.merge(step_df, on=["seed", "trial"], how="left")
+    out["protocol"] = spec.protocol
+    out["ablation"] = spec.ablation
+    out["target_path"] = spec.target_path
+    out["expected_direction"] = spec.expected_direction
+    out["rel_trial"] = out["trial"].astype(int) - int(shock_trial)
+
+    return out.sort_values(["protocol", "ablation", "seed", "trial"]).reset_index(drop=True)
+
+
+def sem(values: pd.Series) -> float:
+    arr = pd.to_numeric(values, errors="coerce").dropna().to_numpy(dtype=float)
+    if arr.size <= 1:
+        return float("nan")
+    return float(arr.std(ddof=1) / np.sqrt(arr.size))
 
 def collect_window_seed_metrics(
     spec: OneShotRunSpec,
@@ -1454,6 +1511,67 @@ def save_table(df: pd.DataFrame, path: Path) -> None:
     df.to_csv(path, index=False)
     print(f"✓ Table saved: {path}")
 
+def plot_zoom_sem(
+    seed_trial_series: pd.DataFrame,
+    *,
+    protocol: str,
+    variable: str,
+    selected_ablations: Sequence[str],
+    shock_trial: int,
+    zoom_pre: int,
+    zoom_post: int,
+    title: str,
+    ylabel: str,
+    output_path: Path,
+) -> None:
+    sdf = seed_trial_series[
+        (seed_trial_series["protocol"].astype(str) == protocol)
+        & (seed_trial_series["ablation"].astype(str).isin(list(selected_ablations)))
+        & (seed_trial_series["rel_trial"] >= -zoom_pre)
+        & (seed_trial_series["rel_trial"] <= zoom_post)
+    ].copy()
+
+    if sdf.empty or variable not in sdf.columns:
+        return
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    for ablation in selected_ablations:
+        adf = sdf[sdf["ablation"].astype(str) == ablation].copy()
+        if adf.empty:
+            continue
+
+        summary = (
+            adf.groupby("rel_trial", dropna=False)
+            .agg(
+                mean=(variable, "mean"),
+                sem=(variable, sem),
+                n_seeds=("seed", "nunique"),
+            )
+            .reset_index()
+            .sort_values("rel_trial")
+        )
+
+        x = summary["rel_trial"].to_numpy(dtype=float)
+        y = summary["mean"].to_numpy(dtype=float)
+        y_sem = summary["sem"].fillna(0.0).to_numpy(dtype=float)
+
+        line = ax.plot(x, y, marker="o", linewidth=2, label=ablation)[0]
+        color = line.get_color()
+        ax.fill_between(x, y - y_sem, y + y_sem, alpha=0.18, color=color)
+
+    ax.axvline(0, linestyle="--", linewidth=1.5, label="one-shot event")
+    ax.set_title(title)
+    ax.set_xlabel("Trial relative to one-shot event")
+    ax.set_ylabel(ylabel)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best")
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+    print(f"✓ Figure saved: {output_path}")
 
 def plot_zoom(
     trial_series: pd.DataFrame,
@@ -1698,6 +1816,7 @@ def main() -> None:
 
     schema_records: List[Dict[str, Any]] = []
     trial_series_frames: List[pd.DataFrame] = []
+    seed_trial_series_frames: List[pd.DataFrame] = []
     seed_window_frames: List[pd.DataFrame] = []
     first_post_frames: List[pd.DataFrame] = []
     trials_by_key: Dict[Tuple[str, str], pd.DataFrame] = {}
@@ -1711,8 +1830,8 @@ def main() -> None:
 
         schema_records.extend(validate_schema(spec, trials, steps))
 
-        trial_series_frames.append(
-            collect_trial_series(spec, trials, steps, shock_trial=shock_trial)
+        seed_trial_series_frames.append(
+            collect_trial_seed_series(spec, trials, steps, shock_trial=shock_trial)
         )
         seed_window_frames.append(
             collect_window_seed_metrics(spec, trials, steps, shock_trial=shock_trial)
@@ -1723,6 +1842,7 @@ def main() -> None:
 
     schema_df = pd.DataFrame(schema_records)
     trial_series_df = pd.concat(trial_series_frames, ignore_index=True) if trial_series_frames else pd.DataFrame()
+    seed_trial_series_df = pd.concat(seed_trial_series_frames, ignore_index=True) if seed_trial_series_frames else pd.DataFrame()
     seed_window_df = pd.concat(seed_window_frames, ignore_index=True) if seed_window_frames else pd.DataFrame()
     first_post_df = pd.concat(first_post_frames, ignore_index=True) if first_post_frames else pd.DataFrame()
 
@@ -1778,6 +1898,7 @@ def main() -> None:
 
     save_table(schema_df, output_dir / "Table_3_1B_one_shot_schema_validation.csv")
     save_table(trial_series_df, output_dir / "Table_3_1B_one_shot_trial_series.csv")
+    save_table(seed_trial_series_df, output_dir / "Table_3_1B_one_shot_seed_trial_series.csv")
     save_table(seed_window_df, output_dir / "Table_3_1B_one_shot_window_seed_metrics.csv")
     save_table(window_summary_df, output_dir / "Table_3_1B_one_shot_window_summary.csv")
     save_table(effect_df, output_dir / "Table_3_1B_one_shot_effect_stats.csv")
@@ -1794,6 +1915,83 @@ def main() -> None:
     )
     print(f"✓ Stats saved: {acceptance_json_path}")
 
+    plot_zoom_sem(
+        seed_trial_series_df,
+        protocol="shock",
+        variable="p_target",
+        selected_ablations=["full", "nox", "one_shot_off"],
+        shock_trial=shock_trial,
+        zoom_pre=args.zoom_pre,
+        zoom_post=args.zoom_post,
+        title="Stage 3.1B: shock target choice around one-shot event",
+        ylabel="P(target path) ± SEM",
+        output_path=output_dir / "Figure_3_1B_Shock_Target_Choice_SEM_Zoom.png",
+    )
+
+    plot_zoom_sem(
+        seed_trial_series_df,
+        protocol="treat",
+        variable="p_target",
+        selected_ablations=["full", "novp", "one_shot_off"],
+        shock_trial=shock_trial,
+        zoom_pre=args.zoom_pre,
+        zoom_post=args.zoom_post,
+        title="Stage 3.1B: treat target choice around one-shot event",
+        ylabel="P(target path) ± SEM",
+        output_path=output_dir / "Figure_3_1B_Treat_Target_Choice_SEM_Zoom.png",
+    )
+
+    plot_zoom_sem(
+        seed_trial_series_df,
+        protocol="shock",
+        variable="q_neg",
+        selected_ablations=["full", "nox", "one_shot_off"],
+        shock_trial=shock_trial,
+        zoom_pre=args.zoom_pre,
+        zoom_post=args.zoom_post,
+        title="Stage 3.1B: shock q_neg carrier around one-shot event",
+        ylabel="q_neg ± SEM",
+        output_path=output_dir / "Figure_3_1B_Shock_QNeg_SEM_Zoom.png",
+    )
+
+    plot_zoom_sem(
+        seed_trial_series_df,
+        protocol="shock",
+        variable="h_risk",
+        selected_ablations=["full", "nox", "one_shot_off"],
+        shock_trial=shock_trial,
+        zoom_pre=args.zoom_pre,
+        zoom_post=args.zoom_post,
+        title="Stage 3.1B: shock h_risk carrier around one-shot event",
+        ylabel="h_risk ± SEM",
+        output_path=output_dir / "Figure_3_1B_Shock_HRisk_SEM_Zoom.png",
+    )
+
+    plot_zoom_sem(
+        seed_trial_series_df,
+        protocol="treat",
+        variable="q_pos",
+        selected_ablations=["full", "novp", "one_shot_off"],
+        shock_trial=shock_trial,
+        zoom_pre=args.zoom_pre,
+        zoom_post=args.zoom_post,
+        title="Stage 3.1B: treat q_pos carrier around one-shot event",
+        ylabel="q_pos ± SEM",
+        output_path=output_dir / "Figure_3_1B_Treat_QPos_SEM_Zoom.png",
+    )
+
+    plot_zoom_sem(
+        seed_trial_series_df,
+        protocol="treat",
+        variable="h_opp",
+        selected_ablations=["full", "novp", "one_shot_off"],
+        shock_trial=shock_trial,
+        zoom_pre=args.zoom_pre,
+        zoom_post=args.zoom_post,
+        title="Stage 3.1B: treat h_opp carrier around one-shot event",
+        ylabel="h_opp ± SEM",
+        output_path=output_dir / "Figure_3_1B_Treat_HOpp_SEM_Zoom.png",
+    )
     plot_zoom(
         trial_series_df,
         protocol="shock",
@@ -1867,6 +2065,7 @@ def main() -> None:
         "signflip_samples": int(args.signflip_samples),
         "n_specs": int(len(specs)),
         "n_trial_series_rows": int(len(trial_series_df)),
+        "n_seed_trial_series_rows": int(len(seed_trial_series_df)),
         "n_seed_window_rows": int(len(seed_window_df)),
         "n_first_post_rows": int(len(first_post_df)),
         "n_carrier_effect_rows": int(len(carrier_effect_df)),

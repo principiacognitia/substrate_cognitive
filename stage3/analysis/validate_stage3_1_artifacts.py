@@ -49,6 +49,13 @@ REQUIRED_STAGE3_1B_PUBLICATION_ARTIFACTS = {
     "reports/Stage3_1B_OneShot_Publication_Report.md",
     "stats/one_shot_publication_analysis_meta.json",
     "stats/one_shot_acceptance_summary.json",
+    "tables/Table_3_1B_one_shot_seed_trial_series.csv",
+    "figures/Figure_3_1B_Shock_Target_Choice_SEM_Zoom.png",
+    "figures/Figure_3_1B_Treat_Target_Choice_SEM_Zoom.png",
+    "figures/Figure_3_1B_Shock_QNeg_SEM_Zoom.png",
+    "figures/Figure_3_1B_Shock_HRisk_SEM_Zoom.png",
+    "figures/Figure_3_1B_Treat_QPos_SEM_Zoom.png",
+    "figures/Figure_3_1B_Treat_HOpp_SEM_Zoom.png",
 }
 
 def load_registry(stage_dir: Path) -> Dict[str, Any]:
