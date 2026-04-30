@@ -37,6 +37,9 @@ REQUIRED_STAGE3_1B_PUBLICATION_ARTIFACTS = {
     "tables/Table_3_1B_one_shot_ablation_localization.csv",
     "tables/Table_3_1B_one_shot_placebo_window_stats.csv",
     "tables/Table_3_1B_one_shot_acceptance_summary.csv",
+    "tables/Table_3_1B_one_shot_seed_trial_series.csv",
+    "tables/Table_3_1B_matrix_cell_summary.csv",
+    "tables/Table_3_1B_matrix_seed_cell_metrics.csv",
     "figures/Figure_3_1B_Shock_Risk_Carrier_Around_Event_Zoom.png",
     "figures/Figure_3_1B_Treat_Opportunity_Carrier_Around_Event_Zoom.png",
     "figures/Figure_3_1B_Shock_Target_Choice_Around_Event_Zoom.png",
@@ -47,15 +50,30 @@ REQUIRED_STAGE3_1B_PUBLICATION_ARTIFACTS = {
     "figures/Figure_3_1B_OneShot_Ablation_Localization.png",
     "figures/Figure_3_1B_OneShot_Placebo_Window_Null.png",
     "reports/Stage3_1B_OneShot_Publication_Report.md",
+    "reports/Stage3_1B_Matrix_Publication_Report.md",
     "stats/one_shot_publication_analysis_meta.json",
     "stats/one_shot_acceptance_summary.json",
-    "tables/Table_3_1B_one_shot_seed_trial_series.csv",
+    "stats/stage3_1b_matrix_acceptance_check.json",
+    "stats/stage3_1b_matrix_publication_analysis_meta.json",
+
+
     "figures/Figure_3_1B_Shock_Target_Choice_SEM_Zoom.png",
     "figures/Figure_3_1B_Treat_Target_Choice_SEM_Zoom.png",
     "figures/Figure_3_1B_Shock_QNeg_SEM_Zoom.png",
     "figures/Figure_3_1B_Shock_HRisk_SEM_Zoom.png",
     "figures/Figure_3_1B_Treat_QPos_SEM_Zoom.png",
     "figures/Figure_3_1B_Treat_HOpp_SEM_Zoom.png",
+
+    "figures/Figure_3_1B_Matrix_P_Open_Heatmap.png",
+    "figures/Figure_3_1B_Matrix_P_Timeout_Heatmap.png",
+    "figures/Figure_3_1B_Matrix_Commit_Latency_Heatmap.png",
+    "figures/Figure_3_1B_Matrix_Deliberation_Proxy_Heatmap.png",
+
+    "figures/Figure_3_1B_Matrix_Junction_Pause_Heatmap.png",
+    "figures/Figure_3_1B_Matrix_Reorientation_Heatmap.png",
+    "figures/Figure_3_1B_Matrix_Mode_Explore_Rate_Heatmap.png",
+    "figures/Figure_3_1B_Matrix_Mode_Exploit_Rate_Heatmap.png",
+    "figures/Figure_3_1B_Matrix_Mode_Dominant_Label.png",
 }
 
 def load_registry(stage_dir: Path) -> Dict[str, Any]:

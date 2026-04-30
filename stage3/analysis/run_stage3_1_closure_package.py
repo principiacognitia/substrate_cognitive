@@ -79,6 +79,8 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--stage3-1b-balanced-trials", type=int, default=None)
     ap.add_argument("--stage3-1b-one-shot-seeds", type=int, default=None)
     ap.add_argument("--stage3-1b-one-shot-trials", type=int, default=None)
+    ap.add_argument("--stage3-1b-matrix-seeds", type=int, default=None)
+    ap.add_argument("--stage3-1b-matrix-trials", type=int, default=None)
 
     ap.add_argument(
         "--stage3-1a-run-dir",
@@ -89,6 +91,11 @@ def parse_args() -> argparse.Namespace:
         "--stage3-1b-suite-dir",
         default=None,
         help="Existing Stage 3.1B suite dir for analyze-only mode.",
+    )
+    ap.add_argument(
+        "--stage3-1b-matrix-run-dir",
+        default=None,
+        help="Existing Stage 3.1B grid_3x3 run dir for analyze-only mode.",
     )
 
     ap.add_argument(
@@ -235,6 +242,17 @@ def latest_suite_dir(base_dir: Path, before: set[Path]) -> Path:
         raise FileNotFoundError(f"No stage3_1b_ablation_suite_* dirs found in {base_dir}")
     return all_dirs[0]
 
+def latest_prefixed_dir(base_dir: Path, prefix: str, before: Optional[set[Path]] = None) -> Path:
+    before = before or set()
+    after = {p.resolve() for p in base_dir.glob(f"{prefix}*") if p.is_dir()}
+    new_dirs = sorted(after - before, key=lambda p: p.stat().st_mtime, reverse=True)
+    if new_dirs:
+        return new_dirs[0]
+
+    all_dirs = sorted(after, key=lambda p: p.stat().st_mtime, reverse=True)
+    if not all_dirs:
+        raise FileNotFoundError(f"No {prefix}* dirs found in {base_dir}")
+    return all_dirs[0]
 
 # ---------------------------------------------------------------------
 # Stage runners
@@ -250,6 +268,8 @@ def resolve_profile(args: argparse.Namespace) -> Dict[str, Any]:
             "stage3_1b_one_shot_seeds": 3,
             "stage3_1b_one_shot_trials": 40,
             "ablations": "full",
+            "stage3_1b_matrix_seeds": 3,
+            "stage3_1b_matrix_trials": 20,            
         }
     else:
         defaults = {
@@ -260,6 +280,8 @@ def resolve_profile(args: argparse.Namespace) -> Dict[str, Any]:
             "stage3_1b_one_shot_seeds": 50,
             "stage3_1b_one_shot_trials": 100,
             "ablations": "all",
+            "stage3_1b_matrix_seeds": 50,
+            "stage3_1b_matrix_trials": 100,
         }
 
     return {
@@ -270,6 +292,8 @@ def resolve_profile(args: argparse.Namespace) -> Dict[str, Any]:
         "stage3_1b_one_shot_seeds": args.stage3_1b_one_shot_seeds or defaults["stage3_1b_one_shot_seeds"],
         "stage3_1b_one_shot_trials": args.stage3_1b_one_shot_trials or defaults["stage3_1b_one_shot_trials"],
         "ablations": args.ablations or defaults["ablations"],
+        "stage3_1b_matrix_seeds": args.stage3_1b_matrix_seeds or defaults["stage3_1b_matrix_seeds"],
+        "stage3_1b_matrix_trials": args.stage3_1b_matrix_trials or defaults["stage3_1b_matrix_trials"],
     }
 
 
@@ -391,10 +415,13 @@ def run_stage3_1b(
     profile: Dict[str, Any],
     manifest: Dict[str, Any],
     existing_suite_dir: Optional[str] = None,
+    existing_matrix_run_dir: Optional[str] = None,
 ) -> None:
     curated_stage = curated_root / "stage3_1b_closure"
     suite_base = raw_root / "stage3_1b"
+    matrix_base = raw_root / "stage3_1b_matrix"
     ensure_dir(suite_base)
+    ensure_dir(matrix_base)
 
     if existing_suite_dir:
         suite_dir = Path(existing_suite_dir)
@@ -428,6 +455,39 @@ def run_stage3_1b(
     analysis_dir = suite_dir / "analysis"
     publication_analysis_dir = suite_dir / "analysis_publication"
 
+    if existing_matrix_run_dir:
+        matrix_run_dir = Path(existing_matrix_run_dir)
+    else:
+        matrix_before = {
+            p.resolve()
+            for p in matrix_base.glob("grid_3x3_*")
+            if p.is_dir()
+        }
+
+        run_cmd(
+            "Stage 3.1B matrix grid",
+            [
+                sys.executable,
+                "-m",
+                "stage3.analysis.run_stage3_1b",
+                "--grid",
+                "3x3",
+                "--n-seeds",
+                str(profile["stage3_1b_matrix_seeds"]),
+                "--n-trials",
+                str(profile["stage3_1b_matrix_trials"]),
+                "--output-dir",
+                str(matrix_base),
+                "--ablation",
+                "full",
+            ],
+            manifest,
+        )
+
+        matrix_run_dir = latest_prefixed_dir(matrix_base, "grid_3x3_", matrix_before)
+
+    matrix_analysis_dir = matrix_run_dir / "analysis_matrix"    
+
     # If analyze-only points to a suite without analysis, run the analyzer.
     suite_manifest = suite_dir / "manifest.json"
     if not analysis_dir.exists():
@@ -460,8 +520,24 @@ def run_stage3_1b(
             manifest,
         )
 
+    if not publication_analysis_dir.exists():
+        run_cmd(
+            "Stage 3.1B one-shot publication analysis",
+            [
+                sys.executable,
+                "-m",
+                "stage3.analysis.analyze_stage3_1b_one_shot_publication",
+                "--manifest",
+                str(suite_manifest),
+                "--output-dir",
+                str(publication_analysis_dir),
+            ],
+            manifest,
+        )
+
     copied = copy_artifacts_flat(analysis_dir, curated_stage)
     copied.extend(copy_artifacts_flat(publication_analysis_dir, curated_stage))
+    copied.extend(copy_artifacts_flat(matrix_analysis_dir, curated_stage))
 
     if suite_manifest.exists():
         dest = copy_one_file(
@@ -483,11 +559,15 @@ effects.
 
 - Raw suite dir: `{suite_dir}`
 - Raw analysis dir: `{analysis_dir}`
+- Raw matrix run dir: `{matrix_run_dir}`
+- Raw matrix analysis dir: `{matrix_analysis_dir}`
 - Ablations: {profile["ablations"]}
 - Balanced seeds: {profile["stage3_1b_balanced_seeds"]}
 - Balanced trials per seed: {profile["stage3_1b_balanced_trials"]}
 - One-shot seeds: {profile["stage3_1b_one_shot_seeds"]}
 - One-shot trials per seed: {profile["stage3_1b_one_shot_trials"]}
+- Matrix seeds: {profile["stage3_1b_matrix_seeds"]}
+- Matrix trials per seed: {profile["stage3_1b_matrix_trials"]}
 """
     write_text(curated_stage / "README.md", readme)
 
@@ -500,10 +580,19 @@ This report was generated by `stage3.analysis.run_stage3_1_closure_package`.
 The closure package uses existing Stage 3.1B runners and analyzers. It does
 not introduce a new environment, agent, or experimental protocol.
 
+The package is split into four layers:
+
+1. `matrix`: 3x3 reward x threat conflict surface.
+2. `balanced ablation`: balanced-conflict ablation summary.
+3. `one-shot shock/treat`: event-aligned persistent carryover analysis.
+4. `diagnostics`: placebo-window and ablation-localization checks.
+
 ## Raw source
 
 - Suite: `{suite_dir}`
 - Analysis: `{analysis_dir}`
+- Matrix Run: `{matrix_run_dir}`
+- Matrix Analysis: `{matrix_analysis_dir}`
 
 ## Curated package
 
@@ -531,6 +620,8 @@ allocentric spatial cognition, or rodent-level VTE equivalence.
             "suite_dir": str(suite_dir),
             "analysis_dir": str(analysis_dir),
             "publication_analysis_dir": str(publication_analysis_dir),
+            "matrix_run_dir": str(matrix_run_dir),
+            "matrix_analysis_dir": str(matrix_analysis_dir),
             "curated_dir": str(curated_stage),
             "suite_manifest": str(suite_manifest),
             "source_scripts": [
@@ -550,6 +641,8 @@ allocentric spatial cognition, or rodent-level VTE equivalence.
         "suite_dir": str(suite_dir),
         "analysis_dir": str(analysis_dir),
         "publication_analysis_dir": str(publication_analysis_dir),
+        "matrix_run_dir": str(matrix_run_dir),
+        "matrix_analysis_dir": str(matrix_analysis_dir),
         "curated_dir": str(curated_stage),
         "copied_artifacts": copied,
         "artifact_registry": str(registry_path.relative_to(PROJECT_ROOT)),
@@ -621,6 +714,7 @@ def main() -> None:
             profile=profile,
             manifest=manifest,
             existing_suite_dir=args.stage3_1b_suite_dir,
+            existing_matrix_run_dir=args.stage3_1b_matrix_run_dir,
         )
 
     manifest["completed_at"] = datetime.now().isoformat()
