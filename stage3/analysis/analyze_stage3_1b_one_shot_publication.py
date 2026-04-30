@@ -379,6 +379,75 @@ def sem(values: pd.Series) -> float:
         return float("nan")
     return float(arr.std(ddof=1) / np.sqrt(arr.size))
 
+def build_trial_series_from_seed_trial_series(seed_trial_series: pd.DataFrame) -> pd.DataFrame:
+    """
+    Rebuild aggregate trial_series from seed-level trial series.
+
+    This keeps legacy diagnostic plots alive even if trial_series_frames
+    is empty because the SEM path became the primary publication path.
+    """
+    if seed_trial_series.empty:
+        return pd.DataFrame()
+
+    required = {
+        "protocol",
+        "ablation",
+        "target_path",
+        "expected_direction",
+        "trial",
+        "rel_trial",
+        "seed",
+    }
+    missing = required - set(seed_trial_series.columns)
+    if missing:
+        print(f"WARNING: cannot rebuild trial_series; missing columns: {sorted(missing)}")
+        return pd.DataFrame()
+
+    agg: Dict[str, Tuple[str, str]] = {
+        "n_trials": ("seed", "nunique"),
+    }
+
+    for col in [
+        "p_open",
+        "p_covered",
+        "p_target",
+        "p_timeout",
+        "commit_latency",
+        "junction_pause_duration",
+    ]:
+        if col in seed_trial_series.columns:
+            out_col = col
+            if col == "commit_latency":
+                out_col = "mean_commit_latency"
+            elif col == "junction_pause_duration":
+                out_col = "mean_junction_pause_duration"
+            agg[out_col] = (col, "mean")
+
+    for col in ["h_risk", "h_opp", "q_neg", "q_pos", "safe_drive", "X_risk", "X_opp"]:
+        if col in seed_trial_series.columns:
+            agg[f"mean_{col}"] = (col, "mean")
+
+    out = (
+        seed_trial_series
+        .groupby(
+            [
+                "protocol",
+                "ablation",
+                "target_path",
+                "expected_direction",
+                "trial",
+                "rel_trial",
+            ],
+            dropna=False,
+        )
+        .agg(**agg)
+        .reset_index()
+        .sort_values(["protocol", "ablation", "trial"])
+        .reset_index(drop=True)
+    )
+
+    return out
+
 def collect_window_seed_metrics(
     spec: OneShotRunSpec,
     trials: pd.DataFrame,
@@ -1523,6 +1592,8 @@ def plot_zoom_sem(
     title: str,
     ylabel: str,
     output_path: Path,
+    drop_event_trial: bool = False,
+    ylim_zero: bool = False,    
 ) -> None:
     sdf = seed_trial_series[
         (seed_trial_series["protocol"].astype(str) == protocol)
@@ -1530,7 +1601,8 @@ def plot_zoom_sem(
         & (seed_trial_series["rel_trial"] >= -zoom_pre)
         & (seed_trial_series["rel_trial"] <= zoom_post)
     ].copy()
-
+    if drop_event_trial:
+        sdf = sdf[sdf["rel_trial"].astype(int) != 0].copy()
     if sdf.empty or variable not in sdf.columns:
         return
 
@@ -1565,6 +1637,9 @@ def plot_zoom_sem(
     ax.set_xlabel("Trial relative to one-shot event")
     ax.set_ylabel(ylabel)
     ax.grid(True, alpha=0.3)
+    if ylim_zero:
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim(bottom=min(0.0, ymin), top=ymax)    
     ax.legend(loc="best")
 
     fig.tight_layout()
@@ -1586,6 +1661,16 @@ def plot_zoom(
     output_path: Path,
 ) -> None:
     sdf = trial_series[trial_series["protocol"] == protocol].copy()
+    required = {"protocol", "ablation", "rel_trial"}
+    missing = required - set(trial_series.columns)
+
+    if trial_series.empty or missing:
+        print(
+            f"WARNING: skipped {output_path}; "
+            f"trial_series is empty or missing columns: {sorted(missing)}"
+        )
+        return
+        
     if sdf.empty:
         return
 
@@ -1846,6 +1931,17 @@ def main() -> None:
     seed_window_df = pd.concat(seed_window_frames, ignore_index=True) if seed_window_frames else pd.DataFrame()
     first_post_df = pd.concat(first_post_frames, ignore_index=True) if first_post_frames else pd.DataFrame()
 
+    if trial_series_df.empty and not seed_trial_series_df.empty:
+        print("WARNING: trial_series_df is empty; rebuilding it from seed_trial_series_df.")
+        trial_series_df = build_trial_series_from_seed_trial_series(seed_trial_series_df)
+
+    print(
+        "Loaded analysis rows:",
+        f"trial_series={len(trial_series_df)}",
+        f"seed_trial_series={len(seed_trial_series_df)}",
+        f"seed_window={len(seed_window_df)}",
+    )
+    
     print("Computing behavioral effect statistics...")
 
     window_summary_df = summarize_window_metrics(
@@ -1926,6 +2022,7 @@ def main() -> None:
         title="Stage 3.1B: shock target choice around one-shot event",
         ylabel="P(target path) ± SEM",
         output_path=output_dir / "Figure_3_1B_Shock_Target_Choice_SEM_Zoom.png",
+        drop_event_trial=True,
     )
 
     plot_zoom_sem(
@@ -1939,6 +2036,7 @@ def main() -> None:
         title="Stage 3.1B: treat target choice around one-shot event",
         ylabel="P(target path) ± SEM",
         output_path=output_dir / "Figure_3_1B_Treat_Target_Choice_SEM_Zoom.png",
+        drop_event_trial=True,
     )
 
     plot_zoom_sem(
@@ -1952,6 +2050,7 @@ def main() -> None:
         title="Stage 3.1B: shock q_neg carrier around one-shot event",
         ylabel="q_neg ± SEM",
         output_path=output_dir / "Figure_3_1B_Shock_QNeg_SEM_Zoom.png",
+        ylim_zero=True,
     )
 
     plot_zoom_sem(
@@ -1965,6 +2064,7 @@ def main() -> None:
         title="Stage 3.1B: shock h_risk carrier around one-shot event",
         ylabel="h_risk ± SEM",
         output_path=output_dir / "Figure_3_1B_Shock_HRisk_SEM_Zoom.png",
+        ylim_zero=True,
     )
 
     plot_zoom_sem(
@@ -1978,6 +2078,7 @@ def main() -> None:
         title="Stage 3.1B: treat q_pos carrier around one-shot event",
         ylabel="q_pos ± SEM",
         output_path=output_dir / "Figure_3_1B_Treat_QPos_SEM_Zoom.png",
+        ylim_zero=True,
     )
 
     plot_zoom_sem(
@@ -1991,6 +2092,7 @@ def main() -> None:
         title="Stage 3.1B: treat h_opp carrier around one-shot event",
         ylabel="h_opp ± SEM",
         output_path=output_dir / "Figure_3_1B_Treat_HOpp_SEM_Zoom.png",
+        ylim_zero=True,
     )
     plot_zoom(
         trial_series_df,
