@@ -484,7 +484,7 @@ def run_stage3_1b(
             manifest,
         )
 
-        matrix_run_dir = latest_prefixed_dir(matrix_base, "grid_3x3_", matrix_before)
+        matrix_run_dir = latest_prefixed_dir(matrix_base, "grid_", matrix_before)
 
     matrix_analysis_dir = matrix_run_dir / "analysis_matrix"    
 

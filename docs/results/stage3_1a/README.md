@@ -8,7 +8,7 @@ agent/kernel still preserves the calibrated Stage 3.1A baseline behavior.
 
 ## Source
 
-- Raw run dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_compat_20260429_231008`
-- Raw analysis dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_analysis_20260429_231008`
-- Seeds: 50
-- Trials per seed: 100
+- Raw run dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_compat_20260501_022559`
+- Raw analysis dir: `E:\CRS-1\substrate_cognitive\logs\stage3\stage3_1_closure_raw\stage3_1a_analysis_20260501_022559`
+- Seeds: 3
+- Trials per seed: 20

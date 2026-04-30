@@ -106,10 +106,10 @@ def is_matrix_condition(condition_id: str) -> bool:
 def find_latest_grid_run(base_dir: Path) -> Path:
     candidates = [
         p for p in base_dir.iterdir()
-        if p.is_dir() and p.name.startswith("grid_3x3_")
+        if p.is_dir() and p.name.startswith("grid_")
     ]
     if not candidates:
-        raise FileNotFoundError(f"No grid_3x3_* run directories found in {base_dir}")
+        raise FileNotFoundError(f"No grid_* run directories found in {base_dir}")
     return sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)[0]
 
 
@@ -153,7 +153,7 @@ def resolve_trials_csv(input_dir: Path, ablation: str) -> Optional[Path]:
     if direct:
         return direct[0]
 
-    if input_dir.name.startswith("grid_3x3_"):
+    if input_dir.name.startswith("grid_"):
         candidates = sorted(input_dir.glob("*_all_trials.csv"))
         return candidates[0] if candidates else None
 
