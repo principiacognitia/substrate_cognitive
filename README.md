@@ -26,30 +26,35 @@ Cognitive rigidity does not stem from the content of representations, but rather
 
 | Stage | Task | Status | Documentation |
 | :--- | :--- | :--- | :--- |
-| **Stage 2** | Two-Step + Reversal Task | ✅ **Complete** | [Preprint](docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf), [stage2/README.md](stage2/README.md) |
-| **Stage 3.0** | Architectural Refactor | 🟡 **In Development** | [SPECIFICATION3.md](docs/SPECIFICATION3.md), [stage3/README.md](stage3/README.md) |
-| **Stage 3.1** | Open/Covered Choice Maze | ⬜ Planned | — |
-| **Stage 3.2** | Shelter Cross / Absence Check | ⬜ Planned | — | ---
+| **MVP** | Initial T-maze / gate-rheology prototype | **Historical** | [README.md](mvp/README.md) |
+| **Stage 2** | Two-Step and Reversal validation | ✅ **Complete  / historical baseline** | [Preprint](docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf), [stage2/README.md](stage2/README.md) |
+| **Stage 3.0** | Gate v3 architectural refactor | ✅ **Implemented as Stage 3 substrate** | [SPECIFICATION3.md](docs/SPECIFICATION3.md), [stage3/README.md](stage3/README.md) |
+| **Stage 3.1A** | Open/Covered baseline compatibility | ✅ **Compatibility layer** | [stage3/README_Stage_3.1A.md](stage3/README_Stage_3.1A.md)  |
+| **Stage 3.1B** | Valence/exposure closure package | ✅ **Current closure target** | [stage3/README_Stage_3.1B.md](stage3/README_Stage_3.1B.md) |
+| **Stage 3.2** | VTE Wrapper | 🟡 In development | — | ---
 
+Stage 3.1B is not a new environment family. It closes a specific kernel: reward-threat matrix behavior, balanced-conflict ablation behavior, one-shot shock/treat carryover, carrier-level diagnostics, and placebo-window controls.
+
+---
 ## 🗂️ Repository Structure
 
 ```
 substrate_cognitive/
 ├── mvp/                        # ✅ Completed MVP (T-maze, v5.0)
-├── stage2/                     # ✅ Stage 2: Experimental Validation
-│   ├── core/                   # Core modules (gate, rheology, baselines)
-│   ├── twostep/                # Two-Step Task (Daw et al., 2011)
-│   ├── reversal/               # Block-Reversal Task (Le et al., 2023)
-│   └── analysis/               # Analysis and visualization scripts
-├── stage3/                     # 🟡 Stage 3: Architectural Refactor
-│   ├── core/                   # Gate v3, exposure_field, temporal_state
-│   ├── envs/                   # Dummy temporal environments
-│   └── tests/                  # Integration tests
-├── docs/                       # 📚 Documentation
-│   ├── SPECIFICATION3.md       # Stage 3.0 Technical Specification
-│   └── mapping.md              # Latent variables → observable metrics
-├── logs/                       # Experimental logs (ignored by git)
-├── tests/                      # Automated tests
+├── stage2/                     # ✅ Stage 2 validation experiments
+│   ├── core/                   # ✅ Core modules (gate, rheology, baselines)
+│   ├── twostep/                # ✅ Two-Step Task (Daw et al., 2011)
+│   ├── reversal/               # ✅ Block-Reversal Task (Le et al., 2023)
+│   └── analysis/               # ✅ Analysis and visualization scripts
+├── stage3/                     # 🟡 Stage 3 architecture, environments, tests, analysis
+│   ├── core/                   # ✅ Gate v3, exposure field, temporal state
+│   ├── envs/                   # ✅ Stage 3 environments
+│   ├── tests/                  # 🟡 Stage 3 regression and integration tests
+│   └── analysis/               # 🟡 Stage 3 runners, analyzers, validatorsintegration tests
+├── docs/                       # Specifications, notes, curated result packages
+│   └── results/                # Publication-facing curated outputs
+├── logs/                       # Raw/generated local outputs; ignored by git
+├── tests/                      # 🟡 Automated debug tests
 └── README.md                   # This file
 ```
 
@@ -68,7 +73,7 @@ cd substrate_cognitive
 pip install -r requirements.txt
 ```
 
-### Stage 2: Reproducing Results
+## Stage 2: Reproducing Results
 
 ```bash
 # Generate all figures for the preprint
@@ -81,45 +86,98 @@ python -m stage2.analysis.run_all --experiment-id twostep_ablation_20260310_1955
 python -m stage2.analysis.run_all --figure 3
 ```
 
-### Stage 3: Running Tests
+## Stage 3.1 closure workflow
+
+### Smoke run
 
 ```bash
-# Unit tests for Stage 3.0
-python -m stage3.core.gate_inputs
-python -m stage3.core.gate_modes
-python -m stage3.core.exposure_field
-python -m stage3.core.temporal_state
-python -m stage3.core.gate_stage3
-python -m stage3.core.agent_stage3
-python -m stage3.core.compatibility
+python -m stage3.analysis.run_stage3_1_closure_package --mode smoke
+python -m stage3.analysis.validate_stage3_1_artifacts --root docs/results
+python -m stage3.analysis.validate_stage3_1b_acceptance --results-root docs/results --mode smoke
+```
+
+### Full production run
+
+Run only after code and documentation are committed.
+
+```bash
+python -m stage3.analysis.run_stage3_1_closure_package --mode full
+python -m stage3.analysis.validate_stage3_1_artifacts --root docs/results
+python -m stage3.analysis.validate_stage3_1b_acceptance --results-root docs/results --mode full
+```
+
+The full profile uses 50 seeds and 100 trials per seed for the Stage 3.1A
+compatibility rerun, Stage 3.1B balanced ablation suite, one-shot protocols, and
+the Stage 3.1B 3x3 matrix layer.
+
+---
+
+## Stage 3.1B artifact layers
+
+The curated Stage 3.1B package is organized into four layers:
+
+1. `matrix`: 3x3 reward x threat conflict surface.
+2. `balanced ablation`: balanced-conflict ablation metrics.
+3. `one-shot shock/treat`: event-aligned persistent carryover.
+4. `diagnostics`: placebo-window, carrier, and ablation-localization checks.
+
+Publication-facing outputs are written to:
+
+```text
+docs/results/stage3_1b_closure/
+├── figures/
+├── tables/
+├── stats/
+├── reports/
+├── artifact_registry.json
+└── ARTIFACT_REGISTRY.md
+```
+
+Raw run outputs remain under:
+
+```text
+logs/stage3/stage3_1_closure_raw/
 ```
 
 ---
 
-## 📈 Key Results (Stage 2)
+## Interpretation boundary
 
-| Metric | Result | Status |
-| :--- | :--- |
-| **MB/MF Signatures** | interaction coef = 0.312 ± 0.118, p = 0.008 | ✅ PASS |
-| **V_G Hysteresis** | Latency = 35 trials (median), max = 699 | ✅ PASS |
-| **V_G Ablation** | 35× difference in latency, p = 3.12×10⁻¹⁰ | ✅ PASS |
-| **V_p Ablation** | Perseveration: 3 vs. 8, p = 5.85×10⁻⁵ | ✅ PASS |
-| **Cross-task Generalization** | Identical parameters for Two-Step + Reversal | ✅ PASS |
-| **Parameter Sensitivity** | 25 combinations × 30 seeds = 2,250 runs | ✅ PASS |
+Stage 3.1B supports the valence/exposure kernel claim. It does not by itself
+claim absence inference, allocentric spatial cognition, self-model-based
+visibility reasoning, or rodent-level VTE equivalence.
+
+Those claims require later stages or separate protocols.
 
 ---
 
-## 📄 Documentation
+## Tests
 
-| Document | Description |
-| :--- | :--- |
-| [Stage 2 Overview](stage2/README.md) | Details on current development and result reproduction |
-| [Stage 3.0 Overview](stage3/README.md) | Architectural refactor and quick start guide |
-| [Stage 3.0 Specification](docs/SPECIFICATION3.md) | Complete technical specification for Stage 3.0 |
-| [Mapping Document](docs/mapping.md) | Correspondence between latent variables and observable metrics |
-| [Preprint Manuscript](docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf) | Full Manuscript for bioRxiv |
+```bash
+python -m pytest stage3/tests
+```
+
+The Stage 3 test suite currently covers compatibility, gate routing, temporal
+state, no-ready-semions constraints, action-basin equivalence, Stage 3.1B config,
+and one-shot protocol behavior.
 
 ---
+
+## Documentation map
+
+| Path | Role |
+| :--- | :--- |
+| [docs/README.md](docs/README.md) | Documentation and curated result package map |
+| [stage3/README.md](stage3/README.md) | Stage 3 architecture and Stage 3.1 closure commands |
+| [stage3_1b_closure/README.md](docs/results/stage3_1b_closure/README.md) | Generated closure package README |
+| [STAGE3_1B_CLOSURE_REPORT.md](docs/results/stage3_1b_closure/reports/STAGE3_1B_CLOSURE_REPORT.md) | Generated closure report |
+| [ARTIFACT_REGISTRY.md](docs/results/stage3_1b_closure/ARTIFACT_REGISTRY.md) | Generated artifact registry |
+
+
+
+
+
+
 
 ## 🔬 Publications
 
@@ -128,8 +186,19 @@ python -m stage3.core.compatibility
 
 *Abstract:* We introduce Gate-Rheology, a mechanistic framework in which arbitration between computational modes possesses intrinsic inertia. Across 30 seeds, we demonstrate dissociable double dissociation between control-mode inertia ($V_G$) and action perseveration ($V_p$).
 
-**Status:** ✅ Ready for bioRxiv submission
-**Preprint:** [GitHub Repository](https://github.com/principiacognitia/substrate_cognitive)
+## 📈 Key Results (Stage 2)
+
+| Metric | Result | Status |
+| :--- | :--- | :--- |
+| **MB/MF Signatures** | interaction coef = 0.312 ± 0.118, p = 0.008 | ✅ PASS |
+| **V_G Hysteresis** | Latency = 35 trials (median), max = 699 | ✅ PASS |
+| **V_G Ablation** | 35× difference in latency, p = 3.12×10⁻¹⁰ | ✅ PASS |
+| **V_p Ablation** | Perseveration: 3 vs. 8, p = 5.85×10⁻⁵ | ✅ PASS |
+| **Cross-task Generalization** | Identical parameters for Two-Step + Reversal | ✅ PASS |
+| **Parameter Sensitivity** | 25 combinations × 30 seeds = 2,250 runs | ✅ PASS |
+
+**Status:** ✅ Ready for submission
+**Preprint:** Snigirov, Aleksey, Gate-Rheology: Inertia of Cognitive Control Explains Meta-Rigidity in Sequential Decision Making and Reversal Learning (March 19, 2026). Available at SSRN: https://ssrn.com/abstract=6442142 or http://dx.doi.org/10.2139/ssrn.6442142
 
 ---
 
@@ -139,10 +208,11 @@ python -m stage3.core.compatibility
 | :--- | :--- | :--- |
 | **S-O-R Primitive** | Basic Units: States, Operations, Relations | ✅ Completed |
 | **Gate (v2)** | Arbitration between MF/MB modes (Stage 2) | ✅ Completed |
-| **Gate (v3)** | Threshold cascade + exposure field (Stage 3) | 🟡 In development |
+| **Gate (v3)** | Threshold cascade + exposure field (Stage 3) | ✅ Completed |
 | **Rheology ($V_G$, $V_p$)** | Viscosity of control and action | ✅ Completed |
-| **Exposure Field** | Valence/observability as a unified field | 🟡 In development |
-| **Temporal State** | Compressed temporal history ($h_t$) | 🟡 In development |
+| **Exposure Field** | Valence/observability as a unified field | ✅ Completed |
+| **Temporal State** | Compressed temporal history ($h_t$) | ✅ Completed |
+| **VTE Wrapper** | - | 🟡 In development |
 
 ---
 
@@ -176,4 +246,4 @@ MIT License — see [LICENSE](LICENSE) file.
 
 ---
 
-**Last updated:** March 2026
+**Last updated:** May 2026

@@ -1,87 +1,113 @@
-# Two-Step Task (Daw et al., 2011)
 
-**Статус:** ✅ Завершено (Stage 2A)
+# Documentation and Result Packages
 
-## 📖 Описание
+This directory contains project specifications, notes, manuscripts, and curated
+result packages.
 
-Каноническая задача для разделения модель-свободного (MF) и модель-основанного (MB) поведения. Агент делает два последовательных выбора, где переходы между этапами стохастичны (70% common, 30% rare).
+Raw experiment logs are not stored here. Raw outputs are generated under
+`logs/`, while publication-facing selected outputs are copied into
+`docs/results/`.
 
-### Структура триала
+---
 
-```
-Trial Start
-    │
-    ▼
-Stage 1: s1 → a1 (Left/Right)
-    │
-    ├── Common (70%) ──→ s2 = expected
-    │
-    └── Rare (30%) ────→ s2 = unexpected
-            │
-            ▼
-Stage 2: s2 → a2 (Left/Right)
-            │
-            ▼
-        Reward (drifting probability)
+## Structure
+
+```text
+docs/
+├── results/
+│   ├── stage3_1a/
+│   └── stage3_1b_closure/
+├── SPECIFICATION3.md
+├── mapping.md
+└── README.md
 ```
 
-## 🗂️ Файлы
+---
 
-| Файл | Описание |
-| :--- | :--- |
-| `config_twostep.py` | Все гиперпараметры задачи |
-| `env_twostep.py` | Среда (дрейф наград, changepoint) |
-| `agent_twostep.py` | RheologicalAgent для Two-Step |
-| `debug_interface.py` | Level 0: Interface Contract Test |
-| `debug_env_twostep.py` | Level 1: Environment Unit Test |
-| `debug_sanity_check.py` | Level 2: MB/MF Signature Validation |
-| `debug_integration.py` | Level 3: V_G Dynamics & Hysteresis |
-| `debug_ablation.py` | Level 4: V_G Ablation Study |
+## Curated results
 
-## 🚀 Запуск
+### Stage 3.1A
+
+```text
+docs/results/stage3_1a/
+├── figures/
+├── tables/
+├── stats/
+├── reports/
+├── artifact_registry.json
+└── ARTIFACT_REGISTRY.md
+```
+
+Stage 3.1A in the closure package is a compatibility rerun. It is used to check
+that Stage 3.1B changes preserve the calibrated Stage 3.1A baseline behavior.
+
+### Stage 3.1B closure
+
+```text
+docs/results/stage3_1b_closure/
+├── figures/
+├── tables/
+├── stats/
+├── reports/
+├── artifact_registry.json
+└── ARTIFACT_REGISTRY.md
+```
+
+Stage 3.1B closure is split into four artifact layers:
+
+1. `matrix`: 3x3 reward x threat conflict surface.
+2. `balanced ablation`: balanced-conflict ablation metrics.
+3. `one-shot shock/treat`: event-aligned carryover.
+4. `diagnostics`: placebo-window, carrier, and ablation-localization checks.
+
+---
+
+## Regenerating curated result packages
+
+Smoke profile:
 
 ```bash
-# Все тесты по порядку
-python -m stage2.twostep.debug_interface
-python -m stage2.twostep.debug_env_twostep
-python -m stage2.twostep.debug_sanity_check
-python -m stage2.twostep.debug_integration
-python -m stage2.twostep.debug_ablation
+python -m stage3.analysis.run_stage3_1_closure_package --mode smoke
+python -m stage3.analysis.validate_stage3_1_artifacts --root docs/results
+python -m stage3.analysis.validate_stage3_1b_acceptance --results-root docs/results --mode smoke
 ```
 
-## 📊 Критерии PASS
+Full production profile:
 
-| Level | Критерий | Порог |
-| :--- | :--- | :--- |
-| **0** | Все импорты работают | ✅ No errors |
-| **1** | Common transition ratio | 0.65 – 0.75 |
-| **2** | MB interaction p-value | < 0.01 |
-| **2** | MF interaction p-value | > 0.10 |
-| **3** | EXPLORE до changepoint | < 20% |
-| **3** | EXPLORE после changepoint | > 50% (в шоке) |
-| **4** | Latency Full vs NoVG | p < 0.001 (Mann-Whitney) |
-
-## 📈 Ожидаемые результаты (из логов)
-
-```
-Level 2: Sanity Check
-  MB Agent: interaction coef = 0.47, p = 0.0000
-  MF Agent: interaction coef = 0.09, p = 0.3893
-
-Level 4: Ablation Study (30 seeds)
-  Mean Latency WITH V_G:    35.0 триалов
-  Mean Latency WITHOUT V_G: 1.0 триалов
-  p-value: 4.47e-10
+```bash
+python -m stage3.analysis.run_stage3_1_closure_package --mode full
+python -m stage3.analysis.validate_stage3_1_artifacts --root docs/results
+python -m stage3.analysis.validate_stage3_1b_acceptance --results-root docs/results --mode full
 ```
 
-## 🔬 Биологические аналоги
+The full production profile should be run from a clean working tree, after code
+and documentation patches have been committed.
 
-- **Акком (2018):** Крысы в Two-Step Task показывают аналогичные MB/MF сигнатуры.
-- **Миллер (2017):** Вклад дорсального гиппокампа в MB-планирование.
-- **Хас и Редиш (2018):** Пространственная версия Two-Step с VTE-маркерами.
+---
 
-## 📝 Примечания
+## Raw outputs
 
-- **Награды дрейфуют** каждый триал (random walk, σ = 0.01).
-- **Changepoint** на триале 1000 (инверсия вероятностей).
-- **30 seeds** минимум для публикации.
+Raw outputs are generated under:
+
+```text
+logs/stage3/stage3_1_closure_raw/
+```
+
+These outputs are local working artifacts and should not be treated as the
+publication-facing package. The publication-facing package is the curated copy
+under `docs/results/`.
+
+---
+
+## Artifact registry
+
+Each curated result package contains:
+
+```text
+artifact_registry.json
+ARTIFACT_REGISTRY.md
+```
+
+The registry is the canonical index for figures, tables, reports, and stats. File
+names are stable, but article assembly should use the registry rather than
+inferring scientific meaning only from filenames.

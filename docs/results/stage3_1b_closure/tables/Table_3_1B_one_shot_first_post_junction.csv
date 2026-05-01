@@ -1,7 +1,0 @@
-protocol,ablation,seed,target_path,expected_direction,first_post_trial,first_post_tick,target_prob,target_prob_wins,target_choice,target_local_bonus,mode,gate_trigger,h_risk,h_opp,q_neg,q_pos,safe_drive,one_shot_type
-shock,full,42,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.3102650037574794,0.2791096387635591,1.3719999999999999,0.0,0.36410600150299177,none
-shock,full,43,open,negative,31,2,0.4663011645670992,False,False,0.0,explore,standard_arbitration (high uncertainty),0.28617331019944253,0.2791086784931042,1.3719999999999999,0.0,0.354469324079777,none
-shock,full,44,open,negative,31,2,0.4663011645670992,False,True,0.0,explore,standard_arbitration (high uncertainty),0.28697914098339594,0.27980964734285824,1.3719999999999999,0.0,0.35479165639335836,none
-treat,full,42,covered,positive,31,2,0.6568917050780784,True,False,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.272831435905562,0.27753724598232166,0.0,1.9949999999999997,0.3491325743622248,none
-treat,full,43,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.25056289753570093,0.2775362134334454,0.0,1.9949999999999997,0.34022515901428035,none
-treat,full,44,covered,positive,31,2,0.6568917050780784,True,True,0.5144730464753083,explore,standard_arbitration (high uncertainty),0.2513077465305984,0.2782899433794175,0.0,1.9949999999999997,0.34052309861223934,none
