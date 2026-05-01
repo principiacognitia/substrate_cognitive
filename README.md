@@ -50,7 +50,7 @@ substrate_cognitive/
 │   ├── core/                   # ✅ Gate v3, exposure field, temporal state
 │   ├── envs/                   # ✅ Stage 3 environments
 │   ├── tests/                  # 🟡 Stage 3 regression and integration tests
-│   └── analysis/               # 🟡 Stage 3 runners, analyzers, validatorsintegration tests
+│   └── analysis/               # 🟡 Stage 3 runners, analyzers, validators
 ├── docs/                       # Specifications, notes, curated result packages
 │   └── results/                # Publication-facing curated outputs
 ├── logs/                       # Raw/generated local outputs; ignored by git
