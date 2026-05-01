@@ -1,0 +1,16 @@
+{
+  "manifest": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260501_022605\\manifest.json",
+  "shock_trial": 30,
+  "bootstrap_samples": 5000,
+  "bootstrap_seed": 123,
+  "signflip_samples": 20000,
+  "n_specs": 2,
+  "n_trial_series_rows": 200,
+  "n_seed_trial_series_rows": 600,
+  "n_seed_window_rows": 504,
+  "n_first_post_rows": 6,
+  "n_carrier_effect_rows": 20,
+  "n_ablation_localization_rows": 1,
+  "n_placebo_rows": 4,
+  "placebo_samples": 5000
+}

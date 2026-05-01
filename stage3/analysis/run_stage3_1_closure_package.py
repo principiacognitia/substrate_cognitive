@@ -537,6 +537,25 @@ def run_stage3_1b(
 
     copied = copy_artifacts_flat(analysis_dir, curated_stage)
     copied.extend(copy_artifacts_flat(publication_analysis_dir, curated_stage))
+
+    # If analyze-only points to a matrix run without analysis, run the analyzer.
+    if not matrix_analysis_dir.exists():
+        run_cmd(
+            "Stage 3.1B matrix publication analysis",
+            [
+                sys.executable,
+                "-m",
+                "stage3.analysis.analyze_stage3_1b_matrix_publication",
+                "--input-dir",
+                str(matrix_run_dir),
+                "--output-dir",
+                str(matrix_analysis_dir),
+                "--ablation",
+                "full",
+            ],
+            manifest,
+        )
+
     copied.extend(copy_artifacts_flat(matrix_analysis_dir, curated_stage))
 
     if suite_manifest.exists():
