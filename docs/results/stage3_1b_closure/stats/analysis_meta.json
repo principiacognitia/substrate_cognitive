@@ -1,0 +1,7 @@
+{
+  "manifest": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b\\stage3_1b_ablation_suite_20260502_172810\\manifest.json",
+  "bootstrap_samples": 2000,
+  "bootstrap_seed": 123,
+  "n_seed_rows": 6250,
+  "n_summary_rows": 125
+}

@@ -1,0 +1,21 @@
+{
+  "reward_monotonicity_per_threat": {
+    "T1": true,
+    "T2": true,
+    "T3": true
+  },
+  "threat_monotonicity_per_reward": {
+    "R0": true,
+    "R1": true,
+    "R2": true
+  },
+  "reward_axis_order_ok": true,
+  "threat_axis_order_ok": true,
+  "center_pause_peak": false,
+  "center_latency_peak": false,
+  "center_reorientation_peak": false,
+  "center_proxy_peak": false,
+  "balanced_conflict_peak_ok": false,
+  "n_matrix_cells": 9,
+  "matrix_complete_3x3": true
+}

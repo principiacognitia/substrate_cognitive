@@ -1,0 +1,30 @@
+{
+  "input_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b_matrix\\grid_full_20260502_173228",
+  "output_dir": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b_matrix\\grid_full_20260502_173228\\analysis_matrix",
+  "ablation": "full",
+  "condition_source": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b_matrix\\grid_full_20260502_173228\\grid_3x3_full_condition_summary.csv",
+  "trials_source": "E:\\CRS-1\\substrate_cognitive\\logs\\stage3\\stage3_1_closure_raw\\stage3_1b_matrix\\grid_full_20260502_173228\\grid_3x3_full_all_trials.csv",
+  "n_cells": 9,
+  "n_seed_cell_rows": 450,
+  "acceptance": {
+    "reward_monotonicity_per_threat": {
+      "T1": true,
+      "T2": true,
+      "T3": true
+    },
+    "threat_monotonicity_per_reward": {
+      "R0": true,
+      "R1": true,
+      "R2": true
+    },
+    "reward_axis_order_ok": true,
+    "threat_axis_order_ok": true,
+    "center_pause_peak": false,
+    "center_latency_peak": false,
+    "center_reorientation_peak": false,
+    "center_proxy_peak": false,
+    "balanced_conflict_peak_ok": false,
+    "n_matrix_cells": 9,
+    "matrix_complete_3x3": true
+  }
+}
