@@ -106,7 +106,7 @@ def compute_trial_vte_metrics(
     sort_columns = [*group_columns, "tick"]
     df = trace_df.sort_values(sort_columns).copy()
 
-    for key, g in df.groupby(list(group_columns), sort=False):
+    for key, g in df.groupby(list(group_columns), sort=False, dropna=False):
         key_tuple = key if isinstance(key, tuple) else (key,)
         key_data = dict(zip(group_columns, key_tuple))
 
