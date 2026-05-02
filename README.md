@@ -31,7 +31,7 @@ Cognitive rigidity does not stem from the content of representations, but rather
 | **Stage 3.0** | Gate v3 architectural refactor | ✅ **Implemented as Stage 3 substrate** | [SPECIFICATION3.md](docs/SPECIFICATION3.md), [stage3/README.md](stage3/README.md) |
 | **Stage 3.1A** | Open/Covered baseline compatibility | ✅ **Compatibility layer** | [stage3/README_Stage_3.1A.md](stage3/README_Stage_3.1A.md)  |
 | **Stage 3.1B** | Valence/exposure closure package | ✅ **Current closure target** | [stage3/README_Stage_3.1B.md](stage3/README_Stage_3.1B.md) |
-| **Stage 3.2** | VTE Wrapper | 🟡 In development | — | ---
+| **Stage 3.2** | VTE Wrapper | ⬜ Planned / next branch | — | 
 
 Stage 3.1B is not a new environment family. It closes a specific kernel: reward-threat matrix behavior, balanced-conflict ablation behavior, one-shot shock/treat carryover, carrier-level diagnostics, and placebo-window controls.
 
@@ -118,8 +118,9 @@ The curated Stage 3.1B package is organized into four layers:
 
 1. `matrix`: 3x3 reward x threat conflict surface.
 2. `balanced ablation`: balanced-conflict ablation metrics.
-3. `one-shot shock/treat`: event-aligned persistent carryover.
-4. `diagnostics`: placebo-window, carrier, and ablation-localization checks.
+3. `one-shot shock`: event-aligned negative carryover.
+4. `one-shot treat`: event-aligned positive carryover.
+5. `diagnostics`: placebo-window, carrier, and ablation-localization checks.
 
 Publication-facing outputs are written to:
 

@@ -27,28 +27,39 @@ receives diagnostic and exposure variables, not pre-classified semions such as
 ```text
 stage3/
 ├── core/
-│   ├── gate_modes.py
-│   ├── gate_inputs.py
-│   ├── exposure_field.py
-│   ├── temporal_state.py
-│   ├── gate_stage3.py
 │   ├── agent_stage3.py
-│   └── compatibility.py
+│   ├── compatibility.py
+│   ├── exposure_field.py
+│   ├── gate_inputs.py
+│   ├── gate_modes.py
+│   ├── gate_stage3.py
+│   └── temporal_state.py
+├── configs/
+│   ├── config_stage3_1a.py
+│   └── config_stage3_1b.py
 ├── envs/
-│   ├── dummy_temporal_env.py
+│   ├── maze_builder.py
 │   └── open_covered_choice_env.py
 ├── analysis/
 │   ├── run_stage3_1a.py
-│   ├── analyze_stage3_1a_baseline.py
 │   ├── run_stage3_1b.py
 │   ├── run_stage3_1b_ablation_suite.py
+│   ├── run_stage3_1_closure_package.py
+│   ├── analyze_stage3_1a_baseline.py
 │   ├── analyze_stage3_1b_ablation_suite.py
 │   ├── analyze_stage3_1b_one_shot_publication.py
 │   ├── analyze_stage3_1b_matrix_publication.py
-│   ├── run_stage3_1_closure_package.py
 │   ├── validate_stage3_1_artifacts.py
 │   └── validate_stage3_1b_acceptance.py
 └── tests/
+    ├── test_action_basin_equivalence.py
+    ├── test_backward_compatibility.py
+    ├── test_gate_stage3.py
+    ├── test_integration.py
+    ├── test_no_ready_semions.py
+    ├── test_stage3_1b_config.py
+    ├── test_stage3_1b_one_shot.py
+    └── test_temporal_state.py
 ```
 
 ---
