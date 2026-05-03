@@ -12,10 +12,11 @@ from typing import Iterable, Sequence
 import numpy as np
 import pandas as pd
 
-from vte.core.schema import REQUIRED_TRACE_COLUMNS
+from vte.core.schema import OPTIONAL_TRACE_COLUMNS, REQUIRED_TRACE_COLUMNS
 
 
 DEFAULT_GROUP_COLUMNS = ("run_id", "seed", "trial")
+DEFAULT_METADATA_COLUMNS = OPTIONAL_TRACE_COLUMNS
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,11 @@ def compute_reorientation_count(
     reversals = signs[1:] != signs[:-1]
     return int(np.sum(reversals))
 
+def _first_non_null(values: pd.Series) -> object:
+    non_null = values.dropna()
+    if non_null.empty:
+        return None
+    return non_null.iloc[0]
 
 def compute_trial_vte_metrics(
     trace_df: pd.DataFrame,
@@ -106,9 +112,19 @@ def compute_trial_vte_metrics(
     sort_columns = [*group_columns, "tick"]
     df = trace_df.sort_values(sort_columns).copy()
 
+    metadata_columns = [
+        col
+        for col in DEFAULT_METADATA_COLUMNS
+        if col in df.columns and col not in group_columns
+    ]
+
     for key, g in df.groupby(list(group_columns), sort=False, dropna=False):
         key_tuple = key if isinstance(key, tuple) else (key,)
         key_data = dict(zip(group_columns, key_tuple))
+        metadata_data = {
+            col: _first_non_null(g[col])
+            for col in metadata_columns
+        }
 
         cp = g[g["at_choice_point"].astype(bool)].copy()
 
@@ -127,6 +143,7 @@ def compute_trial_vte_metrics(
         rows.append(
             {
                 **key_data,
+                **metadata_data,
                 "choice_point_id": choice_point_id,
                 "choice_point_duration": duration,
                 "pause_ticks": duration,

@@ -126,3 +126,30 @@ def test_vte_binary_can_be_thresholded_without_stage3_state():
 
     assert high_idphi_trial["vte_binary"] == 1
     assert flat_trial["vte_binary"] == 0
+
+def test_compute_trial_vte_metrics_preserves_optional_trace_metadata():
+    rows = [
+        _trace_row(trial=1, tick=0, heading=0.0),
+        _trace_row(trial=1, tick=1, heading=0.5),
+        _trace_row(trial=2, tick=0, heading=0.0),
+        _trace_row(trial=2, tick=1, heading=0.0),
+    ]
+
+    for row in rows:
+        row.update(
+            {
+                "protocol": "stage3_steps",
+                "condition": "R1_T2",
+                "ablation": "full",
+                "pose_source": "synthetic_from_stage3_steps",
+                "target_path": "open",
+            }
+        )
+
+    metrics = compute_trial_vte_metrics(pd.DataFrame(rows))
+
+    assert set(metrics["protocol"]) == {"stage3_steps"}
+    assert set(metrics["condition"]) == {"R1_T2"}
+    assert set(metrics["ablation"]) == {"full"}
+    assert set(metrics["pose_source"]) == {"synthetic_from_stage3_steps"}
+    assert set(metrics["target_path"]) == {"open"}
