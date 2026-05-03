@@ -4,15 +4,44 @@
 
 Stage 3.2 introduces a read-only VTE wrapper for converting behavioral trajectory logs into VTE-style metrics.
 
-The wrapper is not a component of the agent. It is a measurement transform over already-produced behavioral traces. This separation is necessary to avoid fitting the VTE metric to the internal model structure.
+The wrapper is not a component of the agent. It is a measurement transform over already-produced behavioral traces. This separation is necessary to reduce the risk of fitting the VTE metric to the internal model structure.
+
+---
+
+## Current status
+
+- **Stage 3.2A: VTE wrapper core — Complete.**
+  - raw trace schema;
+  - IdPhi-like angular integration;
+  - pause and reorientation metrics;
+  - seed/session-normalized `z_idphi`;
+  - thresholded `vte_binary`;
+  - wrapper CLI;
+  - schema, metrics, and wrapper tests.
+
+- **Stage 3.2B: Stage 3 log adapter + batch analysis — Final debug.**
+  - Stage 3 step-log to VTE trace-schema adapter;
+  - metadata propagation from Stage 3 logs;
+  - analysis tables and figures;
+  - batch workflow.
+
+- **Stage 3.2C: biological-lab comparability layer — In development.**
+  - geometry registry;
+  - biological tracking adapters;
+  - fixed threshold profiles;
+  - cross-dataset comparison reports.
+
+---
 
 ## Scientific target
 
-The target is not to claim biological equivalence directly. The target is narrower:
+The target is not direct biological equivalence. The target is narrower:
 
 > If Stage 3 trajectories contain conflict-sensitive pause-and-reorient dynamics, a read-only VTE wrapper should detect IdPhi-like signatures under conflict, contingency shift, and procedural disruption.
 
 This is compatible with the VTE literature, where VTE is operationalized as pausing and orienting at a decision point, often quantified through angular change or IdPhi-like trajectory measures (Redish, 2016).
+
+---
 
 ## Measurement boundary
 
@@ -20,35 +49,48 @@ The wrapper reads only externalized trace data.
 
 It must not read:
 
-- gate values
-- internal agent states
-- model configuration objects
-- reward/threat parameters
-- causal labels such as `deliberation`
-- precomputed acceptance checks
+- gate values;
+- internal agent states;
+- model configuration objects;
+- reward/threat parameter objects;
+- causal labels such as `deliberation`;
+- precomputed acceptance checks.
 
 It may read:
 
-- pose traces
-- trial indices
-- action labels
-- committed path labels
-- outcome labels
-- event markers, if these are encoded as external trial metadata
+- pose traces;
+- trial indices;
+- action labels;
+- committed path labels;
+- outcome labels;
+- event markers, if these are encoded as external trial metadata;
+- geometry metadata, if supplied as an external data file.
+
+---
 
 ## Data flow
 
 ```text
-model / simulator
+model / simulator / lab adapter
   -> logs/vte/raw/*.csv
 
 vte wrapper
-  -> logs/vte/analysis/*.csv
-  -> docs/results/vte/tables/*.csv
-  -> docs/results/vte/figures/*.png
-  -> docs/results/vte/reports/*.md
-  -> docs/results/vte/manifests/*.json
+  -> logs/vte/<run>/vte_trial_metrics.csv
+
+vte analysis
+  -> logs/vte/<analysis>/tables
+  -> logs/vte/<analysis>/figures
+  -> logs/vte/<analysis>/reports
+  -> logs/vte/<analysis>/metadata
 ```
+
+Publication-facing or reviewer-facing artifacts may later be copied into:
+
+```text
+docs/results/vte/
+```
+
+---
 
 ## Raw trace schema
 
@@ -57,7 +99,7 @@ Required columns:
 | column | meaning |
 |---|---|
 | `run_id` | run identifier |
-| `seed` | random seed |
+| `seed` | random seed or session identifier |
 | `trial` | trial number |
 | `tick` | within-trial time step |
 | `x` | x coordinate |
@@ -78,14 +120,42 @@ Optional metadata columns:
 | `condition` | e.g. R1_T2 |
 | `ablation` | e.g. full, novg, novp, nox |
 | `trial_phase` | pre, event, post |
-| `pose_source` | real, simulated, synthetic_from_model_trace |
+| `pose_source` | real, simulated, synthetic_from_stage3_steps |
 | `event_type` | shock, treat, reversal, transition_violation |
 | `event_trial` | event-aligned trial index |
 | `target_path` | experimentally relevant path |
+| `total_reward` | trial-level total reward, if available |
+| `terminal_action` | terminal action code, if available |
+
+---
+
+## Pose-source labels
+
+The `pose_source` column is required for interpretation.
+
+Current Stage 3 adapter output:
+
+```text
+pose_source = synthetic_from_stage3_steps
+```
+
+Expected future biological adapter output:
+
+```text
+pose_source = biological_tracking
+```
+
+Possible simulator-native output:
+
+```text
+pose_source = simulated_pose
+```
+
+These labels must not affect metric definitions. They affect interpretation only.
+
+---
 
 ## Core metrics
-
-The first implementation should compute:
 
 | metric | definition |
 |---|---|
@@ -93,11 +163,82 @@ The first implementation should compute:
 | `log_idphi` | log-transformed `raw_idphi` |
 | `z_idphi` | seed/session-normalized `log_idphi` |
 | `pause_ticks` | number of ticks at the choice point |
-| `reorientation_count` | number of sign-reversing or thresholded heading changes |
+| `reorientation_count` | number of thresholded heading-change reversals or alternations |
 | `choice_point_duration` | duration of choice-point occupancy |
 | `vte_binary` | thresholded VTE-like trial label |
 
-The thresholding rule must be fixed before external data are inspected.
+The thresholding rule must be fixed before external biological datasets are inspected.
+
+---
+
+## Current CLIs
+
+Translate Stage 3 step logs into VTE trace schema:
+
+```bash
+python -m vte.analysis.translate_stage3_steps_to_vte_trace \
+  --input-csv <stage3_steps.csv> \
+  --output-csv logs/vte/raw/<trace_name>.csv \
+  --run-id <run_id>
+```
+
+Run wrapper:
+
+```bash
+python -m vte.analysis.run_stage3_2_vte \
+  --input-csv logs/vte/raw/<trace_name>.csv \
+  --output-dir logs/vte/<run_dir>
+```
+
+Analyze metrics:
+
+```bash
+python -m vte.analysis.analyze_stage3_2_vte \
+  --metrics-csv logs/vte/<run_dir>/vte_trial_metrics.csv \
+  --output-dir logs/vte/<analysis_dir>
+```
+
+Batch workflow:
+
+```bash
+python -m vte.analysis.run_stage3_2_vte_batch \
+  --input-root <stage3_or_vte_input_root> \
+  --output-root logs/vte/<batch_dir>
+```
+
+The batch CLI is part of Stage 3.2B final debug.
+
+---
+
+## Expected outputs
+
+Wrapper output:
+
+- `vte_trial_metrics.csv`
+- `vte_wrapper_meta.json`
+
+Analysis tables:
+
+- `Table_3_2_VTE_Overall_Summary.csv`
+- `Table_3_2_VTE_By_Seed.csv`
+- `Table_3_2_VTE_By_Condition.csv`
+- `Table_3_2_VTE_By_Committed_Path.csv`
+- `Table_3_2_VTE_By_Condition_x_Path.csv`
+- `Table_3_2_VTE_Distribution_By_Path.csv`
+
+Analysis figures:
+
+- `Figure_3_2_VTE_Rate_By_Path.png`
+- `Figure_3_2_IdPhi_By_Path_Boxplot.png`
+- `Figure_3_2_VTE_Rate_By_Seed.png`
+- `Figure_3_2_IdPhi_vs_Pause.png`
+
+Reports and metadata:
+
+- `Stage3_2_VTE_Analysis_Report.md`
+- `stage3_2_vte_analysis_meta.json`
+
+---
 
 ## Non-goals
 
@@ -106,7 +247,10 @@ Stage 3.2 does not claim:
 - direct neural homology;
 - direct biological identity between the toy model and rodent behavior;
 - that all VTE-like trajectories imply deliberation;
-- that zIdPhi alone proves model-based planning.
+- that zIdPhi alone proves model-based planning;
+- that synthetic Stage 3 poses are equivalent to biological tracking data.
+
+---
 
 ## External validation rule
 
@@ -116,7 +260,9 @@ Allowed changes after freezing:
 
 - file-format adapters;
 - column-name adapters;
-- maze geometry adapters.
+- coordinate transforms;
+- maze geometry adapters;
+- metadata harmonization.
 
 Disallowed changes after freezing:
 
@@ -125,28 +271,27 @@ Disallowed changes after freezing:
 - changing VTE threshold per dataset;
 - adding dataset-specific correction terms that improve agreement with one laboratory.
 
-## Expected Stage 3.2 outputs
+---
 
-Tables:
+## Geometry registry requirement
 
-- `Table_3_2_VTE_trial_metrics.csv`
-- `Table_3_2_VTE_condition_summary.csv`
-- `Table_3_2_VTE_event_window_summary.csv`
+Biological comparability requires a geometry registry.
 
-Figures:
+The registry should define:
 
-- `Figure_3_2_VTE_zIdPhi_distribution.png`
-- `Figure_3_2_VTE_by_condition.png`
-- `Figure_3_2_VTE_event_aligned.png`
-- `Figure_3_2_VTE_pause_vs_idphi.png`
+- maze/task identifier;
+- coordinate system;
+- choice-point zones;
+- arm labels;
+- commit zones;
+- reward zones;
+- route labels;
+- event markers;
+- inclusion/exclusion windows for IdPhi measurement.
 
-Reports:
+This registry should also support static environment schematics for Stage 2 and Stage 3 so that external readers can understand the task topology without reading the simulator code.
 
-- `Stage3_2_VTE_Report.md`
-
-Manifests:
-
-- `stage3_2_vte_manifest.json`
+---
 
 ## References
 

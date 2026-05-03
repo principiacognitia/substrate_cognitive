@@ -3,7 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Status: Stage 2 Complete](https://img.shields.io/badge/status-stage--2--complete-green)](https://github.com/principiacognitia/substrate_cognitive)
-[![Stage 3: Development](https://img.shields.io/badge/stage--3-development-orange)](stage3/)
+[![Status: Stage 3.1 Complete](https://img.shields.io/badge/status-stage--3.1--complete-green)](https://github.com/principiacognitia/substrate_cognitive)
+[![Stage 3.2: VTE](https://img.shields.io/badge/stage--3.2-VTE--in--development-orange)](vte/)
 
 **Author:** Alex Snow (Aleksey L. Snigirov)
 **Email:** alex2saaba@gmail.com
@@ -30,10 +31,14 @@ Cognitive rigidity does not stem from the content of representations, but rather
 | **Stage 2** | Two-Step and Reversal validation | ✅ **Complete  / historical baseline** | [Preprint](docs/Gate-Rheology%20-%20Inertia%20of%20Cognitive%20Control%20Explains%20Meta-Rigidity%20in%20Sequential%20Decision%20Making%20and%20Reversal%20Learning.pdf), [stage2/README.md](stage2/README.md) |
 | **Stage 3.0** | Gate v3 architectural refactor | ✅ **Implemented as Stage 3 substrate** | [SPECIFICATION3.md](docs/SPECIFICATION3.md), [stage3/README.md](stage3/README.md) |
 | **Stage 3.1A** | Open/Covered baseline compatibility | ✅ **Compatibility layer** | [stage3/README_Stage_3.1A.md](stage3/README_Stage_3.1A.md)  |
-| **Stage 3.1B** | Valence/exposure closure package | ✅ **Current closure target** | [stage3/README_Stage_3.1B.md](stage3/README_Stage_3.1B.md) |
-| **Stage 3.2** | VTE Wrapper | 🟡 In development | [stage3/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) | 
+| **Stage 3.1B** | Valence/exposure closure package | ✅ **Complete / closure package** | [stage3/README.md](stage3/README.md), [closure package](docs/results/stage3_1b_closure/README.md) |
+| **Stage 3.2A** | VTE wrapper core | ✅ **Complete** | [vte/README.md](vte/README.md), [design note](vte/STAGE_3_2_DESIGN_NOTE.md) |
+| **Stage 3.2B** | Stage 3 log adapter + batch analysis | 🟡 **Final debug** | [vte/README.md](vte/README.md) |
+| **Stage 3.2C** | Biological-lab comparability layer | 🟡 **In development** | [vte/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) |
 
 Stage 3.1B is not a new environment family. It closes a specific kernel: reward-threat matrix behavior, balanced-conflict ablation behavior, one-shot shock/treat carryover, carrier-level diagnostics, and placebo-window controls.
+
+Stage 3.2 is implemented as a separate top-level `vte/` service module. It does not modify the Stage 3 agent. It reads externalized traces and produces VTE-style trajectory metrics, adapter outputs, batch summaries, figures, reports, and metadata.
 
 ---
 ## 🗂️ Repository Structure
@@ -51,11 +56,12 @@ substrate_cognitive/
 │   ├── envs/                   # ✅ Stage 3 environments
 │   ├── tests/                  # ✅ Stage 3 regression and integration tests
 │   └── analysis/               # ✅ Stage 3 runners, analyzers, validators
-├── vte/                        # 🟡 VTE architecture, environments, tests, analysis
-│   ├── core/                   # 🟡 VTE wrapper
-│   ├── adapters/               # 🟡 VTE adapters 
-│   ├── tests/                  # 🟡 VTE runtime and integration tests
-│   └── analysis/               # 🟡 Analysis and visualization scripts
+├── vte/                        # 🟡 Stage 3.2 VTE service layer
+│   ├── core/                   # ✅ Read-only VTE wrapper and metrics
+│   ├── adapters/               # 🟡 Stage 3 trace adapter and future lab adapters
+│   ├── configs/                # 🟡 Wrapper and analysis defaults
+│   ├── tests/                  # ✅ VTE schema, wrapper, adapter, and analysis tests
+│   └── analysis/               # 🟡 CLI runners, analyzers, and batch workflows
 ├── docs/                       # Specifications, notes, curated result packages
 │   └── results/                # Publication-facing curated outputs
 ├── logs/                       # Raw/generated local outputs; ignored by git
@@ -149,11 +155,11 @@ logs/stage3/stage3_1_closure_raw/
 
 ## Interpretation boundary
 
-Stage 3.1B supports the valence/exposure kernel claim. It does not by itself
-claim absence inference, allocentric spatial cognition, self-model-based
-visibility reasoning, or rodent-level VTE equivalence.
+Stage 3.1B supports the valence/exposure kernel claim. It does not by itself claim absence inference, allocentric spatial cognition, self-model-based visibility reasoning, or rodent-level VTE equivalence.
 
 Those claims require later stages or separate protocols.
+
+Stage 3.2 currently supports trajectory-level VTE-style measurement only. The current Stage 3 adapter uses synthetic poses reconstructed from Stage 3 step logs. Biological comparison requires a separate lab-data adapter, fixed geometry registry, and predeclared thresholding policy.
 
 ---
 
@@ -178,9 +184,50 @@ and one-shot protocol behavior.
 | [stage3_1b_closure/README.md](docs/results/stage3_1b_closure/README.md) | Generated closure package README |
 | [STAGE3_1B_CLOSURE_REPORT.md](docs/results/stage3_1b_closure/reports/STAGE3_1B_CLOSURE_REPORT.md) | Generated closure report |
 | [ARTIFACT_REGISTRY.md](docs/results/stage3_1b_closure/ARTIFACT_REGISTRY.md) | Generated artifact registry |
+| [vte/README.md](vte/README.md) | Stage 3.2 VTE wrapper service layer |
+| [vte/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) | Stage 3.2 design note and biological-comparability boundary |
 
 
+---
 
+---
+
+## Stage 3.2 VTE workflow
+
+Stage 3.2 is a read-only measurement layer over externalized behavioral traces.
+It is intentionally separated from `stage3/`.
+
+### Stage 3 step-log adapter
+
+```bash
+python -m vte.analysis.translate_stage3_steps_to_vte_trace \
+  --input-csv logs/stage3/stage3_1_closure_raw/stage3_1b/<suite>/balanced/full/balanced_conflict_full_all_steps.csv \
+  --output-csv logs/vte/raw/balanced_conflict_full_trace.csv \
+  --run-id balanced_conflict_full
+```
+
+### VTE wrapper
+
+```bash
+python -m vte.analysis.run_stage3_2_vte \
+  --input-csv logs/vte/raw/balanced_conflict_full_trace.csv \
+  --output-dir logs/vte/stage3_2_smoke
+```
+
+### VTE analysis
+
+```bash
+python -m vte.analysis.analyze_stage3_2_vte \
+  --metrics-csv logs/vte/stage3_2_smoke/vte_trial_metrics.csv \
+  --output-dir logs/vte/stage3_2_smoke_analysis
+```
+
+### Tests
+
+```bash
+python -m pytest vte/tests
+python -m pytest stage3/tests
+```
 
 
 
@@ -218,7 +265,9 @@ and one-shot protocol behavior.
 | **Rheology ($V_G$, $V_p$)** | Viscosity of control and action | ✅ Completed |
 | **Exposure Field** | Valence/observability as a unified field | ✅ Completed |
 | **Temporal State** | Compressed temporal history ($h_t$) | ✅ Completed |
-| **VTE Wrapper** | - | 🟡 In development |
+| **VTE Wrapper** | Read-only trajectory measurement layer over externalized traces | ✅ Stage 3.2A complete |
+| **Stage 3 VTE Adapter** | Stage 3 step-log to VTE trace-schema translator | 🟡 Stage 3.2B final debug |
+| **Biological Comparability Layer** | Lab-trace adapters, geometry registry, and fixed-threshold comparison reports | 🟡 Stage 3.2C in development |
 
 ---
 
