@@ -31,7 +31,7 @@ Cognitive rigidity does not stem from the content of representations, but rather
 | **Stage 3.0** | Gate v3 architectural refactor | ✅ **Implemented as Stage 3 substrate** | [SPECIFICATION3.md](docs/SPECIFICATION3.md), [stage3/README.md](stage3/README.md) |
 | **Stage 3.1A** | Open/Covered baseline compatibility | ✅ **Compatibility layer** | [stage3/README_Stage_3.1A.md](stage3/README_Stage_3.1A.md)  |
 | **Stage 3.1B** | Valence/exposure closure package | ✅ **Current closure target** | [stage3/README_Stage_3.1B.md](stage3/README_Stage_3.1B.md) |
-| **Stage 3.2** | VTE Wrapper | ⬜ Planned / next branch | — | 
+| **Stage 3.2** | VTE Wrapper | 🟡 In development | [stage3/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) | 
 
 Stage 3.1B is not a new environment family. It closes a specific kernel: reward-threat matrix behavior, balanced-conflict ablation behavior, one-shot shock/treat carryover, carrier-level diagnostics, and placebo-window controls.
 
@@ -46,11 +46,16 @@ substrate_cognitive/
 │   ├── twostep/                # ✅ Two-Step Task (Daw et al., 2011)
 │   ├── reversal/               # ✅ Block-Reversal Task (Le et al., 2023)
 │   └── analysis/               # ✅ Analysis and visualization scripts
-├── stage3/                     # 🟡 Stage 3 architecture, environments, tests, analysis
+├── stage3/                     # ✅ Stage 3 architecture, environments, tests, analysis
 │   ├── core/                   # ✅ Gate v3, exposure field, temporal state
 │   ├── envs/                   # ✅ Stage 3 environments
-│   ├── tests/                  # 🟡 Stage 3 regression and integration tests
-│   └── analysis/               # 🟡 Stage 3 runners, analyzers, validators
+│   ├── tests/                  # ✅ Stage 3 regression and integration tests
+│   └── analysis/               # ✅ Stage 3 runners, analyzers, validators
+├── vte/                        # 🟡 VTE architecture, environments, tests, analysis
+│   ├── core/                   # 🟡 VTE wrapper
+│   ├── adapters/               # 🟡 VTE adapters 
+│   ├── tests/                  # 🟡 VTE runtime and integration tests
+│   └── analysis/               # 🟡 Analysis and visualization scripts
 ├── docs/                       # Specifications, notes, curated result packages
 │   └── results/                # Publication-facing curated outputs
 ├── logs/                       # Raw/generated local outputs; ignored by git

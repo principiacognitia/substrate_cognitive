@@ -79,6 +79,23 @@ def _first_non_null(values: pd.Series) -> object:
         return None
     return non_null.iloc[0]
 
+def _last_non_empty(values: pd.Series) -> object:
+    for value in reversed(values.dropna().tolist()):
+        text = str(value).strip()
+        if text:
+            return value
+    return None
+
+def _last_numeric(values: pd.Series) -> float | None:
+    numeric = pd.to_numeric(values, errors="coerce").dropna()
+    if numeric.empty:
+        return None
+    return float(numeric.iloc[-1])
+
+def _sum_numeric(values: pd.Series) -> float:
+    numeric = pd.to_numeric(values, errors="coerce").fillna(0.0)
+    return float(numeric.sum())
+
 def compute_trial_vte_metrics(
     trace_df: pd.DataFrame,
     group_columns: Sequence[str] = DEFAULT_GROUP_COLUMNS,
@@ -125,6 +142,14 @@ def compute_trial_vte_metrics(
             col: _first_non_null(g[col])
             for col in metadata_columns
         }
+        trial_outcome_data = {
+            "committed_path": _last_non_empty(g["committed_path"]),
+            "terminal_action": _last_non_empty(g["action"]),
+            "terminal_reward": _last_numeric(g["reward"]),
+            "total_reward": _sum_numeric(g["reward"]),
+            "done_observed": bool(g["done"].astype(bool).any()),
+            "n_trace_rows": int(len(g)),
+        }
 
         cp = g[g["at_choice_point"].astype(bool)].copy()
 
@@ -144,6 +169,7 @@ def compute_trial_vte_metrics(
             {
                 **key_data,
                 **metadata_data,
+                **trial_outcome_data,
                 "choice_point_id": choice_point_id,
                 "choice_point_duration": duration,
                 "pause_ticks": duration,

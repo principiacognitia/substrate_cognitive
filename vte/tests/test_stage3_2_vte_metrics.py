@@ -153,3 +153,35 @@ def test_compute_trial_vte_metrics_preserves_optional_trace_metadata():
     assert set(metrics["ablation"]) == {"full"}
     assert set(metrics["pose_source"]) == {"synthetic_from_stage3_steps"}
     assert set(metrics["target_path"]) == {"open"}
+
+def test_compute_trial_vte_metrics_preserves_trial_outcome_columns():
+    rows = [
+        _trace_row(trial=1, tick=0, heading=0.0),
+        _trace_row(trial=1, tick=1, heading=1.0),
+        _trace_row(trial=1, tick=2, heading=-1.0),
+    ]
+
+    rows[0]["committed_path"] = ""
+    rows[1]["committed_path"] = ""
+    rows[2]["committed_path"] = "covered"
+
+    rows[0]["action"] = "observe"
+    rows[1]["action"] = "observe"
+    rows[2]["action"] = "commit"
+
+    rows[0]["reward"] = 0.0
+    rows[1]["reward"] = 0.0
+    rows[2]["reward"] = 1.0
+
+    rows[2]["done"] = True
+
+    metrics = compute_trial_vte_metrics(pd.DataFrame(rows))
+
+    row = metrics.iloc[0]
+
+    assert row["committed_path"] == "covered"
+    assert row["terminal_action"] == "commit"
+    assert row["terminal_reward"] == 1.0
+    assert row["total_reward"] == 1.0
+    assert row["done_observed"] is True or row["done_observed"] == True
+    assert row["n_trace_rows"] == 3
