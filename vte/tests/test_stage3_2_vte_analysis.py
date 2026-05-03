@@ -61,6 +61,11 @@ def test_analyze_vte_metrics_writes_core_tables(tmp_path):
         "Table_3_2_VTE_By_Condition_x_Path.csv",
         "stage3_2_vte_analysis_meta.json",
         "Stage3_2_VTE_Analysis_Report.md",
+        "Table_3_2_VTE_Distribution_By_Path.csv",
+        "Figure_3_2_VTE_Rate_By_Path.png",
+        "Figure_3_2_IdPhi_By_Path_Boxplot.png",
+        "Figure_3_2_VTE_Rate_By_Seed.png",
+        "Figure_3_2_IdPhi_vs_Pause.png",
     }
 
     assert expected.issubset({p.name for p in output_dir.iterdir()})

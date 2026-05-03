@@ -12,6 +12,10 @@ from pathlib import Path
 
 import pandas as pd
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 
 REQUIRED_VTE_METRIC_COLUMNS = (
     "run_id",
@@ -76,6 +80,131 @@ def summarize_by(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
 
     return pd.DataFrame(rows)
 
+def summarize_distribution_by_path(df: pd.DataFrame) -> pd.DataFrame:
+    if "committed_path" not in df.columns:
+        return pd.DataFrame()
+
+    rows: list[dict[str, object]] = []
+
+    for path, g in df.groupby("committed_path", dropna=False, sort=True):
+        raw = pd.to_numeric(g["raw_idphi"], errors="coerce")
+        z = pd.to_numeric(g["z_idphi"], errors="coerce")
+
+        rows.append(
+            {
+                "committed_path": path,
+                "n_trials": int(len(g)),
+                "vte_rate": float(pd.to_numeric(g["vte_binary"], errors="coerce").mean()),
+                "raw_idphi_q10": float(raw.quantile(0.10)),
+                "raw_idphi_q25": float(raw.quantile(0.25)),
+                "raw_idphi_median": float(raw.quantile(0.50)),
+                "raw_idphi_q75": float(raw.quantile(0.75)),
+                "raw_idphi_q90": float(raw.quantile(0.90)),
+                "z_idphi_q10": float(z.quantile(0.10)),
+                "z_idphi_q25": float(z.quantile(0.25)),
+                "z_idphi_median": float(z.quantile(0.50)),
+                "z_idphi_q75": float(z.quantile(0.75)),
+                "z_idphi_q90": float(z.quantile(0.90)),
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def _save_vte_rate_by_path(df: pd.DataFrame, output_dir: Path) -> str | None:
+    if "committed_path" not in df.columns:
+        return None
+
+    summary = summarize_by(df, ["committed_path"])
+    summary = summary.sort_values("committed_path")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.bar(summary["committed_path"].astype(str), summary["vte_rate"])
+    ax.set_title("Stage 3.2 VTE rate by committed path")
+    ax.set_xlabel("Committed path")
+    ax.set_ylabel("VTE rate")
+    ax.set_ylim(0, max(0.05, float(summary["vte_rate"].max()) * 1.25))
+    fig.tight_layout()
+
+    filename = "Figure_3_2_VTE_Rate_By_Path.png"
+    fig.savefig(output_dir / filename, dpi=200)
+    plt.close(fig)
+    return filename
+
+
+def _save_idphi_by_path_boxplot(df: pd.DataFrame, output_dir: Path) -> str | None:
+    if "committed_path" not in df.columns:
+        return None
+
+    paths = sorted(str(x) for x in df["committed_path"].dropna().unique())
+    data = [
+        pd.to_numeric(df.loc[df["committed_path"].astype(str) == path, "raw_idphi"], errors="coerce").dropna()
+        for path in paths
+    ]
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.boxplot(data, labels=paths, showfliers=False)
+    ax.set_title("Stage 3.2 raw IdPhi distribution by committed path")
+    ax.set_xlabel("Committed path")
+    ax.set_ylabel("Raw IdPhi")
+    fig.tight_layout()
+
+    filename = "Figure_3_2_IdPhi_By_Path_Boxplot.png"
+    fig.savefig(output_dir / filename, dpi=200)
+    plt.close(fig)
+    return filename
+
+
+def _save_vte_rate_by_seed(df: pd.DataFrame, output_dir: Path) -> str:
+    seed_summary = summarize_by(df, ["seed"]).sort_values("seed")
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(seed_summary["seed"], seed_summary["vte_rate"], marker="o", linewidth=1)
+    ax.set_title("Stage 3.2 VTE rate by seed")
+    ax.set_xlabel("Seed")
+    ax.set_ylabel("VTE rate")
+    ax.set_ylim(0, max(0.05, float(seed_summary["vte_rate"].max()) * 1.25))
+    fig.tight_layout()
+
+    filename = "Figure_3_2_VTE_Rate_By_Seed.png"
+    fig.savefig(output_dir / filename, dpi=200)
+    plt.close(fig)
+    return filename
+
+
+def _save_idphi_vs_pause(df: pd.DataFrame, output_dir: Path) -> str:
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.scatter(
+        pd.to_numeric(df["pause_ticks"], errors="coerce"),
+        pd.to_numeric(df["raw_idphi"], errors="coerce"),
+        s=8,
+        alpha=0.35,
+    )
+    ax.set_title("Stage 3.2 raw IdPhi vs pause ticks")
+    ax.set_xlabel("Pause ticks")
+    ax.set_ylabel("Raw IdPhi")
+    fig.tight_layout()
+
+    filename = "Figure_3_2_IdPhi_vs_Pause.png"
+    fig.savefig(output_dir / filename, dpi=200)
+    plt.close(fig)
+    return filename
+
+
+def write_figures(df: pd.DataFrame, output_dir: Path) -> list[str]:
+    figures: list[str] = []
+
+    for maybe_name in (
+        _save_vte_rate_by_path(df, output_dir),
+        _save_idphi_by_path_boxplot(df, output_dir),
+        _save_vte_rate_by_seed(df, output_dir),
+        _save_idphi_vs_pause(df, output_dir),
+    ):
+        if maybe_name is not None:
+            figures.append(maybe_name)
+            print(f"✓ Figure saved: {output_dir / maybe_name}")
+
+    return figures
 
 def analyze_vte_metrics(metrics_csv: str | Path, output_dir: str | Path) -> dict[str, object]:
     metrics_path = Path(metrics_csv)
