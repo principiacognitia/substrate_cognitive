@@ -143,7 +143,7 @@ def _save_idphi_by_path_boxplot(df: pd.DataFrame, output_dir: Path) -> str | Non
     ]
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.boxplot(data, labels=paths, showfliers=False)
+    ax.boxplot(data, tick_labels=paths, showfliers=False)
     ax.set_title("Stage 3.2 raw IdPhi distribution by committed path")
     ax.set_xlabel("Committed path")
     ax.set_ylabel("Raw IdPhi")
@@ -247,7 +247,7 @@ def analyze_vte_metrics(metrics_csv: str | Path, output_dir: str | Path) -> dict
         tables["Table_3_2_VTE_Distribution_By_Path.csv"] = summarize_distribution_by_path(df)
 
     written_tables: list[str] = []
-    
+
     for filename, table in tables.items():
         path = output_path / filename
         table.to_csv(path, index=False)
