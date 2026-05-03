@@ -243,12 +243,18 @@ def analyze_vte_metrics(metrics_csv: str | Path, output_dir: str | Path) -> dict
             ["condition", "committed_path"],
         )
 
+    if "committed_path" in df.columns:
+        tables["Table_3_2_VTE_Distribution_By_Path.csv"] = summarize_distribution_by_path(df)
+
     written_tables: list[str] = []
+    
     for filename, table in tables.items():
         path = output_path / filename
         table.to_csv(path, index=False)
         written_tables.append(filename)
         print(f"✓ Table saved: {path}")
+    
+    figures = write_figures(df, output_path)
 
     meta = {
         "input_metrics_csv": str(metrics_path),
@@ -260,6 +266,7 @@ def analyze_vte_metrics(metrics_csv: str | Path, output_dir: str | Path) -> dict
             col for col in OPTIONAL_GROUP_COLUMNS if col in df.columns
         ],
         "tables": written_tables,
+        "figures": figures,
     }
 
     meta_path = output_path / "stage3_2_vte_analysis_meta.json"
@@ -305,6 +312,11 @@ def _build_report(meta: dict[str, object], tables: dict[str, pd.DataFrame]) -> s
 
     for table_name in meta["tables"]:
         lines.append(f"- `{table_name}`")
+
+    lines.extend(["", "## Figures", ""])
+
+    for figure_name in meta.get("figures", []):
+        lines.append(f"- `{figure_name}`")
 
     lines.extend(
         [
