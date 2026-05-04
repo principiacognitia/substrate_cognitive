@@ -33,7 +33,7 @@ Cognitive rigidity does not stem from the content of representations, but rather
 | **Stage 3.1A** | Open/Covered baseline compatibility | ✅ **Compatibility layer** | [stage3/README_Stage_3.1A.md](stage3/README_Stage_3.1A.md)  |
 | **Stage 3.1B** | Valence/exposure closure package | ✅ **Complete / closure package** | [stage3/README.md](stage3/README.md), [closure package](docs/results/stage3_1b_closure/README.md) |
 | **Stage 3.2A** | VTE wrapper core | ✅ **Complete** | [vte/README.md](vte/README.md), [design note](vte/STAGE_3_2_DESIGN_NOTE.md) |
-| **Stage 3.2B** | Stage 3 log adapter + batch analysis | 🟡 **Final debug** | [vte/README.md](vte/README.md) |
+| **Stage 3.2B** | Stage 3 log adapter + batch analysis | ✅ **Complete** | [vte/README.md](vte/README.md) |
 | **Stage 3.2C** | Biological-lab comparability layer | 🟡 **In development** | [vte/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) |
 
 Stage 3.1B is not a new environment family. It closes a specific kernel: reward-threat matrix behavior, balanced-conflict ablation behavior, one-shot shock/treat carryover, carrier-level diagnostics, and placebo-window controls.
@@ -266,7 +266,7 @@ python -m pytest stage3/tests
 | **Exposure Field** | Valence/observability as a unified field | ✅ Completed |
 | **Temporal State** | Compressed temporal history ($h_t$) | ✅ Completed |
 | **VTE Wrapper** | Read-only trajectory measurement layer over externalized traces | ✅ Stage 3.2A complete |
-| **Stage 3 VTE Adapter** | Stage 3 step-log to VTE trace-schema translator | 🟡 Stage 3.2B final debug |
+| **Stage 3 VTE Adapter** | Stage 3 step-log to VTE trace-schema translator | ✅ Stage 3.2B complete |
 | **Biological Comparability Layer** | Lab-trace adapters, geometry registry, and fixed-threshold comparison reports | 🟡 Stage 3.2C in development |
 
 ---
