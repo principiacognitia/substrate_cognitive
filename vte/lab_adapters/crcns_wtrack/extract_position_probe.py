@@ -139,7 +139,7 @@ def find_position_candidates(mat_data: dict[str, Any]) -> list[PositionCandidate
             continue
 
         n_samples, n_cols = arr.shape
-        if n_samples < 10 or n_cols < 2:
+        if n_samples < 2 or n_cols < 2:
             continue
 
         normalized_path = field_path.lower()
