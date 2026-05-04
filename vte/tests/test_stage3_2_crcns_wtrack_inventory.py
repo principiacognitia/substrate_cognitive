@@ -42,7 +42,7 @@ def test_build_file_inventory_classifies_crcns_files(tmp_path):
         "eeg",
     }
     assert set(inventory["animal_id"]) == {"Fiv"}
-    assert inventory.loc[inventory["file_kind"] == "eeg", "inspected"].iloc[0] is False
+    assert not bool(inventory.loc[inventory["file_kind"] == "eeg", "inspected"].iloc[0])
 
 
 def test_build_day_file_matrix_reports_day_availability(tmp_path):
