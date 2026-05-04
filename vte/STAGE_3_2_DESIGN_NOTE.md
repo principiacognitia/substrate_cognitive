@@ -291,6 +291,105 @@ The registry should define:
 
 This registry should also support static environment schematics for Stage 2 and Stage 3 so that external readers can understand the task topology without reading the simulator code.
 
+## Stage 3.2C: biological-lab comparability layer
+
+Status: In development.
+
+The VTE wrapper is now separated from the Stage 3 simulator. The simulator writes
+logs; the wrapper reads logs and emits VTE-compatible trial metrics. This boundary
+is intentional: the wrapper must remain a measurement/translation layer, not a
+model component.
+
+The next layer is biological-lab comparability. Its purpose is to make outputs from
+the model-side wrapper comparable with laboratory trajectory datasets without
+rewriting the model or embedding lab-specific assumptions into the Stage 3 code.
+
+### Geometry registry dependency
+
+Biological-lab adapters must use an explicit environment-geometry registry.
+
+A biological adapter must not hard-code choice points, route labels, maze arms,
+or open/covered zones inside adapter logic. Instead, it must reference either:
+
+1. `env_geometry/registries/builtin_env_geometries.json`, or
+2. an external registry with the same conceptual schema.
+
+The current built-in registry is schematic. Its coordinates are visualization
+coordinates, not physical laboratory coordinates. It is sufficient for Stage 2 and
+Stage 3 explanatory diagrams, but it is not a substitute for calibrated
+laboratory maze coordinates.
+
+Required conceptual fields for future lab adapters:
+
+- `env_id`
+- `task_family`
+- `coordinate_system`
+- `nodes`
+- `edges`
+- `zones`
+- route labels
+- choice-point zone definitions
+- event-alignment rule
+
+### Adapter boundary
+
+A biological-lab adapter may transform raw trajectory data into the VTE trace
+schema, but it must not change wrapper metrics after the fact.
+
+Allowed adapter operations:
+
+- map physical coordinates to registered zones;
+- identify choice-point entry and exit windows;
+- infer heading or turn-angle series;
+- normalize trial/session identifiers;
+- attach task metadata such as condition, animal/session ID, maze ID, and route.
+
+Disallowed adapter operations:
+
+- tune IdPhi thresholds to match a target paper;
+- rewrite route outcomes after wrapper execution;
+- define maze geometry implicitly in procedural code;
+- use Stage 3 simulator internals;
+- mix model-side and laboratory-side preprocessing rules without metadata.
+
+### Comparability contract
+
+The output of a biological adapter must be a valid VTE trace table accepted by
+`vte.core.wrapper`.
+
+At minimum, each trace row must expose:
+
+- `run_id`
+- `seed` or biological subject/session identifier
+- `trial`
+- `t`
+- `x`
+- `y`
+- `heading`
+- `choice_point_id`
+- `at_choice_point`
+- `done`
+
+The wrapper may then compute the same core metrics:
+
+- `raw_idphi`
+- `log_idphi`
+- `z_idphi`
+- `vte_binary`
+- `choice_point_duration`
+- `pause_ticks`
+- `reorientation_count`
+
+This preserves the comparison boundary: biological data and model data may differ
+in origin and geometry, but they enter the VTE measurement layer through the same
+trace schema.
+
+### Stage 3.2 status
+
+- Stage 3.2A: VTE wrapper core — Complete.
+- Stage 3.2B: Stage 3 log adapter + batch analysis — Final debug / closure.
+- Stage 3.2C: biological-lab comparability layer — In development.
+
 ---
 
 ## References
