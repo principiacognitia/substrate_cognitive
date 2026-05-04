@@ -139,14 +139,27 @@ def find_position_candidates(mat_data: dict[str, Any]) -> list[PositionCandidate
             continue
 
         n_samples, n_cols = arr.shape
-        if n_samples < 2 or n_cols < 2:
+        if n_samples < 10 or n_cols < 2:
+            continue
+
+        normalized_path = field_path.lower()
+        if ".arg" in normalized_path or normalized_path.endswith("arg"):
             continue
 
         time_col, x_col, y_col = _infer_columns(arr)
         x = arr[:, x_col]
         y = arr[:, y_col]
 
-        if not np.isfinite(x).any() or not np.isfinite(y).any():
+        finite_xy = np.isfinite(x) & np.isfinite(y)
+        if finite_xy.mean() < 0.50:
+            continue
+
+        # Frank-lab files can contain sentinel-like non-position values in
+        # auxiliary arrays. Keep only plausible trajectory arrays.
+        if np.nanmin(x[finite_xy]) <= -1e20 or np.nanmin(y[finite_xy]) <= -1e20:
+            continue
+
+        if np.nanmax(x[finite_xy]) >= 1e20 or np.nanmax(y[finite_xy]) >= 1e20:
             continue
 
         # Keep broad: this is a probe, not a definitive parser.
