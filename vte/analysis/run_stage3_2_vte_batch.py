@@ -11,6 +11,21 @@ from typing import Any
 
 import pandas as pd
 
+SELECTED_EXAMPLE_COLUMNS = [
+    "example_type",
+    "run_id",
+    "seed",
+    "trial",
+    "committed_path",
+    "raw_idphi",
+    "z_idphi",
+    "pause_ticks",
+    "reorientation_count",
+    "vte_binary",
+    "trace_csv",
+    "recommended_output_name",
+]
+
 
 def _now_tag() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -155,6 +170,199 @@ def _concat_metrics(metric_files: list[Path], output_csv: Path) -> int:
     return len(combined)
 
 
+
+def _format_scalar(value: Any) -> str:
+    if pd.isna(value):
+        return "na"
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _relative_path(path: Path, base_dir: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(base_dir.resolve()))
+    except ValueError:
+        return str(path)
+
+
+def _trace_csv_by_run_id(batch_runs: list[dict[str, Any]], output_dir: Path) -> dict[str, str]:
+    trace_map: dict[str, str] = {}
+
+    for run in batch_runs:
+        run_id = str(run.get("run_label", ""))
+        trace_csv = run.get("vte_trace_csv")
+        if not run_id or not trace_csv:
+            continue
+        trace_map[run_id] = _relative_path(Path(trace_csv), output_dir)
+
+    return trace_map
+
+
+def _required_selected_example_input_columns() -> set[str]:
+    return {
+        "run_id",
+        "seed",
+        "trial",
+        "committed_path",
+        "raw_idphi",
+        "z_idphi",
+        "pause_ticks",
+        "reorientation_count",
+        "vte_binary",
+    }
+
+
+def _recommended_output_name(row: pd.Series, example_type: str) -> str:
+    committed_path = row.get("committed_path", "unknown")
+    return _sanitize_label(
+        "__".join(
+            [
+                example_type,
+                _format_scalar(row.get("run_id", "run")),
+                f"s{_format_scalar(row.get('seed', 'na'))}",
+                f"t{_format_scalar(row.get('trial', 'na'))}",
+                _format_scalar(committed_path or "path_unknown"),
+            ]
+        )
+    )
+
+
+def _selected_example_record(row: pd.Series, example_type: str) -> dict[str, Any]:
+    record = {col: row.get(col, "") for col in SELECTED_EXAMPLE_COLUMNS}
+    record["example_type"] = example_type
+    record["recommended_output_name"] = _recommended_output_name(row, example_type)
+    return record
+
+
+def _sort_top_vte(df: pd.DataFrame) -> pd.DataFrame:
+    return df.sort_values(
+        by=[
+            "z_idphi",
+            "raw_idphi",
+            "reorientation_count",
+            "pause_ticks",
+            "run_id",
+            "seed",
+            "trial",
+        ],
+        ascending=[False, False, False, False, True, True, True],
+        kind="mergesort",
+    )
+
+
+def _sort_clean_non_vte(df: pd.DataFrame) -> pd.DataFrame:
+    return df.sort_values(
+        by=[
+            "z_idphi",
+            "raw_idphi",
+            "reorientation_count",
+            "pause_ticks",
+            "run_id",
+            "seed",
+            "trial",
+        ],
+        ascending=[True, True, True, True, True, True, True],
+        kind="mergesort",
+    )
+
+
+def _best_matched_pause_control(
+    top_row: pd.Series,
+    non_vte: pd.DataFrame,
+    used_row_ids: set[int],
+) -> pd.Series | None:
+    candidates = non_vte.loc[~non_vte["_example_row_id"].isin(used_row_ids)].copy()
+    if candidates.empty:
+        candidates = non_vte.copy()
+    if candidates.empty:
+        return None
+
+    top_path = str(top_row.get("committed_path", ""))
+    top_pause = float(top_row.get("pause_ticks", 0.0))
+
+    candidates["_same_path_rank"] = (
+        candidates["committed_path"].astype(str) != top_path
+    ).astype(int)
+    candidates["_pause_delta"] = (
+        candidates["pause_ticks"].astype(float) - top_pause
+    ).abs()
+
+    candidates = candidates.sort_values(
+        by=[
+            "_same_path_rank",
+            "_pause_delta",
+            "z_idphi",
+            "raw_idphi",
+            "reorientation_count",
+            "run_id",
+            "seed",
+            "trial",
+        ],
+        ascending=[True, True, True, True, True, True, True, True],
+        kind="mergesort",
+    )
+    return candidates.iloc[0]
+
+
+def _select_visualization_examples(
+    metrics_df: pd.DataFrame,
+    max_per_type: int = 10,
+) -> pd.DataFrame:
+    missing = _required_selected_example_input_columns() - set(metrics_df.columns)
+    if missing:
+        raise ValueError(
+            "VTE metrics are missing columns required for selected examples: "
+            f"{sorted(missing)}"
+        )
+
+    df = metrics_df.copy()
+    df["_example_row_id"] = range(len(df))
+
+    top_vte = _sort_top_vte(df.loc[df["vte_binary"].astype(int) == 1]).head(max_per_type)
+    clean_non_vte = _sort_clean_non_vte(
+        df.loc[df["vte_binary"].astype(int) == 0]
+    ).head(max_per_type)
+    all_non_vte = df.loc[df["vte_binary"].astype(int) == 0]
+
+    records: list[dict[str, Any]] = []
+    for _, row in top_vte.iterrows():
+        records.append(_selected_example_record(row, "top_vte"))
+
+    for _, row in clean_non_vte.iterrows():
+        records.append(_selected_example_record(row, "clean_non_vte"))
+
+    used_control_ids: set[int] = set()
+    for _, top_row in top_vte.iterrows():
+        control = _best_matched_pause_control(top_row, all_non_vte, used_control_ids)
+        if control is None:
+            continue
+        used_control_ids.add(int(control["_example_row_id"]))
+        records.append(_selected_example_record(control, "matched_pause_control"))
+
+    selected = pd.DataFrame(records)
+    for col in SELECTED_EXAMPLE_COLUMNS:
+        if col not in selected.columns:
+            selected[col] = []
+    return selected[SELECTED_EXAMPLE_COLUMNS]
+
+
+def _write_selected_examples(
+    metrics_df: pd.DataFrame,
+    batch_runs: list[dict[str, Any]],
+    output_csv: Path,
+    output_dir: Path,
+    max_per_type: int = 10,
+) -> int:
+    df = metrics_df.copy()
+    trace_map = _trace_csv_by_run_id(batch_runs, output_dir)
+    df["trace_csv"] = df["run_id"].astype(str).map(trace_map).fillna("")
+
+    selected = _select_visualization_examples(df, max_per_type=max_per_type)
+    selected.to_csv(output_csv, index=False)
+    return len(selected)
+
+
 def run_batch(
     manifest_path: Path,
     output_dir: Path,
@@ -248,11 +456,22 @@ def run_batch(
         batch_runs.append(run_record)
 
     combined_metrics_csv = output_dir / "vte_trial_metrics_all.csv"
+    selected_examples_csv = output_dir / "Table_3_2_VTE_Selected_Examples.csv"
     n_metric_rows = 0
+    n_selected_examples = 0
 
     if not dry_run:
         n_metric_rows = _concat_metrics(metric_files, combined_metrics_csv)
         print(f"✓ Combined VTE metrics saved: {combined_metrics_csv}")
+
+        combined_metrics = pd.read_csv(combined_metrics_csv)
+        n_selected_examples = _write_selected_examples(
+            metrics_df=combined_metrics,
+            batch_runs=batch_runs,
+            output_csv=selected_examples_csv,
+            output_dir=output_dir,
+        )
+        print(f"✓ Selected VTE examples saved: {selected_examples_csv}")
 
     if not skip_analysis:
         if not dry_run:
@@ -281,6 +500,8 @@ def run_batch(
         "n_runs_selected": len(batch_runs),
         "n_metric_rows": n_metric_rows,
         "combined_metrics_csv": str(combined_metrics_csv),
+        "selected_examples_csv": str(selected_examples_csv),
+        "n_selected_examples": n_selected_examples,
         "analysis_dir": str(analysis_dir) if not skip_analysis else None,
         "runs": batch_runs,
     }
@@ -366,6 +587,7 @@ def main() -> None:
     print("Stage 3.2 VTE batch complete")
     print(f"Runs selected: {meta['n_runs_selected']}")
     print(f"Metric rows: {meta['n_metric_rows']}")
+    print(f"Selected examples: {meta['n_selected_examples']}")
     print(f"Output: {meta['output_dir']}")
 
 
