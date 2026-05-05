@@ -451,6 +451,40 @@ def _as_bool_series(series: pd.Series) -> pd.Series:
     text = series.astype(str).str.strip().str.lower()
     return text.isin({"true", "1", "yes", "y"})
 
+def _route_alias_map(geometry: GeometrySpec) -> dict[str, str]:
+    """Map internal geometry zone ids to externally stable route labels.
+
+    In inferred W-track geometry, route zones may have internal ids such as
+    zone_2 / zone_4 while tables and segmented traces use arm_2 / arm_3.
+    The QA comparison must use the stable committed-path namespace.
+    """
+    aliases: dict[str, str] = {}
+
+    route_zones = getattr(geometry, "route_zones", [])
+    for zone in route_zones:
+        zone_id = _safe_str(getattr(zone, "zone_id", ""))
+        label = _safe_str(getattr(zone, "label", ""))
+
+        if zone_id:
+            aliases[zone_id] = label or zone_id
+        if label:
+            aliases[label] = label
+
+    # Defensive fallback for older inferred geometry where labels were not
+    # serialized but zone ids follow top-arm order.
+    # This should only affect QA display, not segmentation itself.
+    for i in range(1, 10):
+        aliases.setdefault(f"arm_{i}", f"arm_{i}")
+
+    return aliases
+
+
+def _canonical_route_label(route_id: Any, aliases: dict[str, str]) -> str:
+    value = _safe_str(route_id)
+    if not value:
+        return ""
+    return aliases.get(value, value)
+
 def build_choice_exit_diagnostics(
     canonical_df: pd.DataFrame,
     segmented_df: pd.DataFrame,
@@ -474,6 +508,7 @@ def build_choice_exit_diagnostics(
         canonical_df,
         ["x", "y", "heading", "source_row_index", "sample_index", "time_s"],
     )
+    route_aliases = _route_alias_map(geometry)
     segmented = _coerce_numeric_columns(
         segmented_df,
         ["x", "y", "heading", "source_row_index", "sample_index", "trial", "epoch", "day"],
@@ -608,10 +643,14 @@ def build_choice_exit_diagnostics(
             if not farthest_route:
                 farthest_route = dominant_route
 
+        first_route_label = _canonical_route_label(first_route, route_aliases)
+        dominant_route_label = _canonical_route_label(dominant_route, route_aliases)
+        farthest_route_label = _canonical_route_label(farthest_route, route_aliases)
+
         rule_values = {
-            "first_non_choice": first_route,
-            "dominant_post": dominant_route,
-            "farthest_post": farthest_route,
+            "first_non_choice": first_route_label,
+            "dominant_post": dominant_route_label,
+            "farthest_post": farthest_route_label,
         }
 
         available = {name: bool(value) for name, value in rule_values.items()}
@@ -637,11 +676,11 @@ def build_choice_exit_diagnostics(
                 "exit_distance_from_choice": exit_distance,
                 "post_window_n_samples": int(len(post_routes)),
                 "post_window_max_distance_from_choice": max_post_distance,
-                "first_non_choice_route": first_route,
+                "first_non_choice_route": first_route_label,
                 "first_non_choice_distance_to_route": first_route_dist,
-                "dominant_post_route": dominant_route,
+                "dominant_post_route": dominant_route_label,
                 "dominant_post_route_fraction": dominant_fraction,
-                "farthest_post_route": farthest_route,
+                "farthest_post_route": farthest_route_label,
                 "farthest_post_distance_from_choice": farthest_distance,
                 "first_non_choice_matches_existing": matches["first_non_choice"] if available["first_non_choice"] else "",
                 "dominant_post_matches_existing": matches["dominant_post"] if available["dominant_post"] else "",
