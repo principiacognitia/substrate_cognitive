@@ -3,6 +3,10 @@
 This directory contains Stage 3.2C utilities for inspecting CRCNS Frank-lab
 W-track MATLAB v5 files before writing a frozen biological-lab VTE adapter.
 
+## Patch 14: CRCNS W-track lab adapter
+status: complete as ingestion / canonical trace / segmentation diagnostic layer
+not complete as direct biological VTE validation
+
 ## Scope
 
 Current utilities are probes only:
@@ -15,6 +19,27 @@ Current utilities are probes only:
 
 They do not compute VTE metrics, infer trials, fit parameters, or import Stage 3
 model internals.
+
+## Scope limitation
+
+This adapter does not validate model VTE against pre-labeled biological VTE events.
+The CRCNS hc-6 dataset provides W-track alternation behavior, position tracking,
+task metadata, spikes, and LFP/EEG recordings, but it does not provide curated
+VTE/head-sweep labels or IdPhi annotations.
+
+Patch 14 closes only the biological tracking ingestion layer:
+
+- MATLAB v5 file loading
+- file inventory
+- position probe
+- task/epoch probe
+- canonical lab-tracking trace export
+- inferred W-track geometry
+- choice-zone / route-zone segmentation
+- diagnostic segmentation QA
+
+Any comparison to model VTE must be treated as derived behavioral-proxy analysis
+unless a dataset with explicit VTE labels is used.
 
 ## Commands
 
@@ -74,3 +99,10 @@ future patches is a canonical VTE trace with explicit metadata:
 
 The same downstream VTE wrapper and visualizer should operate on model-derived
 and biological tracking traces through this shared contract.
+
+## Report
+
+Commit-rule stability is diagnostic only in Patch 14.
+Route labels from segmentation and post-window zone labels are not yet mapped
+through a frozen arm/zone equivalence table. Match-rate columns must not be used
+as acceptance criteria.

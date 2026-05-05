@@ -478,7 +478,6 @@ def _route_alias_map(geometry: GeometrySpec) -> dict[str, str]:
 
     return aliases
 
-
 def _canonical_route_label(route_id: Any, aliases: dict[str, str]) -> str:
     value = _safe_str(route_id)
     if not value:
