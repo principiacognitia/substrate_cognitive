@@ -447,6 +447,9 @@ def _post_route_series(
 
     return pd.DataFrame(rows)
 
+def _as_bool_series(series: pd.Series) -> pd.Series:
+    text = series.astype(str).str.strip().str.lower()
+    return text.isin({"true", "1", "yes", "y"})
 
 def build_choice_exit_diagnostics(
     canonical_df: pd.DataFrame,
@@ -455,7 +458,14 @@ def build_choice_exit_diagnostics(
     *,
     post_window_samples: int = 300,
 ) -> pd.DataFrame:
-    """Build per-choice diagnostics and commit-rule re-evaluation."""
+    """Build per-choice diagnostics and commit-rule re-evaluation.
+
+    Primary rule source is the segmented trial itself:
+    rows with at_choice_point == False after the choice-zone visit.
+
+    Canonical post-window lookup is only a fallback for traces that contain
+    choice-zone rows but not route rows.
+    """
 
     if segmented_df.empty:
         return pd.DataFrame(columns=CHOICE_EXIT_COLUMNS)
@@ -476,9 +486,10 @@ def build_choice_exit_diagnostics(
         if not isinstance(key, tuple):
             key = (key,)
         base = dict(zip(group_cols, key))
-        g = g.sort_values(
-            [c for c in ["source_row_index", "sample_index", "tick"] if c in g.columns]
-        )
+
+        sort_cols = [c for c in ["source_row_index", "sample_index", "tick"] if c in g.columns]
+        if sort_cols:
+            g = g.sort_values(sort_cols)
 
         existing = _first_nonblank(g.get("committed_path", pd.Series(dtype=object)))
         choice_visit_index = _first_nonblank(
@@ -486,10 +497,50 @@ def build_choice_exit_diagnostics(
             default="",
         )
 
-        entry_x = _safe_float(g["x"].iloc[0]) if "x" in g.columns and not g.empty else None
-        entry_y = _safe_float(g["y"].iloc[0]) if "y" in g.columns and not g.empty else None
-        exit_x = _safe_float(g["x"].iloc[-1]) if "x" in g.columns and not g.empty else None
-        exit_y = _safe_float(g["y"].iloc[-1]) if "y" in g.columns and not g.empty else None
+        if "at_choice_point" in g.columns:
+            choice_mask = _as_bool_series(g["at_choice_point"])
+        else:
+            choice_mask = pd.Series(True, index=g.index)
+
+        choice_rows = g.loc[choice_mask].copy()
+        if choice_rows.empty:
+            choice_rows = g.head(1).copy()
+
+        in_trial_post = g.loc[~choice_mask].copy()
+
+        start_idx = None
+        end_idx = None
+        if "source_row_index" in choice_rows.columns:
+            choice_idx = pd.to_numeric(choice_rows["source_row_index"], errors="coerce")
+            start_idx = _safe_float(choice_idx.min())
+            end_idx = _safe_float(choice_idx.max())
+
+        # Fallback: if segmented group has no post-choice rows, take rows
+        # after choice-zone exit from canonical trace.
+        if in_trial_post.empty and end_idx is not None:
+            subset = canonical
+            for col in ["dataset_id", "animal_id", "run_id", "day", "epoch"]:
+                if col in subset.columns and col in g.columns:
+                    value = g[col].iloc[0]
+                    subset = subset.loc[subset[col].astype(str) == str(value)]
+
+            if "source_row_index" in subset.columns:
+                source_idx = pd.to_numeric(subset["source_row_index"], errors="coerce")
+                in_trial_post = subset.loc[
+                    (source_idx > end_idx)
+                    & (source_idx <= end_idx + post_window_samples)
+                ].copy()
+
+        entry_row = choice_rows.iloc[0] if not choice_rows.empty else g.iloc[0]
+        if not in_trial_post.empty:
+            exit_row = in_trial_post.iloc[0]
+        else:
+            exit_row = choice_rows.iloc[-1] if not choice_rows.empty else g.iloc[-1]
+
+        entry_x = _safe_float(entry_row.get("x"))
+        entry_y = _safe_float(entry_row.get("y"))
+        exit_x = _safe_float(exit_row.get("x"))
+        exit_y = _safe_float(exit_row.get("y"))
 
         if exit_x is not None and exit_y is not None:
             exit_angle = float(math.atan2(exit_y - geometry.choice_zone.y, exit_x - geometry.choice_zone.x))
@@ -498,12 +549,37 @@ def build_choice_exit_diagnostics(
             exit_angle = float("nan")
             exit_distance = float("nan")
 
-        _, post, start_idx, end_idx = _subset_canonical_for_segment(
-            canonical,
-            g,
-            post_window_samples=post_window_samples,
-        )
-        post_routes = _post_route_series(post, geometry)
+        post_routes = _post_route_series(in_trial_post, geometry)
+
+        # Fallback when geometry assignment cannot produce routes but segmented
+        # trace already carries route_id labels.
+        if post_routes.empty and "route_id" in in_trial_post.columns:
+            route_rows = in_trial_post.copy()
+            route_rows["route_id"] = route_rows["route_id"].astype(str)
+            route_rows = route_rows.loc[
+                (route_rows["route_id"] != "")
+                & (route_rows["route_id"].str.lower() != "nan")
+                & (route_rows["route_id"] != geometry.choice_zone.zone_id)
+            ]
+
+            fallback_rows = []
+            for _, rr in route_rows.iterrows():
+                x = _safe_float(rr.get("x"))
+                y = _safe_float(rr.get("y"))
+                if x is None or y is None:
+                    dist_choice = float("nan")
+                else:
+                    dist_choice = _distance(x, y, geometry.choice_zone)
+
+                fallback_rows.append(
+                    {
+                        "route_id": _safe_str(rr.get("route_id")),
+                        "distance_to_route": float("nan"),
+                        "distance_to_choice": dist_choice,
+                    }
+                )
+
+            post_routes = pd.DataFrame(fallback_rows)
 
         first_route = ""
         first_route_dist = float("nan")
@@ -521,10 +597,16 @@ def build_choice_exit_diagnostics(
             dominant_route = _safe_str(counts.index[0])
             dominant_fraction = float(counts.iloc[0] / len(post_routes))
 
-            farthest_idx = post_routes["distance_to_choice"].idxmax()
-            farthest_route = _safe_str(post_routes.loc[farthest_idx, "route_id"])
-            farthest_distance = float(post_routes.loc[farthest_idx, "distance_to_choice"])
-            max_post_distance = float(post_routes["distance_to_choice"].max())
+            if "distance_to_choice" in post_routes.columns:
+                dist = pd.to_numeric(post_routes["distance_to_choice"], errors="coerce")
+                if dist.notna().any():
+                    farthest_idx = dist.idxmax()
+                    farthest_route = _safe_str(post_routes.loc[farthest_idx, "route_id"])
+                    farthest_distance = float(dist.loc[farthest_idx])
+                    max_post_distance = float(dist.max())
+
+            if not farthest_route:
+                farthest_route = dominant_route
 
         rule_values = {
             "first_non_choice": first_route,
@@ -544,7 +626,7 @@ def build_choice_exit_diagnostics(
             {
                 "choice_visit_index": choice_visit_index,
                 "existing_committed_path": existing,
-                "choice_duration_samples": int(len(g)),
+                "choice_duration_samples": int(len(choice_rows)),
                 "choice_start_source_row_index": start_idx if start_idx is not None else "",
                 "choice_end_source_row_index": end_idx if end_idx is not None else "",
                 "entry_x": entry_x if entry_x is not None else "",
@@ -566,7 +648,7 @@ def build_choice_exit_diagnostics(
                 "farthest_post_matches_existing": matches["farthest_post"] if available["farthest_post"] else "",
                 "rule_available_count": int(sum(available.values())),
                 "rule_agreement_count": int(sum(matches.values())),
-                "route_assignment_method": "nearest_route_zone_after_choice_exit",
+                "route_assignment_method": "segmented_trial_post_choice_rows_then_canonical_fallback",
             }
         )
         rows.append(row)
