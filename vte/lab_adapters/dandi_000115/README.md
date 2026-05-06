@@ -44,3 +44,35 @@ python -m vte.lab_adapters.dandi_000115.nwb_behavior_probe `
   --nwb logs\vte_datasets\dandi_000115\nwb_probe\sub-despereaux_ses-despereaux-07_behavior+ecephys.nwb `
   --output-dir logs\vte\dandi_000115\despereaux_07_behavior_probe
 ```
+
+## Patch 15B: event-centered canonical choice trace
+
+Patch 15B exports a biological canonical trace that can be read by the frozen VTE wrapper.
+
+The exporter uses:
+
+- selected `processing/behavior/position/series_*`;
+- beam-on behavioral events as event-centered choice episodes;
+- matching pump events as reward markers;
+- StateScript timing alignment from Patch 15A.
+
+This is a choice-episode proxy layer. It does not reconstruct the full eight-arm task and does not claim explicit VTE labels.
+
+Example:
+
+```powershell
+python -m vte.lab_adapters.dandi_000115.convert_to_canonical_choice_trace `
+  --nwb logs\vte_datasets\dandi_000115\nwb_probe\sub-despereaux_ses-despereaux-07_behavior+ecephys.nwb `
+  --probe-dir logs\vte\dandi_000115\despereaux_07_behavior_probe `
+  --output-dir logs\vte\dandi_000115\despereaux_07_canonical_choice `
+  --pre-event-s 2 `
+  --post-event-s 4
+```
+
+Then run the frozen VTE wrapper:
+
+```powershell
+python -m vte.analysis.run_stage3_2_vte `
+  --input-csv logs\vte\dandi_000115\despereaux_07_canonical_choice\dandi000115_canonical_choice_trace.csv `
+  --output-dir logs\vte\dandi_000115\despereaux_07_vte_metrics
+```
