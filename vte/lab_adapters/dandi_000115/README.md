@@ -65,6 +65,10 @@ python -m vte.lab_adapters.dandi_000115.convert_to_canonical_choice_trace `
   --nwb logs\vte_datasets\dandi_000115\nwb_probe\sub-despereaux_ses-despereaux-07_behavior+ecephys.nwb `
   --probe-dir logs\vte\dandi_000115\despereaux_07_behavior_probe `
   --output-dir logs\vte\dandi_000115\despereaux_07_canonical_choice `
+  --include-event-regex "^(arm[1-8])beam$" `
+  --min-event-gap-s 2 `
+  --heading-source velocity `
+  --heading-smoothing-samples 7 `
   --pre-event-s 2 `
   --post-event-s 4
 ```

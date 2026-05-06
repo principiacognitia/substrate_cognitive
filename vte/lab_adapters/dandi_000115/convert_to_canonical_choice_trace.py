@@ -64,19 +64,26 @@ def _path_stem(path: str) -> str:
 
 
 def _infer_subject_session(nwb_path: Path, dataset_id: str) -> dict[str, str]:
-    parts = nwb_path.parts
+    stem = nwb_path.name
+
     subject_id = ""
     session_id = ""
 
-    for part in parts:
-        if part.startswith("sub-"):
-            subject_id = part.replace("sub-", "")
-            break
+    if stem.startswith("sub-"):
+        subject_id = stem[4:].split("_", 1)[0]
 
-    stem = nwb_path.name
     if "_ses-" in stem:
-        session_id = stem.split("_ses-", 1)[1].replace("_behavior+ecephys.nwb", "")
-    else:
+        session_id = stem.split("_ses-", 1)[1]
+        session_id = session_id.replace("_behavior+ecephys.nwb", "")
+        session_id = session_id.replace(".nwb", "")
+
+    if not subject_id:
+        for part in nwb_path.parts:
+            if part.startswith("sub-") and "_ses-" not in part and not part.endswith(".nwb"):
+                subject_id = part.replace("sub-", "")
+                break
+
+    if not session_id:
         session_id = _path_stem(str(nwb_path))
 
     if not subject_id:
@@ -110,8 +117,23 @@ def _read_best_alignment(probe_dir: Path) -> dict[str, Any] | None:
     row = df.iloc[0].to_dict()
     return row
 
+def _rolling_mean(values: np.ndarray, window: int) -> np.ndarray:
+    if window <= 1:
+        return values.astype(float)
 
-def _load_position_series(nwb_path: Path, series_name: str) -> pd.DataFrame:
+    return (
+        pd.Series(values.astype(float))
+        .rolling(window=window, center=True, min_periods=1)
+        .mean()
+        .to_numpy()
+    )
+
+def _load_position_series(
+    nwb_path: Path,
+    series_name: str,
+    heading_source: str = "velocity",
+    heading_smoothing_samples: int = 7,
+) -> pd.DataFrame:
     with h5py.File(nwb_path, "r") as handle:
         series_path = f"processing/behavior/position/{series_name}"
         if series_path not in handle:
@@ -144,14 +166,26 @@ def _load_position_series(nwb_path: Path, series_name: str) -> pd.DataFrame:
     x2 = col_or_nan(2)
     y2 = col_or_nan(3)
 
-    heading = np.arctan2(y2 - y, x2 - x)
+    body_heading = np.arctan2(y2 - y, x2 - x)
+
+    smooth_x = _rolling_mean(x, heading_smoothing_samples)
+    smooth_y = _rolling_mean(y, heading_smoothing_samples)
+    velocity_heading = np.arctan2(np.gradient(smooth_y), np.gradient(smooth_x))
+
+    if heading_source == "body_vector":
+        heading = body_heading.copy()
+        fallback = velocity_heading
+    elif heading_source == "velocity":
+        heading = velocity_heading.copy()
+        fallback = body_heading
+    else:
+        raise ValueError(
+            "heading_source must be one of: 'velocity', 'body_vector'"
+        )
 
     bad_heading = ~np.isfinite(heading)
-    if np.any(bad_heading):
-        dx = np.gradient(x)
-        dy = np.gradient(y)
-        velocity_heading = np.arctan2(dy, dx)
-        heading[bad_heading] = velocity_heading[bad_heading]
+    heading[bad_heading] = fallback[bad_heading]
+    heading = np.nan_to_num(heading, nan=0.0, posinf=0.0, neginf=0.0)
 
     df = pd.DataFrame(
         {
@@ -242,6 +276,7 @@ def _select_choice_events(
     position_time_max: float,
     include_event_regex: str,
     max_events: int | None,
+    min_event_gap_s: float,
 ) -> pd.DataFrame:
     if events.empty:
         return events
@@ -256,6 +291,13 @@ def _select_choice_events(
 
     if include_event_regex:
         choices = choices[choices["event_channel"].str.match(include_event_regex)].copy()
+
+    choices = choices.sort_values(["event_channel", "time_s"]).reset_index(drop=True)
+
+    if min_event_gap_s and min_event_gap_s > 0:
+        delta = choices.groupby("event_channel")["time_s"].diff()
+        keep = delta.isna() | (delta >= float(min_event_gap_s))
+        choices = choices[keep].copy()
 
     choices = choices.sort_values("time_s").reset_index(drop=True)
     choices["trial"] = np.arange(1, len(choices) + 1, dtype=int)
@@ -536,7 +578,10 @@ def convert_dandi000115_to_canonical_choice_trace(
     position_series: str | None = None,
     statescript_source: str | None = None,
     alignment_offset_s: float | None = None,
-    include_event_regex: str = r"^(arm[1-8]|R|W|home)beam$",
+    include_event_regex: str = r"^(arm[1-8])beam$",
+    min_event_gap_s: float = 2.0,
+    heading_source: str = "velocity",
+    heading_smoothing_samples: int = 7,
     pre_event_s: float = 2.0,
     post_event_s: float = 4.0,
     reward_window_after_s: float = 2.0,
@@ -575,7 +620,12 @@ def convert_dandi000115_to_canonical_choice_trace(
 
     identifiers = _infer_subject_session(nwb, dataset_id)
 
-    position = _load_position_series(nwb, position_series)
+    position = _load_position_series(
+        nwb_path=nwb,
+        series_name=position_series,
+        heading_source=heading_source,
+        heading_smoothing_samples=heading_smoothing_samples,
+    )
     if position.empty:
         raise ValueError(f"Position series is empty after finite filtering: {position_series}")
 
@@ -595,6 +645,7 @@ def convert_dandi000115_to_canonical_choice_trace(
         position_time_max=float(position["time_s"].max()),
         include_event_regex=include_event_regex,
         max_events=max_events,
+        min_event_gap_s=min_event_gap_s,
     )
 
     choice_events = _assign_reward_to_events(
@@ -641,6 +692,9 @@ def convert_dandi000115_to_canonical_choice_trace(
         "statescript_source": statescript_source,
         "alignment_offset_s": float(alignment_offset_s),
         "include_event_regex": include_event_regex,
+        "min_event_gap_s": min_event_gap_s,
+        "heading_source": heading_source,
+        "heading_smoothing_samples": heading_smoothing_samples,
         "pre_event_s": pre_event_s,
         "post_event_s": post_event_s,
         "reward_window_after_s": reward_window_after_s,
@@ -689,7 +743,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--position-series", default=None)
     parser.add_argument("--statescript-source", default=None)
     parser.add_argument("--alignment-offset-s", type=float, default=None)
-    parser.add_argument("--include-event-regex", default=r"^(arm[1-8]|R|W|home)beam$")
+    parser.add_argument("--include-event-regex", default=r"^(arm[1-8])beam$")
+    parser.add_argument("--min-event-gap-s", type=float, default=2.0)
+    parser.add_argument(
+        "--heading-source",
+        choices=["velocity", "body_vector"],
+        default="velocity",
+    )
+    parser.add_argument("--heading-smoothing-samples", type=int, default=7)
     parser.add_argument("--pre-event-s", type=float, default=2.0)
     parser.add_argument("--post-event-s", type=float, default=4.0)
     parser.add_argument("--reward-window-after-s", type=float, default=2.0)
@@ -716,6 +777,9 @@ def main() -> None:
         reward_window_after_s=args.reward_window_after_s,
         statescript_match_window_s=args.statescript_match_window_s,
         max_events=args.max_events,
+        min_event_gap_s=args.min_event_gap_s,
+        heading_source=args.heading_source,
+        heading_smoothing_samples=args.heading_smoothing_samples,
     )
 
 
