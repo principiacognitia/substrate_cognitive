@@ -13,7 +13,6 @@ import pandas as pd
 
 VECTOR_FIELDS = [
     "trial",
-    "zone_id",
     "zone_delay",
     "site_rank",
     "entering_zone_time",
@@ -133,6 +132,17 @@ def _as_scalar(value: Any) -> Any:
     except Exception:
         return text
 
+def _maybe_numeric_series(series: pd.Series) -> pd.Series:
+    text = series.astype(str).str.strip()
+    text = text.replace({"": np.nan, "nan": np.nan, "None": np.nan, "null": np.nan})
+    converted = pd.to_numeric(text, errors="coerce")
+
+    # Convert only if at least one value is genuinely numeric.
+    # This avoids destroying categorical columns like WaitZone.
+    if converted.notna().sum() > 0:
+        return converted
+
+    return series
 
 def _choice_from_row(row: pd.Series) -> str:
     choice = str(row.get("choice", "")).strip()
@@ -210,12 +220,46 @@ def _reward_from_row(row: pd.Series) -> Any:
     return ""
 
 
+def _is_real_zone_id_vector(values: list[Any]) -> bool:
+    if len(values) <= 1:
+        return False
+
+    cleaned = [str(v).strip().lower() for v in values if not _is_blank(v)]
+    if not cleaned:
+        return False
+
+    symbolic = {"waitzone", "offerzone", "lingerzone", "wait_zone", "offer_zone", "linger_zone"}
+    if all(v in symbolic for v in cleaned):
+        return False
+
+    numeric_count = 0
+    for value in cleaned:
+        try:
+            float(value)
+            numeric_count += 1
+        except Exception:
+            pass
+
+    return numeric_count > 0
+
+
 def _explode_row(row: pd.Series) -> list[dict[str, Any]]:
     parsed = {field: _parse_vector(row.get(field, "")) for field in VECTOR_FIELDS}
 
-    max_len = max(len(values) for values in parsed.values()) if parsed else 1
+    raw_zone_value = row.get("zone_id", "")
+    raw_choice_point = row.get("choice_point_id", "")
 
-    # A row with only scalar fields stays a single row.
+    zone_values = _parse_vector(raw_zone_value)
+    has_real_zone_id_vector = _is_real_zone_id_vector(zone_values)
+
+    source_zone_context = str(raw_zone_value).strip()
+    if _is_blank(source_zone_context):
+        source_zone_context = str(raw_choice_point).strip()
+
+    max_len = max(len(values) for values in parsed.values()) if parsed else 1
+    if has_real_zone_id_vector:
+        max_len = max(max_len, len(zone_values))
+
     out_rows: list[dict[str, Any]] = []
 
     for idx in range(max_len):
@@ -226,6 +270,7 @@ def _explode_row(row: pd.Series) -> list[dict[str, Any]]:
                 out[field] = row.get(field, "")
 
         out["zone_slot"] = idx
+        out["source_zone_context"] = source_zone_context
 
         for field, values in parsed.items():
             if len(values) == 1:
@@ -237,13 +282,23 @@ def _explode_row(row: pd.Series) -> list[dict[str, Any]]:
 
             out[field] = _as_scalar(value)
 
+        if has_real_zone_id_vector:
+            if idx < len(zone_values):
+                out["zone_id"] = _as_scalar(zone_values[idx])
+            else:
+                out["zone_id"] = ""
+            out["restaurant_id"] = out["zone_id"]
+        else:
+            out["zone_id"] = idx + 1 if max_len > 1 else ""
+            out["restaurant_id"] = out["zone_id"]
+
         out["choice"] = _choice_from_row(row)
         out["reward"] = _reward_from_row(row)
-        out["zone_type"] = _zone_type(out.get("zone_id", ""), row.get("choice_point_id", ""))
+        out["zone_type"] = _zone_type(source_zone_context, raw_choice_point)
 
-        zone_id = out.get("zone_id", "")
-        if zone_id != "":
-            out["choice_point_id"] = f"redish_rrow_{out['zone_type'] or 'zone'}_{zone_id}"
+        if out.get("zone_id", "") != "":
+            zone_type_label = out["zone_type"] or "zone"
+            out["choice_point_id"] = f"redish_rrow_{zone_type_label}_{out['zone_id']}"
 
         out_rows.append(out)
 
@@ -267,22 +322,12 @@ def normalize_endpoint_table(
     normalized = pd.DataFrame(rows)
 
     if drop_empty_vector_rows and not normalized.empty:
-        informative_cols = [
-            "trial",
-            "zone_id",
-            "zone_delay",
-            "total_site_time",
-            "pause_time",
-            "lab_idphi",
-            "lab_avg_dphi",
-        ]
+        trial_present = normalized["trial"].astype(str).str.strip().ne("") if "trial" in normalized.columns else True
+        choice_present = normalized["choice"].astype(str).str.strip().ne("") if "choice" in normalized.columns else True
 
-        mask = pd.Series(False, index=normalized.index)
-        for col in informative_cols:
-            if col in normalized.columns:
-                mask = mask | normalized[col].astype(str).str.strip().ne("")
-
-        normalized = normalized.loc[mask].reset_index(drop=True)
+        # Redish RRow endpoint rows are only valid when a trial/lap index exists.
+        # Blank vector slots are MATLAB padding, not behavioral events.
+        normalized = normalized.loc[trial_present & choice_present].reset_index(drop=True)
 
     numeric_cols = [
         "trial",
@@ -304,7 +349,7 @@ def normalize_endpoint_table(
 
     for col in numeric_cols:
         if col in normalized.columns:
-            normalized[col] = pd.to_numeric(normalized[col], errors="ignore")
+            normalized[col] = _maybe_numeric_series(normalized[col])
 
     endpoint_path = output_dir / "Table_Redish_RRow_Choice_IdPhi_Endpoint_Normalized.csv"
     by_choice_path = output_dir / "Table_Redish_RRow_Normalized_By_Choice.csv"
