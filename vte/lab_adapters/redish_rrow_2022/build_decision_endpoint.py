@@ -69,7 +69,7 @@ ID_FIELDS = [
 
 
 MISSING_TOKENS = {"", "nan", "none", "null", "<na>", "na", "n/a"}
-
+DECISION_SLOT_COUNT = 4
 
 def _is_blank(value: Any) -> bool:
     if value is None:
@@ -282,10 +282,46 @@ def _max_vector_len(parsed: dict[str, list[Any]]) -> int:
         return 1
     return max(lengths)
 
+def _selected_decision_slots(parsed: dict[str, list[Any]]) -> tuple[list[int], str]:
+    """Select actual decision-bearing vector slots.
+
+    Redish RRow aggregate vectors often expose 8 cells. The first 4 cells
+    behave as decision-specific restaurant slots. The last 4 cells behave as
+    an all-restaurant/context mirror and must not be counted as independent
+    decision events.
+
+    Policy:
+    - if vector length > 4 and first 4 contain valid trials, keep only valid
+      first-half slots;
+    - if vector length > 4 and first 4 contain no valid trials, emit no rows;
+    - if vector length <= 4, keep all valid slots.
+    """
+
+    trials = parsed.get("trial", [""])
+    n_slots = _max_vector_len(parsed)
+
+    valid_slots = {
+        i
+        for i in range(n_slots)
+        if not _is_blank(_vector_value(trials, i))
+    }
+
+    if n_slots > DECISION_SLOT_COUNT:
+        selected = [
+            i
+            for i in range(min(DECISION_SLOT_COUNT, n_slots))
+            if i in valid_slots
+        ]
+        if selected:
+            return selected, "first_four_decision_slots"
+        return [], "no_first_four_decision_slots"
+
+    return sorted(valid_slots), "short_vector_decision_slots"
 
 def _explode_source_row(row: pd.Series) -> list[dict[str, Any]]:
     parsed = {field: _parse_vector(row.get(field, "")) for field in VECTOR_FIELDS}
-    n_slots = _max_vector_len(parsed)
+
+    selected_slots, slot_policy = _selected_decision_slots(parsed)
 
     zone_context = _zone_context(row)
     zone_type = _zone_type_from_context(zone_context)
@@ -294,7 +330,7 @@ def _explode_source_row(row: pd.Series) -> list[dict[str, Any]]:
 
     rows: list[dict[str, Any]] = []
 
-    for zone_slot in range(n_slots):
+    for zone_slot in selected_slots:
         trial = _to_int_or_blank(_vector_value(parsed.get("trial", [""]), zone_slot))
         if _is_blank(trial):
             continue
@@ -319,6 +355,7 @@ def _explode_source_row(row: pd.Series) -> list[dict[str, Any]]:
                 ),
                 "trial": trial,
                 "source_zone_slot": zone_slot,
+                "source_slot_policy": slot_policy,
                 "restaurant_id": restaurant_id,
                 "source_zone_context": zone_context,
                 "decision_stage": zone_type,

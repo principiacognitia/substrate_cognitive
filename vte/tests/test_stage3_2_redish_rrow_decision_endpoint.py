@@ -193,3 +193,38 @@ def test_decision_endpoint_numeric_fields_are_available(tmp_path: Path):
         assert usable[col].notna().all()
 
     assert set(usable["restaurant_outcome"]) == {"skip", "earn", "quit"}
+
+def test_eight_slot_vectors_keep_only_first_four_decision_slots(tmp_path: Path):
+    input_csv = tmp_path / "raw_endpoint.csv"
+    output_dir = tmp_path / "decision"
+
+    pd.DataFrame(
+        [
+            {
+                "dataset_id": "redish_rrow_2022",
+                "subject_id": "R001",
+                "session_id": "R001-2020-01-01",
+                "row_index": 0,
+                "zone_id": "OfferZone",
+                "choice_point_id": "OfferZone",
+                "choice": "Skip",
+                "trial": "[1.0, NaN, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0]",
+                "zone_delay": "[5.0, NaN, 15.0, 20.0, 5.0, 10.0, 15.0, 20.0]",
+                "pause_time": "[0.5, NaN, 0.7, 0.8, 0.5, 0.6, 0.7, 0.8]",
+                "total_site_time": "[2.0, NaN, 3.0, 4.0, 2.0, 2.5, 3.0, 4.0]",
+                "run_speed": "[1.0, NaN, 1.1, 1.2, 1.0, 1.0, 1.1, 1.2]",
+                "lab_idphi": "[0.1, NaN, 0.3, 0.4, 0.1, 0.2, 0.3, 0.4]",
+                "lab_avg_dphi": "[0.01, NaN, 0.03, 0.04, 0.01, 0.02, 0.03, 0.04]",
+            }
+        ]
+    ).to_csv(input_csv, index=False)
+
+    build_decision_endpoint(input_csv=input_csv, output_dir=output_dir)
+
+    endpoint = pd.read_csv(output_dir / "Table_Redish_RRow_Decision_Endpoint.csv")
+
+    assert len(endpoint) == 3
+    assert set(endpoint["source_zone_slot"]) == {0, 2, 3}
+    assert endpoint["source_zone_slot"].max() <= 3
+    assert set(endpoint["restaurant_id"]) == {1, 3, 4}
+    assert set(endpoint["source_slot_policy"]) == {"first_four_decision_slots"}
