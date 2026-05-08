@@ -133,12 +133,14 @@ def _as_scalar(value: Any) -> Any:
         return text
 
 def _maybe_numeric_series(series: pd.Series) -> pd.Series:
-    text = series.astype(str).str.strip()
-    text = text.replace({"": np.nan, "nan": np.nan, "None": np.nan, "null": np.nan})
+    text = series.astype("string").str.strip()
+    lower = text.str.lower()
+
+    missing = text.isna() | lower.isin({"", "nan", "none", "null", "<na>"})
+    text = text.mask(missing)
+
     converted = pd.to_numeric(text, errors="coerce")
 
-    # Convert only if at least one value is genuinely numeric.
-    # This avoids destroying categorical columns like WaitZone.
     if converted.notna().sum() > 0:
         return converted
 
@@ -293,7 +295,15 @@ def _explode_row(row: pd.Series) -> list[dict[str, Any]]:
             out["restaurant_id"] = out["zone_id"]
 
         out["choice"] = _choice_from_row(row)
-        out["reward"] = _reward_from_row(row)
+
+        reward_value = _reward_from_row(row)
+        if reward_value == "":
+            if out["choice"] == "accept":
+                reward_value = 1
+            elif out["choice"] in {"skip", "quit"}:
+                reward_value = 0
+
+        out["reward"] = reward_value
         out["zone_type"] = _zone_type(source_zone_context, raw_choice_point)
 
         if out.get("zone_id", "") != "":
@@ -304,6 +314,10 @@ def _explode_row(row: pd.Series) -> list[dict[str, Any]]:
 
     return out_rows
 
+def _n_nonempty_unique(series: pd.Series) -> int:
+    text = series.astype("string").str.strip()
+    text = text.mask(text.isna() | text.str.lower().isin({"", "nan", "none", "null", "<na>"}))
+    return int(text.nunique(dropna=True))
 
 def normalize_endpoint_table(
     input_csv: Path,
@@ -322,12 +336,15 @@ def normalize_endpoint_table(
     normalized = pd.DataFrame(rows)
 
     if drop_empty_vector_rows and not normalized.empty:
-        trial_present = normalized["trial"].astype(str).str.strip().ne("") if "trial" in normalized.columns else True
-        choice_present = normalized["choice"].astype(str).str.strip().ne("") if "choice" in normalized.columns else True
+        trial_text = normalized["trial"].astype(str).str.strip().str.lower() if "trial" in normalized.columns else pd.Series("1", index=normalized.index)
+        choice_text = normalized["choice"].astype(str).str.strip().str.lower() if "choice" in normalized.columns else pd.Series("", index=normalized.index)
 
-        # Redish RRow endpoint rows are only valid when a trial/lap index exists.
-        # Blank vector slots are MATLAB padding, not behavioral events.
-        normalized = normalized.loc[trial_present & choice_present].reset_index(drop=True)
+        trial_present = ~trial_text.isin({"", "nan", "none", "null", "<na>"})
+        valid_choice = choice_text.isin({"accept", "skip", "quit"})
+
+        # Keep only interpretable behavioral endpoints.
+        # Blank / N/A rows are padding or non-decision rows, not usable comparison events.
+        normalized = normalized.loc[trial_present & valid_choice].reset_index(drop=True)
 
     numeric_cols = [
         "trial",
@@ -358,6 +375,35 @@ def normalize_endpoint_table(
 
     normalized.to_csv(endpoint_path, index=False)
 
+    usable_path = output_dir / "Table_Redish_RRow_Choice_IdPhi_Endpoint_Usable.csv"
+
+    usable = normalized.copy()
+    if not usable.empty:
+        required_usable_cols = [
+            "trial",
+            "zone_id",
+            "restaurant_id",
+            "zone_type",
+            "choice",
+            "reward",
+            "zone_delay",
+            "pause_time",
+            "lab_idphi",
+            "lab_avg_dphi",
+        ]
+
+        usable_mask = pd.Series(True, index=usable.index)
+        for col in required_usable_cols:
+            if col in usable.columns:
+                text = usable[col].astype(str).str.strip().str.lower()
+                usable_mask = usable_mask & ~text.isin({"", "nan", "none", "null", "<na>"})
+            else:
+                usable_mask = pd.Series(False, index=usable.index)
+
+        usable = usable.loc[usable_mask].reset_index(drop=True)
+
+    usable.to_csv(usable_path, index=False)
+
     if normalized.empty:
         by_choice = pd.DataFrame()
         by_session = pd.DataFrame()
@@ -386,8 +432,9 @@ def normalize_endpoint_table(
             .agg(
                 n_rows=("choice", "size"),
                 n_zone_slots=("zone_slot", "nunique"),
-                n_zone_values=("zone_id", lambda s: int(pd.Series(s).nunique(dropna=True))),
-                n_choices=("choice", lambda s: int(pd.Series(s).astype(str).replace("", np.nan).nunique(dropna=True))),
+                n_restaurants=("restaurant_id", lambda s: int(pd.to_numeric(s, errors="coerce").dropna().nunique())),
+                n_zone_contexts=("source_zone_context", _n_nonempty_unique),
+                n_choices=("choice", _n_nonempty_unique),
                 reward_rate=("reward", "mean"),
                 mean_zone_delay=("zone_delay", "mean"),
                 mean_pause_time=("pause_time", "mean"),
@@ -408,6 +455,7 @@ def normalize_endpoint_table(
             "normalized_endpoint": str(endpoint_path),
             "by_choice": str(by_choice_path),
             "by_session": str(by_session_path),
+            "usable_endpoint": str(usable_path),
         },
     }
 

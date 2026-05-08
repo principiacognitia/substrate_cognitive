@@ -118,4 +118,38 @@ def test_normalize_endpoint_table_drops_blank_trial_slots_and_uses_zone_context(
     assert list(normalized["restaurant_id"]) == [2, 3]
     assert list(normalized["source_zone_context"]) == ["WaitZone", "WaitZone"]
     assert list(normalized["zone_type"]) == ["wait_zone", "wait_zone"]
-    assert list(normalized["choice"]) == ["skip", "skip"]    
+    assert list(normalized["choice"]) == ["skip", "skip"]
+    assert list(normalized["reward"]) == [0, 0]   
+
+def test_normalize_endpoint_table_writes_usable_endpoint(tmp_path: Path):
+    input_csv = tmp_path / "endpoint.csv"
+    output_dir = tmp_path / "normalized"
+
+    pd.DataFrame(
+        [
+            {
+                "dataset_id": "redish_rrow_2022",
+                "subject_id": "R001",
+                "session_id": "R001-2020-01-01",
+                "row_index": 0,
+                "trial": "[1.0, NaN]",
+                "choice_point_id": "OfferZone",
+                "zone_id": "OfferZone",
+                "choice": "Earn",
+                "zone_delay": "[12.0, NaN]",
+                "pause_time": "[0.5, NaN]",
+                "lab_idphi": "[0.3, NaN]",
+                "lab_avg_dphi": "[0.2, NaN]",
+            }
+        ]
+    ).to_csv(input_csv, index=False)
+
+    normalize_endpoint_table(input_csv=input_csv, output_dir=output_dir)
+
+    usable = pd.read_csv(output_dir / "Table_Redish_RRow_Choice_IdPhi_Endpoint_Usable.csv")
+
+    assert len(usable) == 1
+    assert usable.iloc[0]["choice"] == "accept"
+    assert usable.iloc[0]["reward"] == 1
+    assert usable.iloc[0]["zone_type"] == "offer_zone"
+    assert usable.iloc[0]["lab_idphi"] == 0.3 
