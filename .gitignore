@@ -87,3 +87,4 @@ repo3.1b.txt
 !docs/results/
 !docs/results/**
 
+*.zip
