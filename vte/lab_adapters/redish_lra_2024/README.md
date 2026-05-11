@@ -130,6 +130,41 @@ Use this when same-trial event action codes are required.
 
 Use Patch 17E when full healthy VTE/outcome baseline is sufficient.
 
+### Patch 18A-18B: biological-vs-synthetic comparability and validation
+
+Purpose:
+
+- compare healthy LRA biological endpoint with synthetic balanced-fork rows;
+- compare only VTE, outcome/reward, dwell, and deliberation fields;
+- keep action labels as non-comparable when namespaces differ.
+
+Patch 18B validated result:
+
+- `Table_LRA_BioSynth18B_Comparable_Rows_Validated.csv`
+
+Interpretation:
+
+- direct action/task equivalence is not established;
+- reward-direction signature differs between biological and synthetic sources;
+- dwell and deliberation VTE signatures are directionally comparable.
+
+### Patch 18C: visualization bridge
+
+Purpose:
+
+- export Patch 18B rows into a stable decision-level visualization schema;
+- preserve comparability policy explicitly;
+- mark `movement_trace_available = false`.
+
+Important outputs:
+
+- `Table_LRA_BioSynth18C_Visualization_Decision_Endpoint.csv`
+- `Table_LRA_BioSynth18C_Visualization_Source_Summary.csv`
+- `Table_LRA_BioSynth18C_Visualization_Field_Dictionary.csv`
+- `lra_biosynth18c_visualization_bridge_meta.json`
+
+Patch 18C is not a movement replay table. It is suitable for decision-level visual panels.
+
 ## Recommended files
 
 Primary biological VTE baseline:
@@ -143,6 +178,10 @@ Strict same-trial action-code subset:
 Perturbation endpoint, not healthy baseline:
 
 - `logs\vte\redish_lra_2024\patch17e_policy_split\redish_lra17e_dreadd_perturbation_continuous.csv`
+
+Visualization bridge:
+
+- `logs\vte\redish_lra_2024\patch18c_visualization_bridge\Table_LRA_BioSynth18C_Visualization_Decision_Endpoint.csv`
 
 ## Comparability policy
 
@@ -158,8 +197,11 @@ Not comparable without additional decoding:
 
 - biological `native_action_code`;
 - synthetic `left/right`;
-- DREADD treatment rows vs healthy baseline.
+- DREADD treatment rows vs healthy baseline;
+- movement trajectories.
 
 ## Current best use
 
-Use this adapter as the biological healthy VTE benchmark for balanced-fork model comparisons.
+Use this adapter as the biological healthy VTE benchmark for balanced-fork model comparisons at decision-endpoint level.
+
+Do not claim direct task equivalence or left/right action equivalence.

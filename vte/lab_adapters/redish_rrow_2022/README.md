@@ -10,14 +10,33 @@ It is not the preferred biological baseline for simple left-right VTE at a balan
 
 - biological Restaurant Row task;
 - two decision stages:
-  - offer_zone: accept / skip;
-  - wait_zone: earn / quit;
+  - `offer_zone`: accept / skip;
+  - `wait_zone`: earn / quit;
 - four restaurants / offers;
 - delay and reward structure are task-defining variables;
 - useful for decision-stage extraction and cost/delay analyses;
 - not a clean left-right fork benchmark.
 
 ## Main patches
+
+### Patch 16B: processed behavior endpoint extraction
+
+Initial useful extraction layer.
+
+Important output:
+
+- `Table_Redish_RRow_Choice_IdPhi_Endpoint.csv`
+
+Value:
+
+- extracts subject/session/trial fields;
+- extracts choice/outcome fields;
+- extracts zone delay, dwell/pause, run speed;
+- preserves Redish-authored `IdPhi` / `AvgDPhi`-like values.
+
+Limitation:
+
+- vector-valued rows require semantic normalization before biological comparison.
 
 ### Patch 16C-16D: decision endpoint
 
@@ -30,6 +49,8 @@ Important outputs:
 - `Table_Redish_RRow_Decision_By_Stage.csv`
 - `Table_Redish_RRow_Decision_By_Delay.csv`
 - `Table_Redish_RRow_Decision_By_Session.csv`
+
+Patch 16D cleaned duplicate / non-decision rows and restricted restaurant slots to the first four decision slots.
 
 ### Patch 16E: canonical decision endpoint
 
@@ -75,7 +96,8 @@ Use this adapter for:
 
 - Restaurant Row extraction;
 - delay/cost decision analyses;
-- testing generic biological table plumbing.
+- testing generic biological table plumbing;
+- checking whether decision-endpoint adapters work across non-fork tasks.
 
 Do not use it as the primary healthy left-right VTE benchmark.
 
@@ -84,7 +106,8 @@ Do not use it as the primary healthy left-right VTE benchmark.
 - `chosen_action` labels are task-specific, not left/right.
 - `cost` is meaningful and non-balanced.
 - `reward` depends on task stage and offer/wait structure.
-- Comparability to synthetic left-right fork behavior requires a separate semantic policy.
+- task design is not equivalent to a simple balanced fork.
+- comparability to synthetic left-right fork behavior requires a separate semantic policy.
 
 ## Recommended current baseline
 
@@ -93,3 +116,4 @@ For simple healthy biological VTE at a choice point, use:
 - `vte/lab_adapters/redish_lra_2024`
 - Patch 17E healthy control baseline
 - Patch 17H strict same-trial action-code subset
+- Patch 18B / 18C for diagnostic biological-vs-synthetic comparison and visualization bridge
