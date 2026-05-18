@@ -1,0 +1,36 @@
+# Patch 21A: Regime selection thresholds
+# Do not tune post-hoc to match biological distributions
+
+regimes:
+  exploit:
+    vte_binary: 0
+    z_idphi_abs_max: 0.5
+    pause_ticks_max: 3
+    reorientation_count_max: 1
+    description: "Low-deliberation, direct commitment trials"
+  
+  explore:
+    vte_binary: 1
+    z_idphi_abs_min: 1.0
+    pause_ticks_min: 5
+    reorientation_count_min: 2
+    description: "High-deliberation, pause-and-reorient trials"
+
+selection:
+  max_examples_per_regime: 10
+  prefer_high_reward: true
+  seed_for_reproducibility: 42
+
+rendering:
+  fps: 4
+  trail_length: 8
+  heading_arrow_scale: 0.15
+  choice_point_marker_radius: 0.12
+  overlay_z_idphi: true
+  include_metrics_panel: true
+
+output:
+  format_static: png
+  format_animation: gif
+  dpi: 300
+  figsize_static: [12, 8]

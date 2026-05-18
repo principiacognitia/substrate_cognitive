@@ -1,0 +1,31 @@
+vte/
+├── visualization/
+│   ├── __init__.py
+│   ├── config_regime_selection.yaml    # Patch 21A: thresholds
+│   ├── geometry.py                      # maze layout primitives
+│   ├── regime_selector.py               # Patch 21B: trial selection logic
+│   ├── render_trial.py                  # Patch 21C: static PNG renderer
+│   ├── animate_trial.py                 # Patch 21D: GIF/MP4 animator
+│   ├── compare_trials.py                # Patch 21E: side-by-side panels
+│   ├── cli_render_trial.py              # Patch 21F: CLI entry point
+│   ├── cli_batch_render.py              # Patch 21G: batch orchestrator
+│   └── README.md                        # methodological boundary statement
+└── tests/
+    ├── test_stage3_2_visualization_geometry.py
+    ├── test_stage3_2_visualization_regime_selector.py
+    ├── test_stage3_2_visualization_smoke.py
+    └── test_stage3_2_animation_smoke.py
+
+docs/results/vte/visualization/
+├── regime_exploit/
+│   ├── synthetic_panel.png
+│   ├── biological_panel.png
+│   └── metadata.json
+├── regime_explore/
+│   ├── synthetic_panel.png
+│   ├── biological_panel.png
+│   └── metadata.json
+├── animations/
+│   ├── seed42_trial1_vte.gif
+│   └── seed42_trial7_nonvte.gif
+└── comparison_report.md
