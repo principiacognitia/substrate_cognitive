@@ -11,13 +11,20 @@ def load_regime_config(config_path: str | Path) -> dict:
         return yaml.safe_load(f)
 
 
+# vte/visualization/regime_selector.py
+
+def _prepare_trace(trace_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.DataFrame:
+    """Удаляет из trace_df столбцы, уже существующие в metrics_df, чтобы избежать суффиксов _x/_y."""
+    overlap = [c for c in trace_df.columns if c in metrics_df.columns and c not in ("run_id", "seed", "trial")]
+    return trace_df.drop(columns=overlap)
+
+
 def select_exploit_traces(
     metrics_df: pd.DataFrame,
     trace_df: pd.DataFrame,
     config: dict,
     source: str = "synthetic"
 ) -> pd.DataFrame:
-    """Select low-deliberation trials for exploit regime visualization."""
     cfg = config["regimes"]["exploit"]
     mask = (
         (metrics_df["vte_binary"] == cfg["vte_binary"]) &
@@ -25,11 +32,15 @@ def select_exploit_traces(
         (metrics_df["pause_ticks"] <= cfg["pause_ticks_max"]) &
         (metrics_df["reorientation_count"] <= cfg["reorientation_count_max"])
     )
+    sort_col = "total_reward" if config["selection"].get("prefer_high_reward", True) else "raw_idphi"
+    if sort_col not in metrics_df.columns:
+        sort_col = "raw_idphi"
+
     selected = metrics_df[mask].nlargest(
         config["selection"]["max_examples_per_regime"],
-        "reward" if config["selection"]["prefer_high_reward"] else "raw_idphi"
+        sort_col
     )
-    return selected.merge(trace_df, on=["run_id", "seed", "trial"], how="inner")
+    return selected.merge(_prepare_trace(trace_df, metrics_df), on=["run_id", "seed", "trial"], how="inner")
 
 
 def select_explore_traces(
@@ -38,7 +49,6 @@ def select_explore_traces(
     config: dict,
     source: str = "synthetic"
 ) -> pd.DataFrame:
-    """Select high-deliberation trials for explore regime visualization."""
     cfg = config["regimes"]["explore"]
     mask = (
         (metrics_df["vte_binary"] == cfg["vte_binary"]) |
@@ -48,11 +58,15 @@ def select_explore_traces(
             (metrics_df["reorientation_count"] >= cfg["reorientation_count_min"])
         )
     )
+    sort_col = "total_reward" if config["selection"].get("prefer_high_reward", True) else "raw_idphi"
+    if sort_col not in metrics_df.columns:
+        sort_col = "raw_idphi"
+
     selected = metrics_df[mask].nlargest(
         config["selection"]["max_examples_per_regime"],
-        "reward" if config["selection"]["prefer_high_reward"] else "raw_idphi"
+        sort_col
     )
-    return selected.merge(trace_df, on=["run_id", "seed", "trial"], how="inner")
+    return selected.merge(_prepare_trace(trace_df, metrics_df), on=["run_id", "seed", "trial"], how="inner")
 
 
 def write_selected_examples(
@@ -60,11 +74,21 @@ def write_selected_examples(
     explore_df: pd.DataFrame,
     output_path: Path
 ) -> None:
-    """Export selection metadata for reproducibility."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     exploit_df["example_type"] = "clean_non_vte"
     explore_df["example_type"] = "top_vte"
     combined = pd.concat([exploit_df, explore_df], ignore_index=True)
-    combined[["example_type", "run_id", "seed", "trial", "committed_path",
-              "raw_idphi", "z_idphi", "pause_ticks", "reorientation_count",
-              "vte_binary", "pose_source"]].to_csv(output_path, index=False)
+    
+    # Защитный фильтр: выбираем только те столбцы, которые реально присутствуют после merge
+    target_cols = [
+        "example_type", "run_id", "seed", "trial", "committed_path",
+        "raw_idphi", "z_idphi", "pause_ticks", "reorientation_count",
+        "vte_binary", "pose_source"
+    ]
+    present_cols = [c for c in target_cols if c in combined.columns]
+    missing = set(target_cols) - set(present_cols)
+    if missing:
+        import sys
+        print(f"[WARNING] Columns missing after merge (will be skipped): {missing}", file=sys.stderr)
+        
+    combined[present_cols].to_csv(output_path, index=False)
