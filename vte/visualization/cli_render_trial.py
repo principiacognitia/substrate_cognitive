@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 
-from vte.visualization.config_regime_selection import load_regime_config
+from vte.visualization.config import load_regime_config
 from vte.visualization.regime_selector import select_exploit_traces, select_explore_traces
 from vte.visualization.render_trial import render_static_trial
 from vte.visualization.animate_trial import render_animation

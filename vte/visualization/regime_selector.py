@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from pathlib import Path
 import yaml
+from vte.visualization.config import load_regime_config
 
 
 def load_regime_config(config_path: str | Path) -> dict:
