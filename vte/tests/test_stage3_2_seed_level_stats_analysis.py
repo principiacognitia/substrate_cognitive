@@ -35,11 +35,11 @@ def test_seed_level_stats_analyzer_writes_tables_and_figures(tmp_path):
         ])
     metrics_csv = tmp_path / "metrics.csv"
     stats_dir = tmp_path / "patch20b"
-    analysis_dir = tmp_path / "patch20c"
+    analysis_dir = tmp_path / "patch20d"
     pd.DataFrame(rows).to_csv(metrics_csv, index=False)
     run_seed_level_stats([metrics_csv], stats_dir, min_seed_pairs=3)
     meta = analyze_seed_level_stats(stats_dir, analysis_dir, top_n=10)
-    assert meta["patch"] == "20C"
+    assert meta["patch"] == "20D"
     assert meta["n_tests"] > 0
     expected = {
         "Table_3_2_Seed_Level_Stats_Top_Findings.csv",

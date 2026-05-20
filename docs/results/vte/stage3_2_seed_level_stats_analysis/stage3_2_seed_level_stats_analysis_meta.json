@@ -1,0 +1,28 @@
+{
+  "patch": "20D",
+  "script": "vte.analysis.analyze_stage3_2_seed_level_stats",
+  "created_at": "2026-05-21T02:24:46",
+  "stats_dir": "logs\\vte\\stage3_2_seed_level_stats",
+  "output_dir": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis",
+  "n_tests": 100,
+  "n_top_findings": 25,
+  "n_figures": 3,
+  "figures": [
+    "Figure_3_2_Seed_Level_VTE_Delta_Effect_Sizes.png",
+    "Figure_3_2_Seed_Level_Ablation_Effect_Sizes.png",
+    "Figure_3_2_Seed_Level_VTE_Rate_By_Ablation.png"
+  ],
+  "presentation_changes": [
+    "top findings retain available group context columns",
+    "effect-size plots are horizontal",
+    "ablation effect-size plot uses signed log10(1 + |Cohen dz|) display transform",
+    "figure labels are compact; shared protocol/condition/reference context is moved into figure note boxes",
+    "bar labels encode candidate ablation or run_id where useful",
+    "statistical inputs from Patch 20B are not modified"
+  ],
+  "outputs": {
+    "top_findings": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_Top_Findings.csv",
+    "test_family_summary": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_By_Test_Family.csv",
+    "metric_direction_summary": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_By_Metric_Direction.csv"
+  }
+}

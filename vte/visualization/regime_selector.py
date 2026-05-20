@@ -32,14 +32,30 @@ def select_exploit_traces(
         (metrics_df["pause_ticks"] <= cfg["pause_ticks_max"]) &
         (metrics_df["reorientation_count"] <= cfg["reorientation_count_max"])
     )
-    sort_col = "total_reward" if config["selection"].get("prefer_high_reward", True) else "raw_idphi"
-    if sort_col not in metrics_df.columns:
+    
+    prefer_reward = config["selection"].get("prefer_high_reward", True)
+    primary_col = "total_reward" if prefer_reward else "raw_idphi"
+    
+    # Fallback chain: primary -> alternative -> index
+    if primary_col in metrics_df.columns:
+        sort_col = primary_col
+    elif "raw_idphi" in metrics_df.columns:
         sort_col = "raw_idphi"
+    elif "total_reward" in metrics_df.columns:
+        sort_col = "total_reward"
+    else:
+        sort_col = None
 
-    selected = metrics_df[mask].nlargest(
-        config["selection"]["max_examples_per_regime"],
-        sort_col
-    )
+    masked = metrics_df[mask]
+    if sort_col is not None and not masked.empty:
+        selected = masked.nlargest(
+            config["selection"]["max_examples_per_regime"],
+            sort_col
+        )
+    else:
+        # Fallback: return first N without sorting
+        selected = masked.head(config["selection"]["max_examples_per_regime"])
+        
     return selected.merge(_prepare_trace(trace_df, metrics_df), on=["run_id", "seed", "trial"], how="inner")
 
 
@@ -58,14 +74,30 @@ def select_explore_traces(
             (metrics_df["reorientation_count"] >= cfg["reorientation_count_min"])
         )
     )
-    sort_col = "total_reward" if config["selection"].get("prefer_high_reward", True) else "raw_idphi"
-    if sort_col not in metrics_df.columns:
+    
+    prefer_reward = config["selection"].get("prefer_high_reward", True)
+    primary_col = "total_reward" if prefer_reward else "raw_idphi"
+    
+    # Fallback chain: primary -> alternative -> index
+    if primary_col in metrics_df.columns:
+        sort_col = primary_col
+    elif "raw_idphi" in metrics_df.columns:
         sort_col = "raw_idphi"
+    elif "total_reward" in metrics_df.columns:
+        sort_col = "total_reward"
+    else:
+        sort_col = None
 
-    selected = metrics_df[mask].nlargest(
-        config["selection"]["max_examples_per_regime"],
-        sort_col
-    )
+    masked = metrics_df[mask]
+    if sort_col is not None and not masked.empty:
+        selected = masked.nlargest(
+            config["selection"]["max_examples_per_regime"],
+            sort_col
+        )
+    else:
+        # Fallback: return first N without sorting
+        selected = masked.head(config["selection"]["max_examples_per_regime"])
+        
     return selected.merge(_prepare_trace(trace_df, metrics_df), on=["run_id", "seed", "trial"], how="inner")
 
 
