@@ -35,11 +35,11 @@ def test_seed_level_stats_analyzer_writes_tables_and_figures(tmp_path):
         ])
     metrics_csv = tmp_path / "metrics.csv"
     stats_dir = tmp_path / "patch20b"
-    analysis_dir = tmp_path / "patch20d"
+    analysis_dir = tmp_path / "patch20e"
     pd.DataFrame(rows).to_csv(metrics_csv, index=False)
     run_seed_level_stats([metrics_csv], stats_dir, min_seed_pairs=3)
     meta = analyze_seed_level_stats(stats_dir, analysis_dir, top_n=10)
-    assert meta["patch"] == "20D"
+    assert meta["patch"] == "20E"
     assert meta["n_tests"] > 0
     expected = {
         "Table_3_2_Seed_Level_Stats_Top_Findings.csv",
@@ -47,6 +47,9 @@ def test_seed_level_stats_analyzer_writes_tables_and_figures(tmp_path):
         "Table_3_2_Seed_Level_Stats_By_Metric_Direction.csv",
         "stage3_2_seed_level_stats_analysis_meta.json",
         "Stage3_2_Seed_Level_Stats_Analysis_Report.md",
+        "Table_3_2_Model_Relevant_Seed_Level_Tests.md",
+        "Table_3_2_Wrapper_Sanity_Tests.md",
+        "Table_3_2_Degenerate_Ablation_Diagnostics.md",
     }
     assert expected.issubset({p.name for p in analysis_dir.iterdir()})
     assert any(p.name.startswith("Figure_3_2_Seed_Level_") for p in analysis_dir.iterdir())

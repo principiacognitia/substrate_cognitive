@@ -1,0 +1,4 @@
+test_role,n_tests,n_fdr_lt_05,n_fdr_lt_10,min_p_fdr_bh,median_abs_effect_size,max_abs_effect_size
+degenerate_ablation_diagnostic,7,6,6,8.196311495900614e-05,3.380775208826424,31.95593627977533
+model_relevant_test,45,17,18,8.196311495900614e-05,0.149582802068128,0.7069109963398387
+wrapper_sanity_check,48,48,48,8.196311495900614e-05,15.45307959718464,24.476265264262945

@@ -1,0 +1,1 @@
+test_family,test_role,role_note,contrast,source,dataset_id,task_family,protocol,condition,ablation,run_id,reference_ablation,candidate_ablation,metric,group_a,group_b,n_seed_pairs,mean_delta,median_delta,sd_delta,effect_size,effect_size_type,ci95_low,ci95_high,p_raw,p_fdr_bh,direction,status

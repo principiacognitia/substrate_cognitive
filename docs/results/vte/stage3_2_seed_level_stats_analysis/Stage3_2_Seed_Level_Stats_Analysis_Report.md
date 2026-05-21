@@ -1,6 +1,6 @@
-# Patch 20D Seed-Level Statistics Presentation Update
+# Patch 20E Seed-Level Statistics Presentation Update
 
-Patch 20D reads Patch 20B outputs through the Patch 20C analyzer path.
+Patch 20E reads Patch 20B outputs through the Patch 20C analyzer path.
 It changes presentation only: context columns, figure readability, and production output packaging.
 It does not recompute or alter Patch 20B statistical tests.
 
@@ -13,12 +13,23 @@ It does not recompute or alter Patch 20B statistical tests.
 - `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Seed_Level_Stats_Top_Findings.csv`
 - `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Seed_Level_Stats_By_Test_Family.csv`
 - `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Seed_Level_Stats_By_Metric_Direction.csv`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Seed_Level_Stats_By_Test_Role.csv`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Model_Relevant_Seed_Level_Tests.csv`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Wrapper_Sanity_Tests.csv`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Degenerate_Ablation_Diagnostics.csv`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Diagnostic_Seed_Level_Tests.csv`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Stage3_2_Response_To_GLM_Stats_Critique.md`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Model_Relevant_Seed_Level_Tests.md`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Wrapper_Sanity_Tests.md`
+- `docs\results\vte\stage3_2_seed_level_stats_analysis\Table_3_2_Degenerate_Ablation_Diagnostics.md`
 
 ## Figures
 
 - `Figure_3_2_Seed_Level_VTE_Delta_Effect_Sizes.png`
 - `Figure_3_2_Seed_Level_Ablation_Effect_Sizes.png`
 - `Figure_3_2_Seed_Level_VTE_Rate_By_Ablation.png`
+- `Figure_3_2_Model_Relevant_Seed_Level_Effects.png`
+- `Figure_3_2_Degenerate_Ablation_Diagnostics.png`
 
 ## Test-family summary
 
@@ -42,5 +53,5 @@ It does not recompute or alter Patch 20B statistical tests.
 
 ## Interpretation boundary
 
-Patch 20D is a presentation-layer patch. It should not be cited as a new inferential analysis.
+Patch 20E is a presentation-layer patch. It should not be cited as a new inferential analysis.
 Wrapper sanity effects and model-relevant effects remain to be separated in Patch 20E.

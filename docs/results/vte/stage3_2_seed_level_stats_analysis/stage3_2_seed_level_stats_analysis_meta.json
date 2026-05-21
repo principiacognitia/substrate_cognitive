@@ -1,28 +1,45 @@
 {
-  "patch": "20D",
+  "patch": "20E",
   "script": "vte.analysis.analyze_stage3_2_seed_level_stats",
-  "created_at": "2026-05-21T02:24:46",
+  "created_at": "2026-05-21T18:15:56",
   "stats_dir": "logs\\vte\\stage3_2_seed_level_stats",
   "output_dir": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis",
   "n_tests": 100,
   "n_top_findings": 25,
-  "n_figures": 3,
+  "n_figures": 5,
   "figures": [
     "Figure_3_2_Seed_Level_VTE_Delta_Effect_Sizes.png",
     "Figure_3_2_Seed_Level_Ablation_Effect_Sizes.png",
-    "Figure_3_2_Seed_Level_VTE_Rate_By_Ablation.png"
+    "Figure_3_2_Seed_Level_VTE_Rate_By_Ablation.png",
+    "Figure_3_2_Model_Relevant_Seed_Level_Effects.png",
+    "Figure_3_2_Degenerate_Ablation_Diagnostics.png"
   ],
+  "n_model_relevant_tests": 45,
+  "n_wrapper_sanity_tests": 48,
+  "n_degenerate_ablation_diagnostics": 7,
+  "n_diagnostic_tests": 0,
   "presentation_changes": [
     "top findings retain available group context columns",
     "effect-size plots are horizontal",
     "ablation effect-size plot uses signed log10(1 + |Cohen dz|) display transform",
     "figure labels are compact; shared protocol/condition/reference context is moved into figure note boxes",
     "bar labels encode candidate ablation or run_id where useful",
-    "statistical inputs from Patch 20B are not modified"
+    "statistical inputs from Patch 20B are not modified",
+    "tests are classified into wrapper_sanity_check, model_relevant_test, degenerate_ablation_diagnostic, and diagnostic roles",
+    "GLM critique response note is generated from role-aware tables"
   ],
   "outputs": {
     "top_findings": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_Top_Findings.csv",
     "test_family_summary": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_By_Test_Family.csv",
-    "metric_direction_summary": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_By_Metric_Direction.csv"
+    "metric_direction_summary": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_By_Metric_Direction.csv",
+    "role_summary": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Seed_Level_Stats_By_Test_Role.csv",
+    "model_relevant_tests": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Model_Relevant_Seed_Level_Tests.csv",
+    "wrapper_sanity_tests": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Wrapper_Sanity_Tests.csv",
+    "degenerate_ablation_diagnostics": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Degenerate_Ablation_Diagnostics.csv",
+    "diagnostic_tests": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Diagnostic_Seed_Level_Tests.csv",
+    "glm_response": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Stage3_2_Response_To_GLM_Stats_Critique.md",
+    "model_relevant_tests_md": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Model_Relevant_Seed_Level_Tests.md",
+    "wrapper_sanity_tests_md": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Wrapper_Sanity_Tests.md",
+    "degenerate_ablation_diagnostics_md": "docs\\results\\vte\\stage3_2_seed_level_stats_analysis\\Table_3_2_Degenerate_Ablation_Diagnostics.md"
   }
 }
