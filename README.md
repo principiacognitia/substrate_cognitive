@@ -2,9 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Status: Stage 2 Complete](https://img.shields.io/badge/status-stage--2--complete-green)](https://github.com/principiacognitia/substrate_cognitive)
-[![Status: Stage 3.1 Complete](https://img.shields.io/badge/status-stage--3.1--complete-green)](https://github.com/principiacognitia/substrate_cognitive)
-[![Stage 3.2: VTE](https://img.shields.io/badge/stage--3.2-VTE--in--development-orange)](vte/)
+[![Status: Stage 2 Complete](https://img.shields.io/badge/status-stage--2--complete-green)](stage2/)
+[![Status: Stage 3.1 Complete](https://img.shields.io/badge/status-stage--3.1--complete-green)](stage3/)
+[![Status: Stage 3.2 Closed](https://img.shields.io/badge/status-stage--3.2--closed-green)](vte/)
 
 **Author:** Alex Snow (Aleksey L. Snigirov)
 **Email:** alex2saaba@gmail.com
@@ -20,6 +20,15 @@
 ### Key Idea
 
 Cognitive rigidity does not stem from the content of representations, but rather from the **dynamics of control mode selection**. The arbitration between modes (exploit vs. explore) possesses its own intrinsic viscosity ($V_G$), which accumulates over time and exhibits hysteresis.
+The repository develops a sequence of toy-model experiments around a central architectural claim: cognitive rigidity and deliberation-like behavior can be modeled as consequences of dynamic control-mode arbitration rather than as fixed value representations or special-purpose deliberation modules.
+
+The current stable line is:
+
+- **Stage 2:** Gate-Rheology in Two-Step and Reversal tasks.
+- **Stage 3.1:** valence/exposure kernel closure, including balanced conflict and one-shot shock/treat carryover.
+- **Stage 3.2:** read-only VTE-style measurement and seed-level statistics over externalized Stage 3 traces.
+
+Stage 3.2 is now closed as a measurement/statistical layer. Visualization, W-maze variants, biological neural-data comparison, and Stage 4 mechanisms are explicitly deferred.
 
 ---
 
@@ -33,8 +42,9 @@ Cognitive rigidity does not stem from the content of representations, but rather
 | **Stage 3.1A** | Open/Covered baseline compatibility | ✅ **Compatibility layer** | [stage3/README_Stage_3.1A.md](stage3/README_Stage_3.1A.md)  |
 | **Stage 3.1B** | Valence/exposure closure package | ✅ **Complete / closure package** | [stage3/README.md](stage3/README.md), [closure package](docs/results/stage3_1b_closure/README.md) |
 | **Stage 3.2A** | VTE wrapper core | ✅ **Complete** | [vte/README.md](vte/README.md), [design note](vte/STAGE_3_2_DESIGN_NOTE.md) |
-| **Stage 3.2B** | Stage 3 log adapter + batch analysis | ✅ **Complete** | [vte/README.md](vte/README.md) |
-| **Stage 3.2C** | Biological-lab comparability layer | 🟡 **In development** | [vte/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) |
+| **Stage 3.2B** | Stage 3 trace adapter, batch analysis, biological decision-level comparability, seed-level statistics | ✅ **Complete / closed** | [docs/STAGE3_2_CLOSURE.md](docs/STAGE3_2_CLOSURE.md) |
+| **Stage 3.2C** |  VTE-like trail visualization, animation, side-by-side visual comparison | ⬜ **Deferred** | [docs/stage3_2_TBD.md](docs/stage3_2_TBD.md) |
+| **Stage 4** | Absence / visibility / self-model extension | ⬜ **Not started** | Deferred |
 
 Stage 3.1B is not a new environment family. It closes a specific kernel: reward-threat matrix behavior, balanced-conflict ablation behavior, one-shot shock/treat carryover, carrier-level diagnostics, and placebo-window controls.
 
@@ -56,14 +66,19 @@ substrate_cognitive/
 │   ├── envs/                   # ✅ Stage 3 environments
 │   ├── tests/                  # ✅ Stage 3 regression and integration tests
 │   └── analysis/               # ✅ Stage 3 runners, analyzers, validators
-├── vte/                        # 🟡 Stage 3.2 VTE service layer
+├── vte/                        # ✅ Stage 3.2 VTE service layer
 │   ├── core/                   # ✅ Read-only VTE wrapper and metrics
-│   ├── adapters/               # 🟡 Stage 3 trace adapter and future lab adapters
-│   ├── configs/                # 🟡 Wrapper and analysis defaults
+│   ├── adapters/               # ✅ Stage 3 and biological-data adapters
+│   ├── lab_adapters/           # ✅ Biological/lab comparability adapters
+│   ├── analysis/               # ✅ VTE analysis, statistics, reporting
 │   ├── tests/                  # ✅ VTE schema, wrapper, adapter, and analysis tests
-│   └── analysis/               # 🟡 CLI runners, analyzers, and batch workflows
+│   └── visualization/          # 🟡 Optional visualization layer
 ├── docs/                       # Specifications, notes, curated result packages
-│   └── results/                # Publication-facing curated outputs
+│   ├── results/                # Publication-facing curated outputs
+│   ├── reviewer_packages/       # compact LLM/human reviewer packages
+│   ├── STAGE3_2_CLOSURE.md
+│   ├── stage3_2_TBD.md
+│   └── article_handoff/
 ├── logs/                       # Raw/generated local outputs; ignored by git
 ├── tests/                      # 🟡 Automated debug tests
 └── README.md                   # This file
@@ -82,7 +97,12 @@ cd substrate_cognitive
 
 # Installing dependencies
 pip install -r requirements.txt
+
+# Run tests:
+python -m pytest stage3/tests
+python -m pytest vte/tests
 ```
+
 
 ## Stage 2: Reproducing Results
 
@@ -153,27 +173,67 @@ logs/stage3/stage3_1_closure_raw/
 
 ---
 
-## Interpretation boundary
+## Stage 3.2 closure workflow
 
-Stage 3.1B supports the valence/exposure kernel claim. It does not by itself claim absence inference, allocentric spatial cognition, self-model-based visibility reasoning, or rodent-level VTE equivalence.
+Stage 3.2 is a read-only measurement and analysis layer over externalized Stage 3 behavioral traces.
 
-Those claims require later stages or separate protocols.
+Canonical Stage 3.2 outputs:
 
-Stage 3.2 currently supports trajectory-level VTE-style measurement only. The current Stage 3 adapter uses synthetic poses reconstructed from Stage 3 step logs. Biological comparison requires a separate lab-data adapter, fixed geometry registry, and predeclared thresholding policy.
-
----
-
-## Tests
-
-```bash
-python -m pytest stage3/tests
+```text
+docs/results/vte/stage3_2_seed_level_stats_analysis/
 ```
 
-The Stage 3 test suite currently covers compatibility, gate routing, temporal
-state, no-ready-semions constraints, action-basin equivalence, Stage 3.1B config,
-and one-shot protocol behavior.
+Main files:
+
+```text
+Stage3_2_Response_To_GLM_Stats_Critique.md
+Stage3_2_Seed_Level_Stats_Analysis_Report.md
+Table_3_2_Seed_Level_Stats_By_Test_Role.csv
+Table_3_2_Model_Relevant_Seed_Level_Tests.csv
+Table_3_2_Wrapper_Sanity_Tests.csv
+Table_3_2_Degenerate_Ablation_Diagnostics.csv
+Figure_3_2_Model_Relevant_Seed_Level_Effects.png
+Figure_3_2_Degenerate_Ablation_Diagnostics.png
+Figure_3_2_Seed_Level_VTE_Rate_By_Ablation.png
+```
+
+Reviewer package:
+
+```bash
+python -m stage3.analysis.build_stage3_reviewer_package \
+  --preset stage3_1_3_2 \
+  --profile llm5 \
+  --results-root docs/results \
+  --output-dir docs/reviewer_packages/stage3_1_3_2 \
+  --clean
+```
 
 ---
+
+## Stage 3.2 interpretation boundary
+
+Stage 3.2 supports the following claims:
+
+1. Stage 3 step logs can be translated into a fixed external VTE trace schema.
+2. VTE-style metrics can be computed without importing Stage 3 model internals.
+3. Seed-level statistics separate wrapper-sanity effects from model-relevant effects.
+4. Degenerate ablations are marked separately and not treated as clean localized model effects.
+5. Biological comparison is currently decision-level and schema-level, not rodent trajectory equivalence.
+
+Stage 3.2 does not claim:
+
+- rodent-level VTE equivalence;
+- allocentric spatial cognition;
+- biological neural mechanism identity;
+- absence inference;
+- self-model-based visibility reasoning;
+- full W-maze or RROW task equivalence.
+
+---
+
+
+
+
 
 ## Documentation map
 
@@ -184,62 +244,28 @@ and one-shot protocol behavior.
 | [stage3_1b_closure/README.md](docs/results/stage3_1b_closure/README.md) | Generated closure package README |
 | [STAGE3_1B_CLOSURE_REPORT.md](docs/results/stage3_1b_closure/reports/STAGE3_1B_CLOSURE_REPORT.md) | Generated closure report |
 | [ARTIFACT_REGISTRY.md](docs/results/stage3_1b_closure/ARTIFACT_REGISTRY.md) | Generated artifact registry |
-| [vte/README.md](vte/README.md) | Stage 3.2 VTE wrapper service layer |
-| [vte/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) | Stage 3.2 design note and biological-comparability boundary |
+| [docs/STAGE3_2_CLOSURE.md](docs/STAGE3_2_CLOSURE.md) | Stage 3.2 closure note |
+| [docs/stage3_2_TBD.md](docs/stage3_2_TBD.md) | Deferred Stage 3 extensions |
+| [vte/README.md](vte/README.md) | Stage 3.2 VTE measurement layer |
+| [vte/STAGE_3_2_DESIGN_NOTE.md](vte/STAGE_3_2_DESIGN_NOTE.md) | Stage 3.2 design note |
+| [docs/results/vte/stage3_2_seed_level_stats_analysis/](docs/results/vte/stage3_2_seed_level_stats_analysis/) | Canonical Stage 3.2 statistical outputs |
+| [docs/reviewer_packages/stage3_1_3_2/](docs/reviewer_packages/stage3_1_3_2/) | Compact reviewer package |
+| [docs/article_handoff/Stage3_Followup_Article_Outline.md](docs/article_handoff/Stage3_Followup_Article_Outline.md) | Article handoff outline |
+
+
 
 
 ---
-
----
-
-## Stage 3.2 VTE workflow
-
-Stage 3.2 is a read-only measurement layer over externalized behavioral traces.
-It is intentionally separated from `stage3/`.
-
-### Stage 3 step-log adapter
-
-```bash
-python -m vte.analysis.translate_stage3_steps_to_vte_trace \
-  --input-csv logs/stage3/stage3_1_closure_raw/stage3_1b/<suite>/balanced/full/balanced_conflict_full_all_steps.csv \
-  --output-csv logs/vte/raw/balanced_conflict_full_trace.csv \
-  --run-id balanced_conflict_full
-```
-
-### VTE wrapper
-
-```bash
-python -m vte.analysis.run_stage3_2_vte \
-  --input-csv logs/vte/raw/balanced_conflict_full_trace.csv \
-  --output-dir logs/vte/stage3_2_smoke
-```
-
-### VTE analysis
-
-```bash
-python -m vte.analysis.analyze_stage3_2_vte \
-  --metrics-csv logs/vte/stage3_2_smoke/vte_trial_metrics.csv \
-  --output-dir logs/vte/stage3_2_smoke_analysis
-```
-
-### Tests
-
-```bash
-python -m pytest vte/tests
-python -m pytest stage3/tests
-```
-
-
 
 
 ## 🔬 Publications
 
-### In Preparation (2026)
+### Preprint (2026)
 **Gate-Rheology: Inertia of Cognitive Control Explains Meta-Rigidity in Sequential Decision Making and Reversal Learning**
 
 *Abstract:* We introduce Gate-Rheology, a mechanistic framework in which arbitration between computational modes possesses intrinsic inertia. Across 30 seeds, we demonstrate dissociable double dissociation between control-mode inertia ($V_G$) and action perseveration ($V_p$).
 
-## 📈 Key Results (Stage 2)
+#### 📈 Key Results (Stage 2)
 
 | Metric | Result | Status |
 | :--- | :--- | :--- |
@@ -255,7 +281,7 @@ python -m pytest stage3/tests
 
 ---
 
-## 🧪 Architectural components
+#### 🧪 Architectural components
 
 | Component | Description | Status |
 | :--- | :--- | :--- |
@@ -270,6 +296,13 @@ python -m pytest stage3/tests
 | **Biological Comparability Layer** | Lab-trace adapters, geometry registry, and fixed-threshold comparison reports | 🟡 Stage 3.2C in development |
 
 ---
+
+### Stage 3 follow-up paper
+
+Working title: **Gate-Rheology and Deliberation: Viscous Control as a Source of VTE-like Behavior under Ambiguous Choice and One-Shot Valence Deformation**
+
+Status: article handoff prepared. See: [docs/article_handoff/Stage3_Followup_Article_Outline.md](docs/article_handoff/Stage3_Followup_Article_Outline.md)
+
 
 ## 🤝 Contribution
 
@@ -297,7 +330,8 @@ MIT License — see [LICENSE](LICENSE) file.
 2. Le, N. M., et al. (2023). Mixtures of strategies underlie rodent behavior during reversal learning. *PLOS Computational Biology, 19*(9), e1011430.
 3. Hasz, B. M., & Redish, A. D. (2018). Deliberation and procedural automation on a two-step task for rats. *Frontiers in Integrative Neuroscience, 12*, 30.
 4. Lee, S. W., Shimojo, S., & O'Doherty, J. P. (2014). Neural computations underlying arbitration between model-based and model-free learning. *Neuron, 81*(3), 687–699.
-5. Wilson, R. C., & Collins, A. G. E. (2019). Ten simple rules for the computational modeling of behavioral data. *eLife, 8*, e49547.
+5. Redish, A. D. (2016). Vicarious trial and error. *Nature Reviews Neuroscience, 17*(3), 147-159.
+6. Wilson, R. C., & Collins, A. G. E. (2019). Ten simple rules for the computational modeling of behavioral data. *eLife, 8*, e49547.
 
 ---
 

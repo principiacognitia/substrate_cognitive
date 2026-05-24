@@ -1,37 +1,39 @@
-# Stage 3.2: VTE Wrapper Service Layer
+# Stage 3.2: VTE Measurement and Seed-Level Statistics Layer
 
-This directory contains the Stage 3.2 VTE wrapper layer for `substrate_cognitive`.
+This directory contains the Stage 3.2 VTE-style measurement layer for `substrate_cognitive`.
 
-`vte/` is intentionally separated from `stage3/`. It is not part of the toy cognitive model and does not participate in action selection. It is a read-only measurement and analysis layer over externalized behavioral traces.
+`vte/` is intentionally separated from `stage3/`. It is not part of the toy cognitive model and does not participate in action selection. It is a read-only measurement, adapter, analysis, and reporting layer over externalized behavioral traces.
+
+Stage 3.2 is now closed as a measurement/statistical layer.
 
 ---
 
 ## Status
 
-- **Stage 3.2A: VTE wrapper core — Complete.**  
-  The wrapper reads externalized trace rows and writes trial-level VTE metrics. It does not call Stage 3 internals.
-
-- **Stage 3.2B: Stage 3 log adapter + batch analysis — Final debug.**  
-  The Stage 3 adapter converts Stage 3 step logs into the external VTE trace schema. Batch conversion and analysis are being stabilized.
-
-- **Stage 3.2C: biological-lab comparability layer — In development.**  
-  The next layer will add lab-tracking adapters, maze geometry registries, threshold profiles, and comparison reports.
+| Layer | Status | Meaning |
+| :--- | :--- | :--- |
+| **Stage 3.2A** | ✅ Complete | VTE wrapper core: fixed trace schema, IdPhi-like metrics, pause and reorientation metrics. |
+| **Stage 3.2B** | ✅ Complete | Stage 3 step-log adapter, batch processing, reports, figures, reviewer-facing artifacts. |
+| **Stage 3.2C** | ✅ Complete as decision-level biological comparability | Biological/lab adapters and comparability notes are constrained to decision-level and schema-level comparison. |
+| **Patch 20B-20E** | ✅ Complete | Seed-level statistics, FDR correction, model-relevant vs wrapper-sanity separation, degenerate-ablation diagnostics. |
+| **Patch 21 visualization** | ⬜ Deferred / optional | Visualization is useful for article figures but is not required for Stage 3.2 closure. |
 
 ---
 
 ## Boundary
 
-The VTE wrapper must not import model internals from `stage3/`.
+The VTE layer must not import model internals from `stage3/`.
 
 Allowed input:
 
 - CSV or JSONL behavioral traces;
 - trial-level metadata;
-- geometry metadata, if supplied as data files.
+- geometry metadata supplied as data files;
+- biological/lab data translated through an adapter into the same schema.
 
 Disallowed input:
 
-- internal gate state;
+- internal Gate state;
 - internal model configuration objects;
 - reward/threat configuration classes;
 - precomputed deliberation labels;
@@ -80,13 +82,13 @@ Stage 3 adapter traces currently set:
 pose_source = synthetic_from_stage3_steps
 ```
 
-This label is important. It means the trace is reconstructed from Stage 3 step logs, not obtained from biological tracking data.
+This label is part of the interpretation boundary. It means the trace is reconstructed from Stage 3 step logs, not obtained from biological tracking data.
 
 ---
 
 ## Output contract
 
-The wrapper produces trial-level VTE metrics:
+The wrapper produces trial-level VTE-style metrics:
 
 - `raw_idphi`
 - `log_idphi`
@@ -96,13 +98,91 @@ The wrapper produces trial-level VTE metrics:
 - `choice_point_duration`
 - `vte_binary`
 
-The wrapper may classify trials as VTE-like, but cognitive interpretation remains separate from measurement.
+The wrapper may classify trials as VTE-like under a fixed thresholding rule, but cognitive interpretation remains separate from measurement.
 
 ---
 
-## Current workflow
+## Canonical Stage 3.2 outputs
 
-### 1. Translate Stage 3 step logs to VTE trace CSV
+Production-facing Stage 3.2 statistical outputs are stored in:
+
+```text
+docs/results/vte/stage3_2_seed_level_stats_analysis/
+```
+
+Main files:
+
+```text
+Stage3_2_Response_To_GLM_Stats_Critique.md
+Stage3_2_Seed_Level_Stats_Analysis_Report.md
+stage3_2_seed_level_stats_analysis_meta.json
+
+Table_3_2_Seed_Level_Stats_By_Test_Role.csv
+Table_3_2_Model_Relevant_Seed_Level_Tests.csv
+Table_3_2_Wrapper_Sanity_Tests.csv
+Table_3_2_Degenerate_Ablation_Diagnostics.csv
+
+Table_3_2_Model_Relevant_Seed_Level_Tests.md
+Table_3_2_Wrapper_Sanity_Tests.md
+Table_3_2_Degenerate_Ablation_Diagnostics.md
+
+Figure_3_2_Model_Relevant_Seed_Level_Effects.png
+Figure_3_2_Degenerate_Ablation_Diagnostics.png
+Figure_3_2_Seed_Level_VTE_Rate_By_Ablation.png
+Figure_3_2_Seed_Level_Ablation_Effect_Sizes.png
+Figure_3_2_Seed_Level_VTE_Delta_Effect_Sizes.png
+```
+
+---
+
+## Statistical interpretation
+
+Patch 20B performs seed-level statistical tests.
+
+Patch 20D/20E are presentation and classification layers over Patch 20B. They do not recompute the underlying tests.
+
+Patch 20E separates tests into:
+
+1. **model_relevant_test**  
+   Behavioral or ablation contrasts that can support model-level interpretation.
+
+2. **wrapper_sanity_check**  
+   Expected VTE-label separation on metrics used by or adjacent to the VTE measurement definition, such as IdPhi, pause, and reorientation.
+
+3. **degenerate_ablation_diagnostic**  
+   Extreme or collapsing ablation behavior, especially `novg`, which should not be treated as a clean localized effect.
+
+4. **diagnostic**  
+   Reserved for rows not classified by the above categories. In the current closed Stage 3.2 package, this category is expected to be empty.
+
+---
+
+## Biological-comparability boundary
+
+Stage 3.2 includes biological/lab adapter work only under a restricted interpretation.
+
+Allowed claims:
+
+- the same schema can represent synthetic Stage 3 decision traces and selected biological decision-level records;
+- decision-level biological comparators can be used to test whether the measurement vocabulary is plausible;
+- biological adapters can support future work by fixing data contracts and geometry metadata.
+
+Disallowed claims:
+
+- rodent-level VTE equivalence;
+- biological trajectory replay equivalence;
+- neural mechanism identity;
+- allocentric spatial cognition;
+- full W-maze or RROW task equivalence;
+- dataset-specific retuning of IdPhi or VTE thresholds to improve agreement.
+
+Decision-level comparability is not movement-level comparability.
+
+---
+
+## Workflow
+
+Translate Stage 3 step logs to VTE trace CSV:
 
 ```bash
 python -m vte.analysis.translate_stage3_steps_to_vte_trace \
@@ -111,7 +191,7 @@ python -m vte.analysis.translate_stage3_steps_to_vte_trace \
   --run-id balanced_conflict_full
 ```
 
-### 2. Run the VTE wrapper
+Run the wrapper:
 
 ```bash
 python -m vte.analysis.run_stage3_2_vte \
@@ -119,7 +199,7 @@ python -m vte.analysis.run_stage3_2_vte \
   --output-dir logs/vte/stage3_2_smoke
 ```
 
-### 3. Analyze VTE metrics
+Analyze VTE metrics:
 
 ```bash
 python -m vte.analysis.analyze_stage3_2_vte \
@@ -127,87 +207,33 @@ python -m vte.analysis.analyze_stage3_2_vte \
   --output-dir logs/vte/stage3_2_smoke_analysis
 ```
 
-### 4. Batch workflow
+Run seed-level statistics:
 
 ```bash
-python -m vte.analysis.run_stage3_2_vte_batch \
-  --input-root logs/stage3/stage3_1_closure_raw/stage3_1b/<suite> \
-  --output-root logs/vte/stage3_2_batch
+python -m vte.analysis.run_stage3_2_seed_level_stats \
+  --input-dir logs/vte/stage3_2_batch \
+  --output-dir logs/vte/stage3_2_seed_level_stats
 ```
 
-The exact batch arguments may change while Stage 3.2B is in final debug.
+Analyze and package seed-level statistics:
 
----
-
-## Output locations
-
-Raw VTE traces:
-
-```text
-logs/vte/raw/
+```bash
+python -m vte.analysis.analyze_stage3_2_seed_level_stats \
+  --stats-dir logs/vte/stage3_2_seed_level_stats \
+  --output-dir docs/results/vte/stage3_2_seed_level_stats_analysis \
+  --top-n 25
 ```
 
-Wrapper outputs:
+Build reviewer package:
 
-```text
-logs/vte/
+```bash
+python -m stage3.analysis.build_stage3_reviewer_package \
+  --preset stage3_1_3_2 \
+  --profile llm5 \
+  --results-root docs/results \
+  --output-dir docs/reviewer_packages/stage3_1_3_2 \
+  --clean
 ```
-
-Analysis outputs:
-
-```text
-logs/vte/<analysis_dir>/
-```
-
-Publication-facing or reviewer-facing outputs, when explicitly curated:
-
-```text
-docs/results/vte/
-```
-
-Generated logs remain local unless explicitly copied into `docs/results/`.
-
----
-
-## Interpretation levels
-
-Stage 3.2 separates three levels:
-
-1. **Trajectory measurement:** IdPhi-like angular integration, pause duration, reorientation count.
-2. **Behavioral regime:** VTE-like vs non-VTE-like trials under a fixed thresholding rule.
-3. **Cognitive interpretation:** deliberation, planning, procedural interruption.
-
-Stage 3.2A validates levels 1 and 2 for the wrapper. Stage 3.2C is required before biological-lab comparability claims can be made.
-
----
-
-## Biological-comparability boundary
-
-Current Stage 3 traces use synthetic pose reconstruction. They are suitable for testing whether the wrapper is stable and whether Stage 3 logs contain VTE-like pause-and-reorient structure.
-
-They are not yet biological tracking traces.
-
-Biological comparison requires:
-
-- a fixed trace schema;
-- a geometry registry for choice points, arms, commit zones, and reward zones;
-- lab-data adapters that translate tracking data into the same schema;
-- a predeclared thresholding rule;
-- comparison reports that do not change the measurement core per dataset.
-
-Allowed future changes:
-
-- file-format adapters;
-- coordinate transforms;
-- maze geometry adapters;
-- metadata harmonization.
-
-Disallowed future changes:
-
-- changing IdPhi definition per dataset;
-- changing z-score procedure per dataset;
-- changing VTE threshold per dataset;
-- adding dataset-specific correction terms that improve agreement with one laboratory.
 
 ---
 
@@ -218,10 +244,29 @@ python -m pytest vte/tests
 python -m pytest stage3/tests
 ```
 
-The VTE tests cover schema validation, metric computation, wrapper behavior, Stage 3 adapter behavior, and analysis output generation.
+The VTE tests cover schema validation, metric computation, wrapper behavior, Stage 3 adapter behavior, biological adapter contracts, seed-level statistics, analysis output generation, and reviewer package integration.
 
 ---
 
-## Design constraint
+## Deferred work
 
-The wrapper core is frozen before external biological datasets are inspected. External adapters may translate data into the same schema, but must not change the measurement core.
+Deferred Stage 3.2 work is tracked in:
+
+```text
+docs/stage3_2_TBD.md
+```
+
+Deferred items include VTE-like trail visualization, animation, side-by-side visual comparison, W-maze configuration, maze-builder utilities, and possible neural-data comparison of Gate dynamics at choice points.
+
+---
+
+## Closure
+
+Stage 3.2 is closed as a read-only measurement and statistical analysis layer.
+
+The next recommended project step is article writing, using:
+
+```text
+docs/STAGE3_2_CLOSURE.md
+docs/article_handoff/Stage3_Followup_Article_Outline.md
+```
