@@ -86,5 +86,7 @@ repo3.1b.txt
 # --- Curated paper-grade results ---
 !docs/results/
 !docs/results/**
+!docs/reviewer_packages/
+!docs/reviewer_packages/**
 
 *.zip

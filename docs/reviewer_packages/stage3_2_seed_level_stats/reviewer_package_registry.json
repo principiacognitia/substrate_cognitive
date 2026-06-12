@@ -1,0 +1,91 @@
+{
+  "package": "stage3_2_llm_reviewer_package",
+  "created_at": "2026-05-23T15:36:43",
+  "results_root": "E:\\CRS-1\\substrate_cognitive\\docs\\results",
+  "source_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\results\\vte\\stage3_2_seed_level_stats_analysis",
+  "output_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\reviewer_packages\\stage3_2_seed_level_stats",
+  "source_commit": null,
+  "files": [
+    {
+      "name": "Figure_Stage3_2_Reviewer_Page_Diagnostics.png",
+      "kind": "png",
+      "sha256": "9b23d88174f5b71160c900918a7cc428f5645a657b63f1efafb133ccdf13293f",
+      "size_bytes": 238710
+    },
+    {
+      "name": "Figure_Stage3_2_Reviewer_Page_Stats.png",
+      "kind": "png",
+      "sha256": "2584adeebed6c1c0053ff304ac24c009e2f4c7d51010ad510081e837a0e6aaec",
+      "size_bytes": 267313
+    },
+    {
+      "name": "Stage3_2_Key_Tables.md",
+      "kind": "md",
+      "sha256": "827c29cf78ec5fa31033c5db683b8ba9b12e505efef01ef1637f2e565c1d09d9",
+      "size_bytes": 20644
+    },
+    {
+      "name": "Stage3_2_Reviewer_Report.md",
+      "kind": "md",
+      "sha256": "2b2ca3da35f7c618576b30840f70ebf421d90cecd9f0fa8c989d96c599d6983b",
+      "size_bytes": 3455
+    }
+  ],
+  "source_files": [
+    {
+      "name": "Stage3_2_Response_To_GLM_Stats_Critique.md",
+      "sha256": "69a3b55ef94f2cc7ece94e1b83aad5b0a50040992806cf9618caf4982f07cb51",
+      "size_bytes": 2377
+    },
+    {
+      "name": "stage3_2_seed_level_stats_analysis_meta.json",
+      "sha256": "6efc0b2e937ba37d16c2f9893e88449988c8d4e3daeaef1684f85660cbf6ec2f",
+      "size_bytes": 3021
+    },
+    {
+      "name": "Table_3_2_Seed_Level_Stats_By_Test_Role.csv",
+      "sha256": "fc5f351de8284898ff38eaebda7ecf9167acf2feddd9382be24e128b3bc7d93f",
+      "size_bytes": 374
+    },
+    {
+      "name": "Table_3_2_Model_Relevant_Seed_Level_Tests.csv",
+      "sha256": "88b993f61c70eafef3abe91fc331c278fca8168dc40ecdd6dc92baec0fe40267",
+      "size_bytes": 17587
+    },
+    {
+      "name": "Table_3_2_Wrapper_Sanity_Tests.csv",
+      "sha256": "bcd15024ec0e747f12dcd0d8eb8c2667e4aa4939dcf30b1a8056d3bfbed20432",
+      "size_bytes": 22950
+    },
+    {
+      "name": "Table_3_2_Degenerate_Ablation_Diagnostics.csv",
+      "sha256": "41f1400c8fb8409162417fffb6f9eec8b3ac6301840d1a6f58333b76352e1095",
+      "size_bytes": 3343
+    },
+    {
+      "name": "Figure_3_2_Model_Relevant_Seed_Level_Effects.png",
+      "sha256": "278b6dc55b5a57fc5b311d1d27b6a4c4b7e6552612c09e0f0ece51f09e665c31",
+      "size_bytes": 252599
+    },
+    {
+      "name": "Figure_3_2_Seed_Level_VTE_Rate_By_Ablation.png",
+      "sha256": "bb4677cd64a5f08452a45bd8801a358f0ae16bb61ae6aa24d6dcd64b4b08c15f",
+      "size_bytes": 42189
+    },
+    {
+      "name": "Figure_3_2_Degenerate_Ablation_Diagnostics.png",
+      "sha256": "656fe23fa50e6a07ee0f1bde608e7fc606c764ae0474b27555d781695ffe62fd",
+      "size_bytes": 118106
+    },
+    {
+      "name": "Figure_3_2_Seed_Level_Ablation_Effect_Sizes.png",
+      "sha256": "7a56a8dfa85132ae3320be212ed7ba2d1954e9e1f96aaf6cc1f652d7cb862519",
+      "size_bytes": 183096
+    },
+    {
+      "name": "Figure_3_2_Seed_Level_VTE_Delta_Effect_Sizes.png",
+      "sha256": "14de30bd3dfbd15dbd77718e456572e7a75636eeb900e06ed55df12a7a3c09ed",
+      "size_bytes": 223982
+    }
+  ]
+}

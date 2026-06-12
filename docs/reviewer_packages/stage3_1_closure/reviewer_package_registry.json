@@ -1,0 +1,129 @@
+{
+  "package": "stage3_consolidated_reviewer_package",
+  "preset": "stage3_1_closure",
+  "profile": "llm5",
+  "title": "Stage 3.1A/B Closure Reviewer Package",
+  "created_at": "2026-05-23T19:07:00",
+  "results_root": "E:\\CRS-1\\substrate_cognitive\\docs\\results",
+  "output_dir": "E:\\CRS-1\\substrate_cognitive\\docs\\reviewer_packages\\stage3_1_closure",
+  "source_commit": null,
+  "output_files": [
+    {
+      "name": "Figure_Stage3_Reviewer_Page_Diagnostics.png",
+      "sha256": "a5aef80be2ab4933b7d788e5758b57eca4223fe488789772661b00700c0c024f",
+      "size_bytes": 605139
+    },
+    {
+      "name": "Figure_Stage3_Reviewer_Page_Main.png",
+      "sha256": "cb9a87190f77302aa99bfcd8a17b03bcfbcddce2f6102b1ba34c7e94f5daedc5",
+      "size_bytes": 794687
+    },
+    {
+      "name": "Stage3_Key_Tables.md",
+      "sha256": "a763433eee386ffe757caf9d74ff9b7fa5c4fb701d592080e9684632d24782c5",
+      "size_bytes": 36927
+    },
+    {
+      "name": "Stage3_Reviewer_Report.md",
+      "sha256": "2b4e1f97e062f1dcdaed294462fa7bbc5a1d72f33a3a4a7cd9981e19325c3ca8",
+      "size_bytes": 1094
+    }
+  ],
+  "source_files": [
+    {
+      "relpath": "stage3_1_closure_manifest.json",
+      "sha256": "69e1348a925788fc22a3e5ac775de527905c122f7f69c13d143fb0daa9796887",
+      "size_bytes": 13738
+    },
+    {
+      "relpath": "stage3_1a/figures/Figure_3_1A_Block_Covered_Rate.png",
+      "sha256": "662249ddb7198d6c856fc6ce805fae47cd8f79a8ba59b0492809a1955d439c0f",
+      "size_bytes": 30294
+    },
+    {
+      "relpath": "stage3_1a/tables/Table_3_1A_Block_Dynamics.csv",
+      "sha256": "260f4f8f32ae1eb1490767c97e7850a7e557e77b3542dddbb7ee443a020fc456",
+      "size_bytes": 355
+    },
+    {
+      "relpath": "stage3_1a/tables/Table_3_1A_Seed_Summary.csv",
+      "sha256": "2a36b4dcc5990b0701cf5877c595c4e401616eee38b4337e2350fbc046468751",
+      "size_bytes": 3920
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Matrix_Commit_Latency_Heatmap.png",
+      "sha256": "bf8134a06fd3bec747a8af9555e23aed379e1bfcd5c937059d8e27fd375731f5",
+      "size_bytes": 47444
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Matrix_P_Open_Heatmap.png",
+      "sha256": "8d10c6235104a882e6e3bb520f95bc1d6cf6c36b7872f583e4f45fda5c003a35",
+      "size_bytes": 47648
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Matrix_P_Timeout_Heatmap.png",
+      "sha256": "bc0e29ba6b0d9ea128c46b7be90851d752da5f4b2bbce109a45db979fcd6a0c8",
+      "size_bytes": 53984
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_OneShot_Effect_By_Ablation.png",
+      "sha256": "4657b371ae08584081534fe57cb637215457d19c24989d2d0eee9a0f3d86b29e",
+      "size_bytes": 75516
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Shock_HRisk_SEM_Zoom.png",
+      "sha256": "8708cfcb7ba6ea44ef88c4c3e5070a8c76445b2b1053eef861e58c61d9b2908e",
+      "size_bytes": 83352
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Shock_QNeg_SEM_Zoom.png",
+      "sha256": "c2af9a0cbb6b2e9e581f404d3d70f71cff70bf43073cac09608408c2c7b80019",
+      "size_bytes": 104972
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Shock_Target_Choice_SEM_Zoom.png",
+      "sha256": "9de4fdc42bbb6a854fa835c0f08b7b7636af83636085125f9217d8418b7ba169",
+      "size_bytes": 315012
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Treat_QPos_SEM_Zoom.png",
+      "sha256": "0a06feabc09addb0e725ded6df4cf1c8cfa36fedc91a6ffd0d2cb7b712911e3b",
+      "size_bytes": 94648
+    },
+    {
+      "relpath": "stage3_1b_closure/figures/Figure_3_1B_Treat_Target_Choice_SEM_Zoom.png",
+      "sha256": "c205a73e6cddb86058d0786e9aa8339a1dc4484ec16afbde3352ef3f849077a1",
+      "size_bytes": 365041
+    },
+    {
+      "relpath": "stage3_1b_closure/tables/Table_3_1B_ablation_summary_wide.csv",
+      "sha256": "ca05892b0df5bf1bf623c1e9ec9afc73d292d09ccf09e8d8db67415eae2f5481",
+      "size_bytes": 7298
+    },
+    {
+      "relpath": "stage3_1b_closure/tables/Table_3_1B_matrix_cell_summary.csv",
+      "sha256": "50c52fa799ca2d7f861463ccd288cd76414ad11fdd3765b417da8719bcba7964",
+      "size_bytes": 1588
+    },
+    {
+      "relpath": "stage3_1b_closure/tables/Table_3_1B_one_shot_ablation_localization.csv",
+      "sha256": "94d1e1577205a5de8037b17f2e58ef211beb19b39a58d971d5437919a36cfcf3",
+      "size_bytes": 18481
+    },
+    {
+      "relpath": "stage3_1b_closure/tables/Table_3_1B_one_shot_acceptance_summary.csv",
+      "sha256": "da4fc3c90f4837fc2ecc045ea8388111f109befed7809e179a5368a24a4c609d",
+      "size_bytes": 55700
+    },
+    {
+      "relpath": "stage3_1b_closure/tables/Table_3_1B_one_shot_carrier_effect_stats.csv",
+      "sha256": "ed10ad03fec6d40d00baf7e433447994c1c7438b1b82e942ba82c723b384db9c",
+      "size_bytes": 14151
+    },
+    {
+      "relpath": "stage3_1b_closure/tables/Table_3_1B_one_shot_effect_stats.csv",
+      "sha256": "719411ea0f940c1e58df8b03f457bbd511c250ff6bd216ee30e1cddd20460998",
+      "size_bytes": 8391
+    }
+  ]
+}
